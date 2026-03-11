@@ -81,6 +81,9 @@ export default function Clients() {
           <Building2 className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-semibold text-foreground">Client Directory</h1>
         </div>
+        <Button variant="outline" onClick={() => setPortalLinkOpen(true)}>
+          <Link2 className="mr-1 h-4 w-4" /> Portal Link
+        </Button>
       </div>
 
       <div className="mb-4 flex items-center gap-3">
