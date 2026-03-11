@@ -426,6 +426,61 @@ export type Database = {
           },
         ]
       }
+      portal_tokens: {
+        Row: {
+          company_id: string
+          contact_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          revoked_at: string | null
+          token: string
+          workspace_id: string
+        }
+        Insert: {
+          company_id: string
+          contact_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          revoked_at?: string | null
+          token?: string
+          workspace_id: string
+        }
+        Update: {
+          company_id?: string
+          contact_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          revoked_at?: string | null
+          token?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_tokens_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_tokens_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_tokens_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -885,6 +940,11 @@ export type Database = {
         Returns: boolean
       }
       next_invoice_number: { Args: { _workspace_id: string }; Returns: string }
+      portal_respond_proposal: {
+        Args: { _action: string; _token: string; _version_id: string }
+        Returns: Json
+      }
+      validate_portal_token: { Args: { _token: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "team_member"
