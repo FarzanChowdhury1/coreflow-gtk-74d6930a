@@ -8,22 +8,25 @@ import {
   FolderKanban,
   Receipt,
   CreditCard,
-  Globe,
   Bell,
   Shield,
   Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
+  ChevronsUpDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 interface NavItem {
   label: string;
   icon: React.ElementType;
   path: string;
   section?: string;
+  adminOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -33,18 +36,25 @@ const navItems: NavItem[] = [
   { label: "Proposals", icon: FileText, path: "/proposals", section: "Commercial" },
   { label: "Approvals", icon: CheckSquare, path: "/approvals", section: "Commercial" },
   { label: "Projects", icon: FolderKanban, path: "/projects", section: "Operations" },
-  { label: "Invoices", icon: Receipt, path: "/invoices", section: "Finance" },
-  { label: "Payments", icon: CreditCard, path: "/payments", section: "Finance" },
+  { label: "Invoices", icon: Receipt, path: "/invoices", section: "Finance", adminOnly: true },
+  { label: "Payments", icon: CreditCard, path: "/payments", section: "Finance", adminOnly: true },
   { label: "Notifications", icon: Bell, path: "/notifications", section: "System" },
-  { label: "Audit Log", icon: Shield, path: "/audit", section: "System" },
-  { label: "Settings", icon: Settings, path: "/settings", section: "System" },
+  { label: "Audit Log", icon: Shield, path: "/audit", section: "System", adminOnly: true },
+  { label: "Settings", icon: Settings, path: "/settings", section: "System", adminOnly: true },
 ];
 
 export function AppSidebar() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const { signOut, user } = useAuth();
+  const { currentWorkspace, currentRole, workspaces, setCurrentWorkspaceId } = useWorkspace();
+  const [showWorkspacePicker, setShowWorkspacePicker] = useState(false);
 
-  const sections = navItems.reduce<Record<string, NavItem[]>>((acc, item) => {
+  const filteredItems = navItems.filter(
+    (item) => !item.adminOnly || currentRole === "admin"
+  );
+
+  const sections = filteredItems.reduce<Record<string, NavItem[]>>((acc, item) => {
     const section = item.section || "Other";
     if (!acc[section]) acc[section] = [];
     acc[section].push(item);
@@ -60,13 +70,52 @@ export function AppSidebar() {
     >
       {/* Logo */}
       <div className="flex h-14 items-center gap-2 px-4 border-b border-sidebar-border">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary shrink-0">
           <span className="text-sm font-bold text-sidebar-primary-foreground">CF</span>
         </div>
         {!collapsed && (
           <span className="text-sm font-semibold text-sidebar-accent-foreground">CoreFlow OS</span>
         )}
       </div>
+
+      {/* Workspace selector */}
+      {!collapsed && currentWorkspace && (
+        <div className="px-2 py-2 border-b border-sidebar-border">
+          <button
+            onClick={() => setShowWorkspacePicker(!showWorkspacePicker)}
+            className="flex w-full items-center justify-between rounded-md px-3 py-2 text-xs text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+          >
+            <span className="truncate font-medium">{currentWorkspace.name}</span>
+            <ChevronsUpDown className="h-3 w-3 shrink-0 text-sidebar-muted" />
+          </button>
+          {showWorkspacePicker && workspaces.length > 1 && (
+            <div className="mt-1 rounded-md border border-sidebar-border bg-sidebar-accent p-1">
+              {workspaces.map((ws) => (
+                <button
+                  key={ws.id}
+                  onClick={() => {
+                    setCurrentWorkspaceId(ws.id);
+                    setShowWorkspacePicker(false);
+                  }}
+                  className={cn(
+                    "flex w-full rounded px-3 py-1.5 text-xs transition-colors",
+                    ws.id === currentWorkspace.id
+                      ? "text-sidebar-primary font-medium"
+                      : "text-sidebar-foreground hover:text-sidebar-accent-foreground"
+                  )}
+                >
+                  {ws.name}
+                </button>
+              ))}
+            </div>
+          )}
+          {currentRole && (
+            <p className="mt-1 px-3 text-[10px] uppercase tracking-wider text-sidebar-muted">
+              {currentRole === "admin" ? "Admin" : "Team Member"}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-3 px-2">
@@ -100,8 +149,21 @@ export function AppSidebar() {
         ))}
       </nav>
 
-      {/* Collapse toggle */}
-      <div className="border-t border-sidebar-border p-2">
+      {/* Footer */}
+      <div className="border-t border-sidebar-border p-2 space-y-1">
+        {!collapsed && user && (
+          <div className="px-3 py-1">
+            <p className="text-xs text-sidebar-foreground truncate">{user.email}</p>
+          </div>
+        )}
+        <button
+          onClick={signOut}
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+          title={collapsed ? "Sign out" : undefined}
+        >
+          <LogOut className="h-4 w-4 shrink-0" />
+          {!collapsed && <span>Sign Out</span>}
+        </button>
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="flex w-full items-center justify-center rounded-md py-2 text-sidebar-foreground hover:bg-sidebar-accent transition-colors"

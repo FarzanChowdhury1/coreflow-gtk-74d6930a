@@ -3,6 +3,9 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 import { AppLayout } from "@/components/layout/AppLayout";
 import Login from "@/pages/Login";
@@ -24,38 +27,48 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/login" element={<Login />} />
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<Login />} />
 
-          {/* External client portal (completely decoupled auth) */}
-          <Route path="/portal/*" element={<PortalEntry />} />
+            {/* External client portal (completely decoupled auth — Phase 6) */}
+            <Route path="/portal/*" element={<PortalEntry />} />
 
-          {/* Internal authenticated routes */}
-          <Route element={<AppLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/leads" element={<Leads />} />
-            <Route path="/clients" element={<Clients />} />
-            <Route path="/proposals" element={<Proposals />} />
-            <Route path="/approvals" element={<ApprovalsPage />} />
-            <Route path="/projects" element={<Projects />} />
-            <Route path="/invoices" element={<Invoices />} />
-            <Route path="/payments" element={<Payments />} />
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/audit" element={<AuditLog />} />
-            <Route path="/settings" element={<SettingsPage />} />
-          </Route>
+            {/* Internal authenticated routes */}
+            <Route
+              element={
+                <ProtectedRoute>
+                  <WorkspaceProvider>
+                    <AppLayout />
+                  </WorkspaceProvider>
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/leads" element={<Leads />} />
+              <Route path="/clients" element={<Clients />} />
+              <Route path="/proposals" element={<Proposals />} />
+              <Route path="/approvals" element={<ApprovalsPage />} />
+              <Route path="/projects" element={<Projects />} />
+              <Route path="/invoices" element={<Invoices />} />
+              <Route path="/payments" element={<Payments />} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/audit" element={<AuditLog />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Route>
 
-          {/* Redirects */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+            {/* Redirects */}
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
