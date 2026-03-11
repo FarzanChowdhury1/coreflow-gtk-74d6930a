@@ -23,6 +23,7 @@ export default function Clients() {
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [portalLinkOpen, setPortalLinkOpen] = useState(false);
 
   const workspaceId = currentWorkspace?.id;
 
