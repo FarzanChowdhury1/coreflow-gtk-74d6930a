@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Building2, Plus, Search } from "lucide-react";
+import { Building2, Plus, Search, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
