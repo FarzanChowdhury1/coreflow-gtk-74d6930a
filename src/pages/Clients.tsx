@@ -213,6 +213,12 @@ export default function Clients() {
         contact={editingContact}
         companies={companies}
       />
+      <PortalLinkDialog
+        open={portalLinkOpen}
+        onOpenChange={setPortalLinkOpen}
+        contacts={contacts}
+        companies={companies}
+      />
     </div>
   );
 }
