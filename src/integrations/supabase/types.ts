@@ -221,6 +221,112 @@ export type Database = {
         }
         Relationships: []
       }
+      project_members: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          company_id: string
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          id: string
+          name: string
+          proposal_version_id: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["project_status"]
+          target_end_date: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          proposal_version_id?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          target_end_date?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          proposal_version_id?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          target_end_date?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_proposal_version_id_fkey"
+            columns: ["proposal_version_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_line_items: {
         Row: {
           amount: number
@@ -392,6 +498,66 @@ export type Database = {
           },
         ]
       }
+      tasks: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: Database["public"]["Enums"]["task_priority"]
+          project_id: string
+          sort_order: number
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          project_id: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          project_id?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_memberships: {
         Row: {
           created_at: string
@@ -462,6 +628,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_project_from_approved_version: {
+        Args: {
+          _created_by: string
+          _proposal_version_id: string
+          _workspace_id: string
+        }
+        Returns: string
+      }
       has_workspace_access: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
@@ -474,6 +648,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_project_member: {
+        Args: { _project_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "team_member"
@@ -483,12 +661,15 @@ export type Database = {
         | "qualified"
         | "unqualified"
         | "converted"
+      project_status: "active" | "on_hold" | "completed" | "cancelled"
       proposal_version_status:
         | "draft"
         | "sent"
         | "approved"
         | "rejected"
         | "voided"
+      task_priority: "low" | "medium" | "high" | "urgent"
+      task_status: "todo" | "in_progress" | "review" | "done"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -624,6 +805,7 @@ export const Constants = {
         "unqualified",
         "converted",
       ],
+      project_status: ["active", "on_hold", "completed", "cancelled"],
       proposal_version_status: [
         "draft",
         "sent",
@@ -631,6 +813,8 @@ export const Constants = {
         "rejected",
         "voided",
       ],
+      task_priority: ["low", "medium", "high", "urgent"],
+      task_status: ["todo", "in_progress", "review", "done"],
     },
   },
 } as const
