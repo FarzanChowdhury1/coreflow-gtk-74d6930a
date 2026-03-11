@@ -14,6 +14,186 @@ export type Database = {
   }
   public: {
     Tables: {
+      companies: {
+        Row: {
+          address: string | null
+          bin: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          legal_name: string
+          notes: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          address?: string | null
+          bin: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          legal_name: string
+          notes?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          address?: string | null
+          bin?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          legal_name?: string
+          notes?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "companies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contacts: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          deleted_at: string | null
+          designation: string | null
+          email: string | null
+          full_name: string
+          id: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          designation?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          designation?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          currency: string
+          deleted_at: string | null
+          estimated_value: number | null
+          id: string
+          last_contacted_at: string | null
+          next_follow_up: string | null
+          notes: string | null
+          owner_id: string | null
+          source: string | null
+          status: Database["public"]["Enums"]["lead_status"]
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          estimated_value?: number | null
+          id?: string
+          last_contacted_at?: string | null
+          next_follow_up?: string | null
+          notes?: string | null
+          owner_id?: string | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["lead_status"]
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          estimated_value?: number | null
+          id?: string
+          last_contacted_at?: string | null
+          next_follow_up?: string | null
+          notes?: string | null
+          owner_id?: string | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["lead_status"]
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -126,6 +306,12 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "team_member"
+      lead_status:
+        | "new"
+        | "contacted"
+        | "qualified"
+        | "unqualified"
+        | "converted"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -254,6 +440,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "team_member"],
+      lead_status: [
+        "new",
+        "contacted",
+        "qualified",
+        "unqualified",
+        "converted",
+      ],
     },
   },
 } as const
