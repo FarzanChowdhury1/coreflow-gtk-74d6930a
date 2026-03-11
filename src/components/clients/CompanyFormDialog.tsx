@@ -68,7 +68,8 @@ export function CompanyFormDialog({ open, onOpenChange, company }: Props) {
     setLoading(true);
 
     const payload = {
-      ...result.data,
+      legal_name: result.data.legal_name,
+      bin: result.data.bin,
       address: result.data.address || null,
       notes: result.data.notes || null,
       workspace_id: currentWorkspace.id,
