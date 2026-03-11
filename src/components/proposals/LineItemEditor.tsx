@@ -62,9 +62,9 @@ export function LineItemEditor({ version, proposalId, isLocked }: Props) {
     await supabase
       .from("proposal_versions")
       .update({
-        subtotal: subtotal.toFixed(2),
-        tax_total: taxTotal.toFixed(2),
-        grand_total: grandTotal.toFixed(2),
+        subtotal: Number(subtotal.toFixed(2)),
+        tax_total: Number(taxTotal.toFixed(2)),
+        grand_total: Number(grandTotal.toFixed(2)),
       })
       .eq("id", version.id);
     queryClient.invalidateQueries({ queryKey: ["proposal_versions", proposalId] });
