@@ -221,6 +221,177 @@ export type Database = {
         }
         Relationships: []
       }
+      proposal_line_items: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string
+          id: string
+          quantity: number
+          sort_order: number
+          unit_price: number
+          updated_at: string
+          version_id: string
+          workspace_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          description: string
+          id?: string
+          quantity?: number
+          sort_order?: number
+          unit_price?: number
+          updated_at?: string
+          version_id: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string
+          id?: string
+          quantity?: number
+          sort_order?: number
+          unit_price?: number
+          updated_at?: string
+          version_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_line_items_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_line_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_versions: {
+        Row: {
+          created_at: string
+          currency: string
+          grand_total: number
+          id: string
+          notes: string | null
+          proposal_id: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["proposal_version_status"]
+          subtotal: number
+          tax_config: Json
+          tax_total: number
+          updated_at: string
+          valid_until: string | null
+          version_number: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          grand_total?: number
+          id?: string
+          notes?: string | null
+          proposal_id: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["proposal_version_status"]
+          subtotal?: number
+          tax_config?: Json
+          tax_total?: number
+          updated_at?: string
+          valid_until?: string | null
+          version_number?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          grand_total?: number
+          id?: string
+          notes?: string | null
+          proposal_id?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["proposal_version_status"]
+          subtotal?: number
+          tax_config?: Json
+          tax_total?: number
+          updated_at?: string
+          valid_until?: string | null
+          version_number?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_versions_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_versions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposals: {
+        Row: {
+          company_id: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          notes: string | null
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          notes?: string | null
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          notes?: string | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_memberships: {
         Row: {
           created_at: string
@@ -312,6 +483,12 @@ export type Database = {
         | "qualified"
         | "unqualified"
         | "converted"
+      proposal_version_status:
+        | "draft"
+        | "sent"
+        | "approved"
+        | "rejected"
+        | "voided"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -446,6 +623,13 @@ export const Constants = {
         "qualified",
         "unqualified",
         "converted",
+      ],
+      proposal_version_status: [
+        "draft",
+        "sent",
+        "approved",
+        "rejected",
+        "voided",
       ],
     },
   },
