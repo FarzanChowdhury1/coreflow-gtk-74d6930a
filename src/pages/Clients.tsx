@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Building2, Plus, Search } from "lucide-react";
+import { Building2, Plus, Search, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CompanyFormDialog } from "@/components/clients/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/clients/ContactFormDialog";
+import { PortalLinkDialog } from "@/components/clients/PortalLinkDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Tables } from "@/integrations/supabase/types";
@@ -22,6 +23,7 @@ export default function Clients() {
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [portalLinkOpen, setPortalLinkOpen] = useState(false);
 
   const workspaceId = currentWorkspace?.id;
 
@@ -79,6 +81,9 @@ export default function Clients() {
           <Building2 className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-semibold text-foreground">Client Directory</h1>
         </div>
+        <Button variant="outline" onClick={() => setPortalLinkOpen(true)}>
+          <Link2 className="mr-1 h-4 w-4" /> Portal Link
+        </Button>
       </div>
 
       <div className="mb-4 flex items-center gap-3">
@@ -206,6 +211,12 @@ export default function Clients() {
         open={contactDialogOpen}
         onOpenChange={setContactDialogOpen}
         contact={editingContact}
+        companies={companies}
+      />
+      <PortalLinkDialog
+        open={portalLinkOpen}
+        onOpenChange={setPortalLinkOpen}
+        contacts={contacts}
         companies={companies}
       />
     </div>
