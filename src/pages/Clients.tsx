@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CompanyFormDialog } from "@/components/clients/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/clients/ContactFormDialog";
+import { PortalLinkDialog } from "@/components/clients/PortalLinkDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Tables } from "@/integrations/supabase/types";
