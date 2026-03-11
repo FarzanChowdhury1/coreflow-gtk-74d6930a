@@ -14,6 +14,235 @@ export type Database = {
   }
   public: {
     Tables: {
+      approval_actions: {
+        Row: {
+          acted_at: string
+          actor_id: string
+          comment: string | null
+          decision: Database["public"]["Enums"]["approval_status"]
+          id: string
+          request_id: string
+          step_order: number
+          workspace_id: string
+        }
+        Insert: {
+          acted_at?: string
+          actor_id: string
+          comment?: string | null
+          decision: Database["public"]["Enums"]["approval_status"]
+          id?: string
+          request_id: string
+          step_order: number
+          workspace_id: string
+        }
+        Update: {
+          acted_at?: string
+          actor_id?: string
+          comment?: string | null
+          decision?: Database["public"]["Enums"]["approval_status"]
+          id?: string
+          request_id?: string
+          step_order?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_actions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "approval_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_actions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_requests: {
+        Row: {
+          created_at: string
+          current_step: number
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["approvable_type"]
+          id: string
+          requested_by: string
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["approval_status"]
+          updated_at: string
+          workflow_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_step?: number
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["approvable_type"]
+          id?: string
+          requested_by: string
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["approval_status"]
+          updated_at?: string
+          workflow_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          current_step?: number
+          entity_id?: string
+          entity_type?: Database["public"]["Enums"]["approvable_type"]
+          id?: string
+          requested_by?: string
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["approval_status"]
+          updated_at?: string
+          workflow_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_requests_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "approval_workflows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_steps: {
+        Row: {
+          approver_id: string
+          created_at: string
+          id: string
+          step_order: number
+          workflow_id: string
+          workspace_id: string
+        }
+        Insert: {
+          approver_id: string
+          created_at?: string
+          id?: string
+          step_order?: number
+          workflow_id: string
+          workspace_id: string
+        }
+        Update: {
+          approver_id?: string
+          created_at?: string
+          id?: string
+          step_order?: number
+          workflow_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_steps_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "approval_workflows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_steps_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_workflows: {
+        Row: {
+          created_at: string
+          entity_type: Database["public"]["Enums"]["approvable_type"]
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_type: Database["public"]["Enums"]["approvable_type"]
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_type?: Database["public"]["Enums"]["approvable_type"]
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_workflows_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_name: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metadata: Json
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
@@ -362,6 +591,47 @@ export type Database = {
           },
           {
             foreignKeyName: "leads_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          link: string | null
+          title: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          title: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          title?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -944,10 +1214,24 @@ export type Database = {
         Args: { _action: string; _token: string; _version_id: string }
         Returns: Json
       }
+      process_approval_decision: {
+        Args: { _comment?: string; _decision: string; _request_id: string }
+        Returns: Json
+      }
+      submit_for_approval: {
+        Args: {
+          _entity_id: string
+          _entity_type: string
+          _workspace_id: string
+        }
+        Returns: Json
+      }
       validate_portal_token: { Args: { _token: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "team_member"
+      approvable_type: "proposal_version" | "invoice" | "project"
+      approval_status: "pending" | "approved" | "rejected" | "cancelled"
       invoice_status: "draft" | "issued" | "paid" | "partially_paid" | "void"
       lead_status:
         | "new"
@@ -1098,6 +1382,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "team_member"],
+      approvable_type: ["proposal_version", "invoice", "project"],
+      approval_status: ["pending", "approved", "rejected", "cancelled"],
       invoice_status: ["draft", "issued", "paid", "partially_paid", "void"],
       lead_status: [
         "new",
