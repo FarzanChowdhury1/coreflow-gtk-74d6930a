@@ -115,6 +115,181 @@ export type Database = {
           },
         ]
       }
+      invoice_line_items: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          quantity: number
+          sort_order: number
+          unit_price: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+          quantity?: number
+          sort_order?: number
+          unit_price?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          quantity?: number
+          sort_order?: number
+          unit_price?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_line_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_sequences: {
+        Row: {
+          last_number: number
+          workspace_id: string
+        }
+        Insert: {
+          last_number?: number
+          workspace_id: string
+        }
+        Update: {
+          last_number?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_sequences_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          amount_paid: number
+          company_id: string
+          created_at: string
+          currency: string
+          deleted_at: string | null
+          due_date: string | null
+          grand_total: number
+          id: string
+          invoice_number: string
+          issue_date: string | null
+          mushak_6_3: Json
+          notes: string | null
+          project_id: string | null
+          proposal_version_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          subtotal: number
+          tax_config: Json
+          tax_total: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          amount_paid?: number
+          company_id: string
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          due_date?: string | null
+          grand_total?: number
+          id?: string
+          invoice_number: string
+          issue_date?: string | null
+          mushak_6_3?: Json
+          notes?: string | null
+          project_id?: string | null
+          proposal_version_id?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal?: number
+          tax_config?: Json
+          tax_total?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          amount_paid?: number
+          company_id?: string
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          due_date?: string | null
+          grand_total?: number
+          id?: string
+          invoice_number?: string
+          issue_date?: string | null
+          mushak_6_3?: Json
+          notes?: string | null
+          project_id?: string | null
+          proposal_version_id?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal?: number
+          tax_config?: Json
+          tax_total?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_proposal_version_id_fkey"
+            columns: ["proposal_version_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           company_id: string | null
@@ -187,6 +362,63 @@ export type Database = {
           },
           {
             foreignKeyName: "leads_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          invoice_id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          notes: string | null
+          paid_at: string
+          proof_url: string | null
+          recorded_by: string
+          reference: string | null
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          invoice_id: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          notes?: string | null
+          paid_at?: string
+          proof_url?: string | null
+          recorded_by: string
+          reference?: string | null
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          notes?: string | null
+          paid_at?: string
+          proof_url?: string | null
+          recorded_by?: string
+          reference?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -652,15 +884,23 @@ export type Database = {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
       }
+      next_invoice_number: { Args: { _workspace_id: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "team_member"
+      invoice_status: "draft" | "issued" | "paid" | "partially_paid" | "void"
       lead_status:
         | "new"
         | "contacted"
         | "qualified"
         | "unqualified"
         | "converted"
+      payment_method:
+        | "bank_transfer"
+        | "cash"
+        | "cheque"
+        | "mobile_banking"
+        | "other"
       project_status: "active" | "on_hold" | "completed" | "cancelled"
       proposal_version_status:
         | "draft"
@@ -798,12 +1038,20 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "team_member"],
+      invoice_status: ["draft", "issued", "paid", "partially_paid", "void"],
       lead_status: [
         "new",
         "contacted",
         "qualified",
         "unqualified",
         "converted",
+      ],
+      payment_method: [
+        "bank_transfer",
+        "cash",
+        "cheque",
+        "mobile_banking",
+        "other",
       ],
       project_status: ["active", "on_hold", "completed", "cancelled"],
       proposal_version_status: [
