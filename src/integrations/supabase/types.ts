@@ -1185,6 +1185,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bootstrap_workspace: {
+        Args: { _name?: string; _user_id: string }
+        Returns: Json
+      }
       create_project_from_approved_version: {
         Args: {
           _created_by: string
