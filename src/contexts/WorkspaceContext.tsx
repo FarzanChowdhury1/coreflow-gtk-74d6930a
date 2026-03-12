@@ -40,6 +40,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    let cancelled = false;
+
     const fetchWorkspaces = async () => {
       setLoading(true);
 
@@ -48,6 +50,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         .from("workspace_memberships")
         .select("*")
         .eq("user_id", user.id);
+
+      if (cancelled) return;
 
       if (membershipData && membershipData.length > 0) {
         setMemberships(membershipData);
@@ -60,45 +64,51 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           .in("id", workspaceIds)
           .is("deleted_at", null);
 
+        if (cancelled) return;
+
         if (workspaceData) {
           setWorkspaces(workspaceData);
-          // Auto-select first workspace if none selected
           if (!currentWorkspaceId && workspaceData.length > 0) {
             setCurrentWorkspaceId(workspaceData[0].id);
           }
         }
       } else {
         // No memberships — auto-create first workspace for new user
-        const { data: newWorkspace } = await supabase
+        const { data: newWorkspace, error: wsError } = await supabase
           .from("workspaces")
           .insert({ name: "My Workspace" })
           .select()
           .single();
 
-        if (newWorkspace) {
-          // Insert membership as admin (first user of workspace)
-          const { data: newMembership } = await supabase
-            .from("workspace_memberships")
-            .insert({
-              workspace_id: newWorkspace.id,
-              user_id: user.id,
-              role: "admin" as const,
-            })
-            .select()
-            .single();
+        if (cancelled || wsError || !newWorkspace) {
+          if (!cancelled) setLoading(false);
+          return;
+        }
 
-          if (newMembership) {
-            setMemberships([newMembership]);
-            setWorkspaces([newWorkspace]);
-            setCurrentWorkspaceId(newWorkspace.id);
-          }
+        const { data: newMembership } = await supabase
+          .from("workspace_memberships")
+          .insert({
+            workspace_id: newWorkspace.id,
+            user_id: user.id,
+            role: "admin" as const,
+          })
+          .select()
+          .single();
+
+        if (cancelled) return;
+
+        if (newMembership) {
+          setMemberships([newMembership]);
+          setWorkspaces([newWorkspace]);
+          setCurrentWorkspaceId(newWorkspace.id);
         }
       }
 
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     };
 
     fetchWorkspaces();
+    return () => { cancelled = true; };
   }, [user]);
 
   const currentWorkspace = workspaces.find((w) => w.id === currentWorkspaceId) ?? null;
