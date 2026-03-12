@@ -51,7 +51,7 @@ export default function ClientUpdates() {
       if (!workspaceId) return [];
       let query = supabase
         .from("client_updates")
-        .select("*, projects(name), companies(legal_name), profiles!client_updates_author_id_fkey(full_name)")
+        .select("*, projects(name), companies(legal_name)")
         .eq("workspace_id", workspaceId)
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
