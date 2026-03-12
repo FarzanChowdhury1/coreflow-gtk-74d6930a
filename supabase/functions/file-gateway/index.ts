@@ -74,18 +74,7 @@ interface AuthResult {
 }
 
 async function authenticateRequest(req: Request, supabase: ReturnType<typeof createClient>): Promise<AuthResult | null> {
-  // Try internal auth first (Authorization header)
-  const authHeader = req.headers.get("Authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.replace("Bearer ", "");
-    const { data, error } = await supabase.auth.getUser(token);
-    if (!error && data?.user) {
-      // Get workspace from body later
-      return { type: "internal", userId: data.user.id, workspaceId: "" };
-    }
-  }
-
-  // Try portal auth (cookie)
+  // Try portal auth first (cookie) — portal users don't send Authorization
   const cookies = parseCookies(req.headers.get("Cookie"));
   const portalToken = cookies[COOKIE_NAME];
   if (portalToken) {
@@ -97,6 +86,20 @@ async function authenticateRequest(req: Request, supabase: ReturnType<typeof cre
         companyId: payload.company_id as string,
         contactId: payload.contact_id as string,
       };
+    } catch {
+      // invalid portal token, fall through
+    }
+  }
+
+  // Try internal auth (Authorization header)
+  const authHeader = req.headers.get("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.replace("Bearer ", "");
+    try {
+      const { data, error } = await supabase.auth.getUser(token);
+      if (!error && data?.user) {
+        return { type: "internal", userId: data.user.id, workspaceId: "" };
+      }
     } catch {
       // invalid token
     }
