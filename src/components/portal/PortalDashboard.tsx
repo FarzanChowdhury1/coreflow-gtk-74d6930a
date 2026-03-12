@@ -2,7 +2,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PortalProposals } from "./PortalProposals";
 import { PortalInvoices } from "./PortalInvoices";
 import { PortalPayments } from "./PortalPayments";
-import { Building2, FileText, Receipt, CreditCard, LogOut } from "lucide-react";
+import { PortalUpdates } from "./PortalUpdates";
+import { Building2, FileText, Receipt, CreditCard, LogOut, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { portalLogout, type PortalSessionInfo } from "@/lib/portal-api";
 
@@ -36,8 +37,11 @@ export function PortalDashboard({ session }: Props) {
       </div>
 
       <div className="mx-auto max-w-5xl px-4 py-6">
-        <Tabs defaultValue="proposals">
+        <Tabs defaultValue="updates">
           <TabsList>
+            <TabsTrigger value="updates" className="gap-1.5">
+              <MessageSquare className="h-4 w-4" /> Updates
+            </TabsTrigger>
             <TabsTrigger value="proposals" className="gap-1.5">
               <FileText className="h-4 w-4" /> Proposals
             </TabsTrigger>
@@ -49,6 +53,9 @@ export function PortalDashboard({ session }: Props) {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="updates">
+            <PortalUpdates session={session} />
+          </TabsContent>
           <TabsContent value="proposals">
             <PortalProposals session={session} />
           </TabsContent>
