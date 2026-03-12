@@ -175,9 +175,6 @@ export default function ClientUpdates() {
                       <span className="text-xs text-muted-foreground">
                         {(update.projects as any)?.name} · {(update.companies as any)?.legal_name}
                       </span>
-                      <span className="text-xs text-muted-foreground">
-                        by {(update.profiles as any)?.full_name || "Unknown"}
-                      </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
