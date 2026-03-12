@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.file-gateway]
 verify_jwt = false
+
+[functions.daily-digest-worker]
+verify_jwt = false
+
+[functions.asset-cleanup-worker]
+verify_jwt = false
