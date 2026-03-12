@@ -1,1 +1,7 @@
 project_id = "efhsckzltglpygmwezhj"
+
+[functions.portal-auth]
+verify_jwt = false
+
+[functions.portal-data]
+verify_jwt = false

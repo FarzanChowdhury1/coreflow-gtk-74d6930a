@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { PortalSession } from "@/pages/portal/PortalEntry";
+import type { PortalSessionInfo } from "@/lib/portal-api";
+import { portalGetResource } from "@/lib/portal-api";
 import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -8,7 +8,7 @@ import {
 import { format } from "date-fns";
 
 interface Props {
-  session: PortalSession;
+  session: PortalSessionInfo;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -19,23 +19,16 @@ const STATUS_COLORS: Record<string, string> = {
   void: "bg-destructive/10 text-destructive",
 };
 
-export function PortalInvoices({ session }: Props) {
+export function PortalInvoices({ session: _session }: Props) {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("invoices")
-      .select("*")
-      .eq("company_id", session.company_id)
-      .eq("workspace_id", session.workspace_id)
-      .is("deleted_at", null)
-      .neq("status", "draft")
-      .order("created_at", { ascending: false });
+    const { data } = await portalGetResource<any[]>("invoices");
     setInvoices(data || []);
     setLoading(false);
-  }, [session]);
+  }, []);
 
   useEffect(() => { fetchInvoices(); }, [fetchInvoices]);
 
