@@ -1228,6 +1228,10 @@ export type Database = {
         Returns: Json
       }
       validate_portal_token: { Args: { _token: string }; Returns: Json }
+      workspace_has_members: {
+        Args: { _workspace_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "team_member"
