@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.asset-cleanup-worker]
 verify_jwt = false
+
+[functions.short-link-resolver]
+verify_jwt = false
