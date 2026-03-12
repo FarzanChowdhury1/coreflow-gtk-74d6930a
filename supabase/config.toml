@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.portal-data]
 verify_jwt = false
+
+[functions.file-gateway]
+verify_jwt = false
