@@ -43,9 +43,16 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Extract code from query param or path
+    // Extract code from query param or POST body
     const url = new URL(req.url);
-    const code = url.searchParams.get("code") || url.pathname.split("/").pop();
+    let code = url.searchParams.get("code");
+
+    if (!code && req.method === "POST") {
+      try {
+        const body = await req.json();
+        code = body.code || null;
+      } catch { /* ignore */ }
+    }
 
     if (!code || code.length < 6) {
       return new Response(
