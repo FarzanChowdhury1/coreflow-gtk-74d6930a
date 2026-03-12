@@ -71,6 +71,13 @@ Deno.serve(async (req) => {
     return new Response(null, { status: 204, headers: hdrs });
   }
 
+  // --- DELETE: Server-side logout (clear httpOnly cookie) ---
+  if (req.method === "DELETE") {
+    return jsonResponse({ success: true }, 200, hdrs, {
+      "Set-Cookie": `${COOKIE_NAME}=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0`,
+    });
+  }
+
   if (req.method !== "POST") {
     return jsonResponse({ error: "Method not allowed" }, 405, hdrs);
   }

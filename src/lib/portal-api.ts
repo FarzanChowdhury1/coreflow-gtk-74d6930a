@@ -80,11 +80,7 @@ export async function portalGetSessionStatus(): Promise<{
  * End the portal session (clear httpOnly cookie).
  */
 export async function portalLogout(): Promise<void> {
-  // Clear the cookie by setting max-age=0 via the verify endpoint (or just navigate away)
-  // Since we use JWT cookies, logout is client-side cookie clearing
-  // We'll use a dedicated call if needed, but for now just reload
-  document.cookie =
-    "coreflow_portal_session=; Path=/; Max-Age=0; SameSite=None; Secure";
+  await portalFetch("portal-verify", { method: "DELETE" });
 }
 
 /**
