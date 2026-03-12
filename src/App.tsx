@@ -20,6 +20,7 @@ import Payments from "@/pages/Payments";
 import Notifications from "@/pages/Notifications";
 import AuditLog from "@/pages/AuditLog";
 import SettingsPage from "@/pages/SettingsPage";
+import ClientUpdates from "@/pages/ClientUpdates";
 import PortalEntry from "@/pages/portal/PortalEntry";
 import NotFound from "@/pages/NotFound";
 
