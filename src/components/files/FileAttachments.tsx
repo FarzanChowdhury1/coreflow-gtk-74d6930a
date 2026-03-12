@@ -1,9 +1,8 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Upload, Download, FileIcon, Trash2, Loader2 } from "lucide-react";
-import { uploadFile, listFiles, getSignedDownloadUrl, type UploadUrlResult } from "@/lib/file-api";
+import { uploadFile, listFiles, getSignedDownloadUrl, deleteFile } from "@/lib/file-api";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -78,7 +77,9 @@ export function FileAttachments({
 
   const handleDelete = useCallback(async (fileId: string) => {
     try {
-      await supabase.from("files").update({ deleted_at: new Date().toISOString() }).eq("id", fileId);
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      await deleteFile(fileId, { authToken: token });
       toast.success("File removed");
       queryClient.invalidateQueries({ queryKey: ["files", workspaceId, ownerType, ownerId] });
     } catch {
