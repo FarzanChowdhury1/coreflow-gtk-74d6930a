@@ -105,10 +105,10 @@ export function RenewalFormDialog({ open, onOpenChange, renewal, companies, proj
             </div>
             <div>
               <Label>Project (optional)</Label>
-              <Select value={projectId} onValueChange={setProjectId}>
+              <Select value={projectId || "__none__"} onValueChange={(val) => setProjectId(val === "__none__" ? "" : val)}>
                 <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {projects.map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
