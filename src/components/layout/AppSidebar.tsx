@@ -42,7 +42,9 @@ const navItems: NavItem[] = [
   { label: "Client Updates", icon: MessageSquare, path: "/client-updates", section: "Operations" },
   { label: "Invoices", icon: Receipt, path: "/invoices", section: "Finance", adminOnly: true },
   { label: "Payments", icon: CreditCard, path: "/payments", section: "Finance", adminOnly: true },
+  { label: "Renewals", icon: RefreshCw, path: "/renewals", section: "Finance" },
   { label: "Notifications", icon: Bell, path: "/notifications", section: "System" },
+  { label: "Digest Inspector", icon: FileSearch, path: "/digest-inspector", section: "System", adminOnly: true },
   { label: "Audit Log", icon: Shield, path: "/audit", section: "System", adminOnly: true },
   { label: "Settings", icon: Settings, path: "/settings", section: "System", adminOnly: true },
 ];
