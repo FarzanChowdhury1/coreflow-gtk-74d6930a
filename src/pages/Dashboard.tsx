@@ -1,7 +1,9 @@
-import { LayoutDashboard, TrendingUp, FileText, FolderKanban, Receipt, DollarSign, Users } from "lucide-react";
+import { LayoutDashboard, TrendingUp, FileText, FolderKanban, Receipt, DollarSign, Users, AlertTriangle, X } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface DashboardMetrics {
   active_leads: number;
@@ -100,11 +102,71 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* System Alerts */}
+      <SystemAlerts workspaceId={currentWorkspace?.id} />
+
       {currentRole === "team_member" && (
         <p className="mt-4 text-xs text-muted-foreground">
           Showing metrics scoped to your assigned projects and leads.
         </p>
       )}
+    </div>
+  );
+}
+
+const SEVERITY_COLORS: Record<string, string> = {
+  critical: "bg-destructive/10 text-destructive border-destructive/30",
+  warning: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700",
+  info: "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+};
+
+function SystemAlerts({ workspaceId }: { workspaceId: string | undefined }) {
+  const queryClient = useQueryClient();
+  const { data: alerts = [], isLoading } = useQuery({
+    queryKey: ["system-alerts", workspaceId],
+    enabled: !!workspaceId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("system_alerts")
+        .select("*")
+        .eq("workspace_id", workspaceId!)
+        .eq("is_dismissed", false)
+        .order("severity", { ascending: true })
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 60000,
+  });
+
+  const dismiss = async (id: string) => {
+    await supabase.from("system_alerts").update({ is_dismissed: true, dismissed_at: new Date().toISOString() }).eq("id", id);
+    queryClient.invalidateQueries({ queryKey: ["system-alerts"] });
+  };
+
+  if (isLoading || alerts.length === 0) return null;
+
+  return (
+    <div className="mt-4">
+      <div className="flex items-center gap-2 mb-2">
+        <AlertTriangle className="h-4 w-4 text-amber-500" />
+        <h2 className="text-sm font-medium text-foreground">System Alerts</h2>
+        <Badge variant="secondary" className="text-xs">{alerts.length}</Badge>
+      </div>
+      <div className="space-y-2">
+        {alerts.map((a: any) => (
+          <div key={a.id} className={`flex items-center justify-between rounded-md border px-3 py-2 text-sm ${SEVERITY_COLORS[a.severity] || SEVERITY_COLORS.info}`}>
+            <div className="space-y-0.5">
+              <span className="font-medium">{a.title}</span>
+              {a.body && <p className="text-xs opacity-80">{a.body}</p>}
+            </div>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => dismiss(a.id)}>
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
