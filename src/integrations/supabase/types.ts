@@ -1185,6 +1185,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bootstrap_workspace: {
+        Args: { _name?: string; _user_id: string }
+        Returns: Json
+      }
       create_project_from_approved_version: {
         Args: {
           _created_by: string
@@ -1228,6 +1232,10 @@ export type Database = {
         Returns: Json
       }
       validate_portal_token: { Args: { _token: string }; Returns: Json }
+      workspace_has_members: {
+        Args: { _workspace_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "team_member"

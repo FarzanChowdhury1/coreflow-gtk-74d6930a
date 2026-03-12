@@ -40,6 +40,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    let cancelled = false;
+
     const fetchWorkspaces = async () => {
       setLoading(true);
 
@@ -48,6 +50,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         .from("workspace_memberships")
         .select("*")
         .eq("user_id", user.id);
+
+      if (cancelled) return;
 
       if (membershipData && membershipData.length > 0) {
         setMemberships(membershipData);
@@ -60,45 +64,53 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           .in("id", workspaceIds)
           .is("deleted_at", null);
 
+        if (cancelled) return;
+
         if (workspaceData) {
           setWorkspaces(workspaceData);
-          // Auto-select first workspace if none selected
           if (!currentWorkspaceId && workspaceData.length > 0) {
             setCurrentWorkspaceId(workspaceData[0].id);
           }
         }
       } else {
-        // No memberships — auto-create first workspace for new user
-        const { data: newWorkspace } = await supabase
+        // No memberships — atomically create workspace + membership via RPC
+        const { data: result, error: rpcError } = await supabase
+          .rpc("bootstrap_workspace", { _user_id: user.id, _name: "My Workspace" });
+
+        if (cancelled || rpcError || !result) {
+          if (!cancelled) setLoading(false);
+          return;
+        }
+
+        const wsResult = result as unknown as { workspace_id: string; membership_id: string };
+
+        // Re-fetch the created workspace and membership
+        const { data: wsData } = await supabase
           .from("workspaces")
-          .insert({ name: "My Workspace" })
-          .select()
+          .select("*")
+          .eq("id", wsResult.workspace_id)
           .single();
 
-        if (newWorkspace) {
-          // Insert membership as admin (first user of workspace)
-          const { data: newMembership } = await supabase
-            .from("workspace_memberships")
-            .insert({
-              workspace_id: newWorkspace.id,
-              user_id: user.id,
-              role: "admin" as const,
-            })
-            .select()
-            .single();
+        const { data: memData } = await supabase
+          .from("workspace_memberships")
+          .select("*")
+          .eq("id", wsResult.membership_id)
+          .single();
 
-          if (newMembership) {
-            setMemberships([newMembership]);
-            setWorkspaces([newWorkspace]);
-            setCurrentWorkspaceId(newWorkspace.id);
-          }
+        if (cancelled) return;
+
+        if (wsData && memData) {
+          setMemberships([memData]);
+          setWorkspaces([wsData]);
+          setCurrentWorkspaceId(wsData.id);
         }
       }
 
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     };
 
     fetchWorkspaces();
+    return () => { cancelled = true; };
   }, [user]);
 
   const currentWorkspace = workspaces.find((w) => w.id === currentWorkspaceId) ?? null;
