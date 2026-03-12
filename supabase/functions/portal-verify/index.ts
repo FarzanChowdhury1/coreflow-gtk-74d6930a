@@ -10,11 +10,12 @@ const SESSION_DAYS = 7;
 const SESSION_SECONDS = SESSION_DAYS * 24 * 60 * 60; // 604800
 const COOKIE_NAME = "coreflow_portal_session";
 
+const PORTAL_JWT_SECRET = Deno.env.get("PORTAL_JWT_SECRET")!;
+
 // --------------- JWT secret ---------------
 
 function getJwtSecret(): Uint8Array {
-  // Use the service role key as HMAC secret for portal JWTs
-  return new TextEncoder().encode(SERVICE_ROLE_KEY);
+  return new TextEncoder().encode(PORTAL_JWT_SECRET);
 }
 
 // --------------- Origin / CORS helpers ---------------

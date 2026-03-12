@@ -1,10 +1,10 @@
 import { jwtVerify } from "https://deno.land/x/jose@v5.2.2/index.ts";
 
-const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const PORTAL_JWT_SECRET = Deno.env.get("PORTAL_JWT_SECRET")!;
 const COOKIE_NAME = "coreflow_portal_session";
 
 function getJwtSecret(): Uint8Array {
-  return new TextEncoder().encode(SERVICE_ROLE_KEY);
+  return new TextEncoder().encode(PORTAL_JWT_SECRET);
 }
 
 function isAllowedOrigin(origin: string | null): string | null {
