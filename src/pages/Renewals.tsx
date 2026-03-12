@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { RefreshCw, Plus, Pause, Play, X as XIcon } from "lucide-react";
+import { RefreshCw, Plus, Pause, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RenewalFormDialog } from "@/components/renewals/RenewalFormDialog";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 interface Renewal {
   id: string;
@@ -104,7 +105,17 @@ export default function Renewals() {
   }, [renewals]);
 
   const toggleActive = async (r: Renewal) => {
-    await supabase.from("renewals").update({ is_active: !r.is_active }).eq("id", r.id);
+    if (!currentWorkspace) return;
+    const { data, error } = await supabase.rpc("manage_renewal", {
+      _action: "toggle_active",
+      _workspace_id: currentWorkspace.id,
+      _renewal_id: r.id,
+    });
+    const result = data as unknown as { success: boolean; error?: string };
+    if (error || !result?.success) {
+      toast.error(result?.error || error?.message || "Failed");
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["renewals"] });
   };
 

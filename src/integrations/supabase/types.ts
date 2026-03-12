@@ -1557,6 +1557,23 @@ export type Database = {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
       }
+      manage_renewal: {
+        Args: {
+          _action: string
+          _amount?: number
+          _company_id?: string
+          _currency?: string
+          _interval_months?: number
+          _is_active?: boolean
+          _label?: string
+          _next_billing_date?: string
+          _notes?: string
+          _project_id?: string
+          _renewal_id?: string
+          _workspace_id: string
+        }
+        Returns: Json
+      }
       next_invoice_number: { Args: { _workspace_id: string }; Returns: string }
       portal_respond_proposal: {
         Args: { _action: string; _token: string; _version_id: string }
