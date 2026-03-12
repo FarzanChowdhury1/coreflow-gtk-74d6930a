@@ -10,11 +10,12 @@ const SESSION_DAYS = 7;
 const SESSION_SECONDS = SESSION_DAYS * 24 * 60 * 60; // 604800
 const COOKIE_NAME = "coreflow_portal_session";
 
+const PORTAL_JWT_SECRET = Deno.env.get("PORTAL_JWT_SECRET")!;
+
 // --------------- JWT secret ---------------
 
 function getJwtSecret(): Uint8Array {
-  // Use the service role key as HMAC secret for portal JWTs
-  return new TextEncoder().encode(SERVICE_ROLE_KEY);
+  return new TextEncoder().encode(PORTAL_JWT_SECRET);
 }
 
 // --------------- Origin / CORS helpers ---------------
@@ -33,7 +34,7 @@ function corsHeaders(origin: string | null): Record<string, string> {
     "Access-Control-Allow-Origin": allowed || "",
     "Access-Control-Allow-Headers":
       "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "POST, DELETE, OPTIONS",
     "Access-Control-Allow-Credentials": "true",
     "Cache-Control": "no-store",
     Vary: "Origin",
@@ -68,6 +69,13 @@ Deno.serve(async (req) => {
 
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: hdrs });
+  }
+
+  // --- DELETE: Server-side logout (clear httpOnly cookie) ---
+  if (req.method === "DELETE") {
+    return jsonResponse({ success: true }, 200, hdrs, {
+      "Set-Cookie": `${COOKIE_NAME}=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0`,
+    });
   }
 
   if (req.method !== "POST") {
