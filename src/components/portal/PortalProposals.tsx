@@ -20,7 +20,7 @@ const STATUS_COLORS: Record<string, string> = {
   voided: "bg-muted text-muted-foreground line-through",
 };
 
-export function PortalProposals({ session }: Props) {
+export function PortalProposals({ session: _session }: Props) {
   const [proposals, setProposals] = useState<any[]>([]);
   const [expandedVersion, setExpandedVersion] = useState<string | null>(null);
   const [lineItems, setLineItems] = useState<Record<string, any[]>>({});
