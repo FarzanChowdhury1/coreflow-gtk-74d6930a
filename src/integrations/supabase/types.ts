@@ -714,61 +714,10 @@ export type Database = {
         }
         Relationships: []
       }
-      portal_sessions: {
-        Row: {
-          company_id: string
-          contact_id: string
-          created_at: string
-          expires_at: string
-          id: string
-          session_token: string
-          workspace_id: string
-        }
-        Insert: {
-          company_id: string
-          contact_id: string
-          created_at?: string
-          expires_at?: string
-          id?: string
-          session_token?: string
-          workspace_id: string
-        }
-        Update: {
-          company_id?: string
-          contact_id?: string
-          created_at?: string
-          expires_at?: string
-          id?: string
-          session_token?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "portal_sessions_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "portal_sessions_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "portal_sessions_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       portal_tokens: {
         Row: {
           company_id: string
+          consumed_at: string | null
           contact_id: string
           created_at: string
           expires_at: string
@@ -779,6 +728,7 @@ export type Database = {
         }
         Insert: {
           company_id: string
+          consumed_at?: string | null
           contact_id: string
           created_at?: string
           expires_at: string
@@ -789,6 +739,7 @@ export type Database = {
         }
         Update: {
           company_id?: string
+          consumed_at?: string | null
           contact_id?: string
           created_at?: string
           expires_at?: string

@@ -1,7 +1,13 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { jwtVerify } from "https://deno.land/x/jose@v5.2.2/index.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const COOKIE_NAME = "coreflow_portal_session";
+
+function getJwtSecret(): Uint8Array {
+  return new TextEncoder().encode(SERVICE_ROLE_KEY);
+}
 
 // --------------- Origin / CORS helpers ---------------
 
@@ -26,11 +32,7 @@ function corsHeaders(origin: string | null): Record<string, string> {
   };
 }
 
-function jsonResponse(
-  body: unknown,
-  status: number,
-  headers: Record<string, string>
-): Response {
+function jsonResponse(body: unknown, status: number, headers: Record<string, string>): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...headers, "Content-Type": "application/json" },
@@ -47,11 +49,10 @@ function parseCookies(header: string | null): Record<string, string> {
   );
 }
 
-interface PortalSessionRow {
+interface PortalSession {
   workspace_id: string;
   company_id: string;
   contact_id: string;
-  expires_at: string;
 }
 
 // --------------- Handler ---------------
@@ -68,28 +69,29 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Method not allowed" }, 405, hdrs);
   }
 
-  // Authenticate via httpOnly cookie
+  // Authenticate via JWT cookie
   const cookies = parseCookies(req.headers.get("Cookie"));
-  const sessionToken = cookies["portal_session"];
+  const token = cookies[COOKIE_NAME];
 
-  if (!sessionToken) {
+  if (!token) {
     return jsonResponse({ error: "Not authenticated" }, 401, hdrs);
   }
 
-  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-
-  // Validate session
-  const { data: session } = await supabase
-    .from("portal_sessions")
-    .select("workspace_id, company_id, contact_id, expires_at")
-    .eq("session_token", sessionToken)
-    .single();
-
-  if (!session || new Date(session.expires_at) < new Date()) {
+  let sess: PortalSession;
+  try {
+    const { payload } = await jwtVerify(token, getJwtSecret(), {
+      issuer: "coreflow-portal",
+    });
+    sess = {
+      workspace_id: payload.workspace_id as string,
+      company_id: payload.company_id as string,
+      contact_id: payload.contact_id as string,
+    };
+  } catch (_err) {
     return jsonResponse({ error: "Session expired or invalid" }, 401, hdrs);
   }
 
-  const sess = session as PortalSessionRow;
+  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
   try {
     const body = await req.json();
@@ -117,38 +119,11 @@ Deno.serve(async (req) => {
 
 async function handleResource(
   supabase: ReturnType<typeof createClient>,
-  session: PortalSessionRow,
+  session: PortalSession,
   resource: string,
   hdrs: Record<string, string>
 ): Promise<Response> {
   switch (resource) {
-    case "session": {
-      const [{ data: contact }, { data: company }] = await Promise.all([
-        supabase
-          .from("contacts")
-          .select("full_name, email")
-          .eq("id", session.contact_id)
-          .single(),
-        supabase
-          .from("companies")
-          .select("legal_name")
-          .eq("id", session.company_id)
-          .single(),
-      ]);
-      return jsonResponse(
-        {
-          workspace_id: session.workspace_id,
-          company_id: session.company_id,
-          contact_id: session.contact_id,
-          contact_name: contact?.full_name || "",
-          contact_email: contact?.email || "",
-          company_name: company?.legal_name || "",
-        },
-        200,
-        hdrs
-      );
-    }
-
     case "proposals": {
       const { data } = await supabase
         .from("proposals")
@@ -158,12 +133,6 @@ async function handleResource(
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
       return jsonResponse({ data: data || [] }, 200, hdrs);
-    }
-
-    case "proposal_line_items": {
-      // Expects body.version_id — but we're in resource handler, parse from body won't work here
-      // This is handled below in the raw request
-      return jsonResponse({ error: "Use action for line items" }, 400, hdrs);
     }
 
     case "invoices": {
@@ -179,7 +148,6 @@ async function handleResource(
     }
 
     case "payments": {
-      // Get invoice IDs for this company
       const { data: invoices } = await supabase
         .from("invoices")
         .select("id, invoice_number")
@@ -220,7 +188,7 @@ async function handleResource(
 
 async function handleAction(
   supabase: ReturnType<typeof createClient>,
-  session: PortalSessionRow,
+  session: PortalSession,
   body: Record<string, unknown>,
   hdrs: Record<string, string>
 ): Promise<Response> {
@@ -229,7 +197,6 @@ async function handleAction(
       const versionId = body.version_id as string;
       if (!versionId) return jsonResponse({ error: "version_id required" }, 400, hdrs);
 
-      // Verify version belongs to this company's proposal
       const { data: version } = await supabase
         .from("proposal_versions")
         .select("id, proposal_id")
@@ -268,7 +235,6 @@ async function handleAction(
         return jsonResponse({ error: "Invalid decision" }, 400, hdrs);
       }
 
-      // Verify version belongs to this company
       const { data: version } = await supabase
         .from("proposal_versions")
         .select("id, proposal_id, status")
@@ -290,7 +256,6 @@ async function handleAction(
         return jsonResponse({ error: "Access denied" }, 403, hdrs);
       }
 
-      // Update status
       const { error: updateErr } = await supabase
         .from("proposal_versions")
         .update({ status: decision })
