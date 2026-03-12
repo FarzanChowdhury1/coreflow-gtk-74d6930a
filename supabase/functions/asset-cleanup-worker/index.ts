@@ -1,14 +1,20 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+const WORKER_SECRET = Deno.env.get("WORKER_SECRET");
 
 Deno.serve(async (req) => {
+  // No CORS needed — server-to-server cron endpoint
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { status: 204 });
+  }
+
+  // Authenticate: require Bearer token matching WORKER_SECRET
+  const authHeader = req.headers.get("Authorization");
+  if (!WORKER_SECRET || authHeader !== `Bearer ${WORKER_SECRET}`) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -54,14 +60,15 @@ Deno.serve(async (req) => {
           expired_short_links: (candidates?.expired_short_links || []).length,
         },
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { "Content-Type": "application/json" } }
     );
   } catch (err) {
+    console.error("Asset cleanup error:", err);
     return new Response(
-      JSON.stringify({ error: (err as Error).message }),
+      JSON.stringify({ error: "Internal server error" }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" },
       }
     );
   }
