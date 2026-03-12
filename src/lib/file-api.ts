@@ -77,13 +77,12 @@ export async function registerFile(
     owner_type: string;
     owner_id: string;
     file_name: string;
-    mime_type: string;
-    file_size: number;
     storage_path: string;
     description?: string;
   },
   options: FileGatewayOptions = {}
 ): Promise<{ id: string; file_name: string; created_at: string }> {
+  // NOTE: mime_type and file_size are NOT sent — server derives them from storage
   const res = await fileGatewayFetch({ action: "register_file", ...params }, options);
   const json = await res.json();
   if (!res.ok) throw new Error(json.error || "Failed to register file");
@@ -114,6 +113,15 @@ export async function listFiles(
   return json.data;
 }
 
+export async function deleteFile(
+  fileId: string,
+  options: FileGatewayOptions = {}
+): Promise<void> {
+  const res = await fileGatewayFetch({ action: "delete_file", file_id: fileId }, options);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || "Delete failed");
+}
+
 /**
  * Full upload flow: get signed URL → upload → register metadata
  */
@@ -137,13 +145,39 @@ export async function uploadFile(
   // 2. Upload file directly to storage
   await uploadFileToSignedUrl(uploadResult.upload_url, uploadResult.token, file);
 
-  // 3. Register file metadata
+  // 3. Register file metadata (server verifies storage object and derives size/mime)
   return registerFile({
     ...params,
     file_name: file.name,
-    mime_type: file.type,
-    file_size: file.size,
     storage_path: uploadResult.storage_path,
     description: params.description,
   }, options);
+}
+
+// --------------- Client Updates API (routed through file-gateway) ---------------
+
+export async function createClientUpdate(
+  params: {
+    workspace_id: string;
+    project_id: string;
+    title: string;
+    body?: string;
+    file_id?: string;
+  },
+  options: FileGatewayOptions = {}
+): Promise<{ id: string; title: string; created_at: string }> {
+  const res = await fileGatewayFetch({ action: "create_client_update", ...params }, options);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || "Failed to create update");
+  return json.update;
+}
+
+export async function togglePublishClientUpdate(
+  updateId: string,
+  options: FileGatewayOptions = {}
+): Promise<{ is_published: boolean }> {
+  const res = await fileGatewayFetch({ action: "toggle_publish_client_update", update_id: updateId }, options);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || "Failed to toggle publish");
+  return json;
 }

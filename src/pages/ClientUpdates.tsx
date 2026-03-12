@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MessageSquare, Plus, Search, Send, Eye, EyeOff, Paperclip } from "lucide-react";
+import { MessageSquare, Plus, Search, Send, EyeOff, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { createClientUpdate, togglePublishClientUpdate } from "@/lib/file-api";
 
 export default function ClientUpdates() {
   const { currentWorkspace, currentRole } = useWorkspace();
@@ -76,20 +77,19 @@ export default function ClientUpdates() {
 
     setSubmitting(true);
     try {
-      const project = projects.find((p: any) => p.id === formProjectId);
-      if (!project) throw new Error("Project not found");
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
 
-      const { error } = await supabase.from("client_updates").insert({
-        workspace_id: workspaceId,
-        project_id: formProjectId,
-        company_id: (project as any).company_id,
-        author_id: user.id,
-        title: formTitle.trim(),
-        body: formBody.trim() || null,
-        is_published: false,
-      });
+      await createClientUpdate(
+        {
+          workspace_id: workspaceId,
+          project_id: formProjectId,
+          title: formTitle.trim(),
+          body: formBody.trim() || undefined,
+        },
+        { authToken: token }
+      );
 
-      if (error) throw error;
       toast.success("Update created as draft");
       setCreateOpen(false);
       setFormProjectId("");
@@ -105,16 +105,11 @@ export default function ClientUpdates() {
 
   const togglePublish = async (updateId: string, currentlyPublished: boolean) => {
     try {
-      const { error } = await supabase
-        .from("client_updates")
-        .update({
-          is_published: !currentlyPublished,
-          published_at: !currentlyPublished ? new Date().toISOString() : null,
-        })
-        .eq("id", updateId);
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
 
-      if (error) throw error;
-      toast.success(currentlyPublished ? "Unpublished" : "Published to client");
+      const result = await togglePublishClientUpdate(updateId, { authToken: token });
+      toast.success(result.is_published ? "Published to client" : "Unpublished");
       queryClient.invalidateQueries({ queryKey: ["client_updates"] });
     } catch (err: any) {
       toast.error(err.message);
