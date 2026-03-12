@@ -22,6 +22,8 @@ import AuditLog from "@/pages/AuditLog";
 import SettingsPage from "@/pages/SettingsPage";
 import ClientUpdates from "@/pages/ClientUpdates";
 import PortalEntry from "@/pages/portal/PortalEntry";
+import Renewals from "@/pages/Renewals";
+import DigestInspector from "@/pages/DigestInspector";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
