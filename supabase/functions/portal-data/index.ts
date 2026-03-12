@@ -180,6 +180,25 @@ async function handleResource(
       return jsonResponse({ data: enriched }, 200, hdrs);
     }
 
+    case "client_updates": {
+      // Only published updates, scoped to this company
+      const { data } = await supabase
+        .from("client_updates")
+        .select("id, title, body, published_at, project_id, projects(name)")
+        .eq("company_id", session.company_id)
+        .eq("workspace_id", session.workspace_id)
+        .eq("is_published", true)
+        .is("deleted_at", null)
+        .order("published_at", { ascending: false });
+
+      const enriched = (data || []).map((u: Record<string, unknown>) => ({
+        ...u,
+        project_name: (u.projects as any)?.name || "Project",
+      }));
+
+      return jsonResponse({ data: enriched }, 200, hdrs);
+    }
+
     default:
       return jsonResponse({ error: "Unknown resource" }, 400, hdrs);
   }

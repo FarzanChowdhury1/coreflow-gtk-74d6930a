@@ -60,6 +60,7 @@ const App = () => (
               <Route path="/payments" element={<Payments />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/audit" element={<AuditLog />} />
+              <Route path="/client-updates" element={<ClientUpdates />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
 
