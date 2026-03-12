@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { PortalSession } from "@/pages/portal/PortalEntry";
+import type { PortalSessionInfo } from "@/lib/portal-api";
+import { portalGetResource, portalAction } from "@/lib/portal-api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Check, X, ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 
 interface Props {
-  session: PortalSession;
+  session: PortalSessionInfo;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -29,18 +29,11 @@ export function PortalProposals({ session }: Props) {
 
   const fetchProposals = useCallback(async () => {
     setLoading(true);
-    // Fetch proposals for this company
-    const { data: proposalData } = await supabase
-      .from("proposals")
-      .select("*, proposal_versions(*)")
-      .eq("company_id", session.company_id)
-      .eq("workspace_id", session.workspace_id)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false });
-
-    setProposals(proposalData || []);
+    const { data, error } = await portalGetResource<any[]>("proposals");
+    if (error) toast.error(error);
+    setProposals(data || []);
     setLoading(false);
-  }, [session]);
+  }, []);
 
   useEffect(() => { fetchProposals(); }, [fetchProposals]);
 
@@ -52,27 +45,17 @@ export function PortalProposals({ session }: Props) {
     setExpandedVersion(versionId);
 
     if (!lineItems[versionId]) {
-      const { data } = await supabase
-        .from("proposal_line_items")
-        .select("*")
-        .eq("version_id", versionId)
-        .order("sort_order");
-      if (data) setLineItems((prev) => ({ ...prev, [versionId]: data }));
+      const { data } = await portalAction<{ data: any[] }>("get_line_items", { version_id: versionId });
+      if (data?.data) setLineItems((prev) => ({ ...prev, [versionId]: data.data }));
     }
   };
 
-  const respond = async (versionId: string, action: "approved" | "rejected") => {
+  const respond = async (versionId: string, decision: "approved" | "rejected") => {
     setResponding(true);
     try {
-      const { data, error } = await supabase.rpc("portal_respond_proposal", {
-        _token: session.token,
-        _version_id: versionId,
-        _action: action,
-      });
-      if (error) throw error;
-      const result = data as any;
-      if (!result.success) throw new Error(result.error);
-      toast.success(`Proposal ${action}`);
+      const { data, error } = await portalAction("respond_proposal", { version_id: versionId, decision });
+      if (error) throw new Error(error);
+      toast.success(`Proposal ${decision}`);
       fetchProposals();
     } catch (err: any) {
       toast.error(err.message);
@@ -126,7 +109,6 @@ export function PortalProposals({ session }: Props) {
 
                   {expandedVersion === v.id && (
                     <div className="border-t p-3 space-y-3">
-                      {/* Line items */}
                       {lineItems[v.id] && lineItems[v.id].length > 0 ? (
                         <div className="space-y-1">
                           <div className="grid grid-cols-[1fr_60px_80px_80px] gap-2 text-xs font-medium text-muted-foreground">
@@ -145,7 +127,6 @@ export function PortalProposals({ session }: Props) {
                         <p className="text-xs text-muted-foreground">No line items.</p>
                       )}
 
-                      {/* Totals */}
                       <div className="border-t pt-2 text-sm space-y-1">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Subtotal</span>
@@ -167,24 +148,12 @@ export function PortalProposals({ session }: Props) {
                         <p className="text-xs text-muted-foreground border-t pt-2">{v.notes}</p>
                       )}
 
-                      {/* Approve/Reject buttons — only for 'sent' versions */}
                       {v.status === "sent" && (
                         <div className="flex gap-2 border-t pt-3">
-                          <Button
-                            size="sm"
-                            onClick={() => respond(v.id, "approved")}
-                            disabled={responding}
-                            className="gap-1"
-                          >
+                          <Button size="sm" onClick={() => respond(v.id, "approved")} disabled={responding} className="gap-1">
                             <Check className="h-3 w-3" /> Approve
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => respond(v.id, "rejected")}
-                            disabled={responding}
-                            className="gap-1"
-                          >
+                          <Button size="sm" variant="destructive" onClick={() => respond(v.id, "rejected")} disabled={responding} className="gap-1">
                             <X className="h-3 w-3" /> Reject
                           </Button>
                         </div>

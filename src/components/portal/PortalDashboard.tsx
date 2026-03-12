@@ -1,24 +1,23 @@
-import { useState } from "react";
-import type { PortalSession } from "@/pages/portal/PortalEntry";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PortalProposals } from "./PortalProposals";
 import { PortalInvoices } from "./PortalInvoices";
 import { PortalPayments } from "./PortalPayments";
 import { Building2, FileText, Receipt, CreditCard, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { portalLogout, type PortalSessionInfo } from "@/lib/portal-api";
 
 interface Props {
-  session: PortalSession;
+  session: PortalSessionInfo;
 }
 
 export function PortalDashboard({ session }: Props) {
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await portalLogout();
     window.location.href = "/portal";
   };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <div className="border-b bg-card">
         <div className="mx-auto max-w-5xl flex items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
@@ -36,7 +35,6 @@ export function PortalDashboard({ session }: Props) {
         </div>
       </div>
 
-      {/* Content */}
       <div className="mx-auto max-w-5xl px-4 py-6">
         <Tabs defaultValue="proposals">
           <TabsList>

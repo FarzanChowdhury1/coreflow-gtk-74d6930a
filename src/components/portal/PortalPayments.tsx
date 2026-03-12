@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { PortalSession } from "@/pages/portal/PortalEntry";
+import type { PortalSessionInfo } from "@/lib/portal-api";
+import { portalGetResource } from "@/lib/portal-api";
 import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -8,7 +8,7 @@ import {
 import { format } from "date-fns";
 
 interface Props {
-  session: PortalSession;
+  session: PortalSessionInfo;
 }
 
 const METHOD_LABELS: Record<string, string> = {
@@ -25,35 +25,10 @@ export function PortalPayments({ session }: Props) {
 
   const fetchPayments = useCallback(async () => {
     setLoading(true);
-    // Get invoice IDs for this company first
-    const { data: invoices } = await supabase
-      .from("invoices")
-      .select("id, invoice_number")
-      .eq("company_id", session.company_id)
-      .eq("workspace_id", session.workspace_id)
-      .is("deleted_at", null);
-
-    if (!invoices || invoices.length === 0) {
-      setPayments([]);
-      setLoading(false);
-      return;
-    }
-
-    const invoiceIds = invoices.map((i) => i.id);
-    const invoiceMap = Object.fromEntries(invoices.map((i) => [i.id, i.invoice_number]));
-
-    const { data } = await supabase
-      .from("payments")
-      .select("*")
-      .in("invoice_id", invoiceIds)
-      .eq("workspace_id", session.workspace_id)
-      .order("paid_at", { ascending: false });
-
-    setPayments(
-      (data || []).map((p) => ({ ...p, invoice_number: invoiceMap[p.invoice_id] || "—" }))
-    );
+    const { data } = await portalGetResource<any[]>("payments");
+    setPayments(data || []);
     setLoading(false);
-  }, [session]);
+  }, []);
 
   useEffect(() => { fetchPayments(); }, [fetchPayments]);
 
