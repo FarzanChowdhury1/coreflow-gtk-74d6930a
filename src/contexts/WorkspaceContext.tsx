@@ -73,34 +73,36 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           }
         }
       } else {
-        // No memberships — auto-create first workspace for new user
-        const { data: newWorkspace, error: wsError } = await supabase
-          .from("workspaces")
-          .insert({ name: "My Workspace" })
-          .select()
-          .single();
+        // No memberships — atomically create workspace + membership via RPC
+        const { data: result, error: rpcError } = await supabase
+          .rpc("bootstrap_workspace", { _user_id: user.id, _name: "My Workspace" });
 
-        if (cancelled || wsError || !newWorkspace) {
+        if (cancelled || rpcError || !result) {
           if (!cancelled) setLoading(false);
           return;
         }
 
-        const { data: newMembership } = await supabase
+        const wsResult = result as unknown as { workspace_id: string; membership_id: string };
+
+        // Re-fetch the created workspace and membership
+        const { data: wsData } = await supabase
+          .from("workspaces")
+          .select("*")
+          .eq("id", wsResult.workspace_id)
+          .single();
+
+        const { data: memData } = await supabase
           .from("workspace_memberships")
-          .insert({
-            workspace_id: newWorkspace.id,
-            user_id: user.id,
-            role: "admin" as const,
-          })
-          .select()
+          .select("*")
+          .eq("id", wsResult.membership_id)
           .single();
 
         if (cancelled) return;
 
-        if (newMembership) {
-          setMemberships([newMembership]);
-          setWorkspaces([newWorkspace]);
-          setCurrentWorkspaceId(newWorkspace.id);
+        if (wsData && memData) {
+          setMemberships([memData]);
+          setWorkspaces([wsData]);
+          setCurrentWorkspaceId(wsData.id);
         }
       }
 
