@@ -1553,6 +1553,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      invoke_asset_cleanup: { Args: never; Returns: undefined }
+      invoke_daily_digest: { Args: never; Returns: undefined }
       is_project_member: {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
