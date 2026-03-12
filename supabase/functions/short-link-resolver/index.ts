@@ -16,16 +16,13 @@ const ALLOWED_PREFIXES = [
 ];
 
 function isSafeRedirect(url: string, supabaseUrl: string): boolean {
-  // Allow relative paths matching allowlist
   if (url.startsWith("/")) {
     return ALLOWED_PREFIXES.some((p) => url.startsWith(p));
   }
-  // Allow absolute URLs scoped to our Supabase / app domain
   try {
     const parsed = new URL(url);
     const supaHost = new URL(supabaseUrl).hostname;
     if (parsed.hostname === supaHost) return true;
-    // Allow app preview/published domains
     if (parsed.hostname.endsWith(".lovable.app")) return true;
     return false;
   } catch {
@@ -43,7 +40,6 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Extract code from query param or POST body
     const url = new URL(req.url);
     let code = url.searchParams.get("code");
 
@@ -61,7 +57,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Look up the short link
     const { data: link, error } = await supabase
       .from("short_links")
       .select("*")
@@ -75,7 +70,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check expiry
     if (new Date(link.expires_at) < new Date()) {
       return new Response(
         JSON.stringify({ error: "Short link has expired" }),
@@ -83,7 +77,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validate redirect target
     if (!isSafeRedirect(link.target_url, supabaseUrl)) {
       return new Response(
         JSON.stringify({ error: "Redirect target not allowed" }),
@@ -98,7 +91,6 @@ Deno.serve(async (req) => {
       .eq("id", link.id)
       .then(() => {});
 
-    // 302 redirect
     return new Response(null, {
       status: 302,
       headers: {
@@ -108,8 +100,9 @@ Deno.serve(async (req) => {
       },
     });
   } catch (err) {
+    console.error("Short link resolver error:", err);
     return new Response(
-      JSON.stringify({ error: (err as Error).message }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
