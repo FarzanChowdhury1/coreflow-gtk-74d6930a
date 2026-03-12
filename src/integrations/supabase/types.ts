@@ -1209,6 +1209,59 @@ export type Database = {
           },
         ]
       }
+      system_alerts: {
+        Row: {
+          alert_type: string
+          body: string | null
+          created_at: string
+          dismissed_at: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          is_dismissed: boolean
+          severity: string
+          sweep_key: string
+          title: string
+          workspace_id: string
+        }
+        Insert: {
+          alert_type: string
+          body?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          is_dismissed?: boolean
+          severity?: string
+          sweep_key: string
+          title: string
+          workspace_id: string
+        }
+        Update: {
+          alert_type?: string
+          body?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          is_dismissed?: boolean
+          severity?: string
+          sweep_key?: string
+          title?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_alerts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assigned_to: string | null
@@ -1339,6 +1392,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      aggregate_daily_digest: { Args: never; Returns: Json }
       bootstrap_workspace: {
         Args: { _name?: string; _user_id: string }
         Returns: Json
@@ -1377,6 +1431,9 @@ export type Database = {
         Args: { _comment?: string; _decision: string; _request_id: string }
         Returns: Json
       }
+      purge_expired_portal_tokens: { Args: never; Returns: Json }
+      purge_stale_file_rows: { Args: never; Returns: Json }
+      select_retention_candidates: { Args: never; Returns: Json }
       submit_for_approval: {
         Args: {
           _entity_id: string
@@ -1385,6 +1442,9 @@ export type Database = {
         }
         Returns: Json
       }
+      sweep_lead_followups: { Args: never; Returns: Json }
+      sweep_overdue_invoices: { Args: never; Returns: Json }
+      sweep_renewal_reminders: { Args: never; Returns: Json }
       validate_portal_token: { Args: { _token: string }; Returns: Json }
       workspace_has_members: {
         Args: { _workspace_id: string }
