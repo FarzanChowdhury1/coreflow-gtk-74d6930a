@@ -19,7 +19,7 @@ const STATUS_COLORS: Record<string, string> = {
   void: "bg-destructive/10 text-destructive",
 };
 
-export function PortalInvoices({ session }: Props) {
+export function PortalInvoices({ session: _session }: Props) {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 

@@ -53,7 +53,7 @@ export function PortalProposals({ session: _session }: Props) {
   const respond = async (versionId: string, decision: "approved" | "rejected") => {
     setResponding(true);
     try {
-      const { data, error } = await portalAction("respond_proposal", { version_id: versionId, decision });
+      const { error } = await portalAction("respond_proposal", { version_id: versionId, decision });
       if (error) throw new Error(error);
       toast.success(`Proposal ${decision}`);
       fetchProposals();

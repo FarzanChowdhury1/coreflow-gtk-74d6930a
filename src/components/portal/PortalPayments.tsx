@@ -19,7 +19,7 @@ const METHOD_LABELS: Record<string, string> = {
   other: "Other",
 };
 
-export function PortalPayments({ session }: Props) {
+export function PortalPayments({ session: _session }: Props) {
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
