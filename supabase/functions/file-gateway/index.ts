@@ -255,6 +255,27 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "Invalid owner_type" }, 400, hdrs);
         }
 
+        // Portal users: strict scoping — same guards as get_upload_url
+        if (auth.type === "portal") {
+          if (workspace_id !== auth.workspaceId) {
+            return jsonResponse({ error: "Access denied" }, 403, hdrs);
+          }
+          if (owner_type !== "payment_proof") {
+            return jsonResponse({ error: "Portal users can only register payment proof files" }, 403, hdrs);
+          }
+          const { data: invoice } = await supabase
+            .from("invoices")
+            .select("id")
+            .eq("id", owner_id)
+            .eq("company_id", auth.companyId!)
+            .eq("workspace_id", auth.workspaceId)
+            .is("deleted_at", null)
+            .single();
+          if (!invoice) {
+            return jsonResponse({ error: "Access denied" }, 403, hdrs);
+          }
+        }
+
         // CRITICAL: Verify the uploaded object exists in storage and get authoritative metadata
         const storageMeta = await getStorageObjectMeta(supabase, storage_path);
         if (!storageMeta) {
