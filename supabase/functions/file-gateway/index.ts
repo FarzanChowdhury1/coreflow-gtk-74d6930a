@@ -74,7 +74,7 @@ interface AuthResult {
 }
 
 async function authenticateRequest(req: Request, supabase: ReturnType<typeof createClient>): Promise<AuthResult | null> {
-  // Try portal auth first (cookie) — portal users don't send Authorization
+  // Try portal auth first (cookie)
   const cookies = parseCookies(req.headers.get("Cookie"));
   const portalToken = cookies[COOKIE_NAME];
   if (portalToken) {
@@ -106,6 +106,37 @@ async function authenticateRequest(req: Request, supabase: ReturnType<typeof cre
   }
 
   return null;
+}
+
+// --------------- Storage verification helpers ---------------
+
+/**
+ * Verify that an uploaded object actually exists in storage and return its authoritative metadata.
+ * Uses the storage admin API to list the folder and find the file by name.
+ */
+async function getStorageObjectMeta(
+  supabase: ReturnType<typeof createClient>,
+  storagePath: string
+): Promise<{ size: number; mimeType: string } | null> {
+  const parts = storagePath.split("/");
+  const fileName = parts.pop()!;
+  const folder = parts.join("/");
+
+  const { data: objects, error } = await supabase.storage
+    .from("workspace-files")
+    .list(folder, { search: fileName, limit: 1 });
+
+  if (error || !objects || objects.length === 0) {
+    return null;
+  }
+
+  const obj = objects[0];
+  // obj.metadata contains { size, mimetype, ... } from storage
+  const meta = obj.metadata as Record<string, unknown> | undefined;
+  const size = (meta?.size as number) ?? (obj as any).size ?? 0;
+  const mimeType = (meta?.mimetype as string) ?? (meta?.mimeType as string) ?? "application/octet-stream";
+
+  return { size, mimeType };
 }
 
 // --------------- Handler ---------------
@@ -158,14 +189,26 @@ Deno.serve(async (req) => {
         }
 
         // Portal users can only upload payment_proof
-        if (auth.type === "portal" && owner_type !== "payment_proof") {
-          return jsonResponse({ error: "Portal users can only upload payment proof" }, 403, hdrs);
-        }
-
-        // Portal: verify scoping
         if (auth.type === "portal") {
+          if (owner_type !== "payment_proof") {
+            return jsonResponse({ error: "Portal users can only upload payment proof" }, 403, hdrs);
+          }
           if (workspace_id !== auth.workspaceId) {
             return jsonResponse({ error: "Access denied" }, 403, hdrs);
+          }
+
+          // CRITICAL: Validate owner_id belongs to an invoice scoped to this portal session's company
+          const { data: invoice } = await supabase
+            .from("invoices")
+            .select("id")
+            .eq("id", owner_id)
+            .eq("company_id", auth.companyId!)
+            .eq("workspace_id", auth.workspaceId)
+            .is("deleted_at", null)
+            .single();
+
+          if (!invoice) {
+            return jsonResponse({ error: "Invalid target: owner_id must reference an invoice belonging to your company" }, 403, hdrs);
           }
         }
 
@@ -202,7 +245,7 @@ Deno.serve(async (req) => {
       }
 
       case "register_file": {
-        const { workspace_id, owner_type, owner_id, file_name, mime_type, file_size, storage_path, description } = body;
+        const { workspace_id, owner_type, owner_id, file_name, storage_path, description } = body;
 
         if (!workspace_id || !owner_type || !owner_id || !file_name || !storage_path) {
           return jsonResponse({ error: "Missing required fields" }, 400, hdrs);
@@ -212,12 +255,17 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "Invalid owner_type" }, 400, hdrs);
         }
 
-        // Verify the file exists in storage
-        const { data: fileExists } = await supabase.storage
-          .from("workspace-files")
-          .list(storage_path.split("/").slice(0, -1).join("/"), {
-            search: storage_path.split("/").pop(),
-          });
+        // CRITICAL: Verify the uploaded object exists in storage and get authoritative metadata
+        const storageMeta = await getStorageObjectMeta(supabase, storage_path);
+        if (!storageMeta) {
+          return jsonResponse({
+            error: "Uploaded file not found in storage. Upload must complete before registration.",
+          }, 400, hdrs);
+        }
+
+        // Use authoritative size and mime_type from storage, NOT client-provided values
+        const authoritativeSize = storageMeta.size;
+        const authoritativeMimeType = storageMeta.mimeType;
 
         const uploadedBy = auth.type === "internal" ? auth.userId : null;
 
@@ -228,20 +276,27 @@ Deno.serve(async (req) => {
             owner_type,
             owner_id,
             file_name,
-            mime_type: mime_type || "application/octet-stream",
-            file_size: file_size || 0,
+            mime_type: authoritativeMimeType,
+            file_size: authoritativeSize,
             storage_path,
             uploaded_by: uploadedBy,
             description: description || null,
           })
-          .select("id, file_name, created_at")
+          .select("id, file_name, file_size, mime_type, created_at")
           .single();
 
         if (insertErr) {
           return jsonResponse({ error: "Failed to register file: " + insertErr.message }, 500, hdrs);
         }
 
-        return jsonResponse({ file: fileRecord }, 200, hdrs);
+        return jsonResponse({
+          file: fileRecord,
+          _meta: {
+            source: "storage_authoritative",
+            authoritative_size: authoritativeSize,
+            authoritative_mime_type: authoritativeMimeType,
+          },
+        }, 200, hdrs);
       }
 
       case "get_download_url": {
@@ -262,14 +317,48 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "File not found" }, 404, hdrs);
         }
 
-        // Portal: can only access payment_proof for their company
+        // Portal: strict company-scoped access
         if (auth.type === "portal") {
           if (file.workspace_id !== auth.workspaceId) {
             return jsonResponse({ error: "Access denied" }, 403, hdrs);
           }
-          // portal can access payment_proof and client_update files only
+
+          // Portal can only access payment_proof and client_update files
           if (file.owner_type !== "payment_proof" && file.owner_type !== "client_update") {
             return jsonResponse({ error: "Access denied" }, 403, hdrs);
+          }
+
+          // For payment_proof: verify the invoice belongs to this portal session's company
+          if (file.owner_type === "payment_proof") {
+            const { data: invoice } = await supabase
+              .from("invoices")
+              .select("id")
+              .eq("id", file.owner_id)
+              .eq("company_id", auth.companyId!)
+              .eq("workspace_id", auth.workspaceId)
+              .is("deleted_at", null)
+              .single();
+
+            if (!invoice) {
+              return jsonResponse({ error: "Access denied" }, 403, hdrs);
+            }
+          }
+
+          // For client_update: verify the update is published and belongs to this company
+          if (file.owner_type === "client_update") {
+            const { data: update } = await supabase
+              .from("client_updates")
+              .select("id")
+              .eq("id", file.owner_id)
+              .eq("company_id", auth.companyId!)
+              .eq("workspace_id", auth.workspaceId)
+              .eq("is_published", true)
+              .is("deleted_at", null)
+              .single();
+
+            if (!update) {
+              return jsonResponse({ error: "Access denied" }, 403, hdrs);
+            }
           }
         }
 
@@ -305,13 +394,39 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "Missing required fields" }, 400, hdrs);
         }
 
-        // Portal: limited scope
+        // Portal: limited scope with company verification
         if (auth.type === "portal") {
           if (workspace_id !== auth.workspaceId) {
             return jsonResponse({ error: "Access denied" }, 403, hdrs);
           }
           if (owner_type !== "payment_proof" && owner_type !== "client_update") {
             return jsonResponse({ error: "Access denied" }, 403, hdrs);
+          }
+          // Verify owner_id belongs to this company
+          if (owner_type === "payment_proof") {
+            const { data: invoice } = await supabase
+              .from("invoices")
+              .select("id")
+              .eq("id", owner_id)
+              .eq("company_id", auth.companyId!)
+              .is("deleted_at", null)
+              .single();
+            if (!invoice) {
+              return jsonResponse({ error: "Access denied" }, 403, hdrs);
+            }
+          }
+          if (owner_type === "client_update") {
+            const { data: update } = await supabase
+              .from("client_updates")
+              .select("id")
+              .eq("id", owner_id)
+              .eq("company_id", auth.companyId!)
+              .eq("is_published", true)
+              .is("deleted_at", null)
+              .single();
+            if (!update) {
+              return jsonResponse({ error: "Access denied" }, 403, hdrs);
+            }
           }
         }
 
@@ -335,6 +450,179 @@ Deno.serve(async (req) => {
           .order("created_at", { ascending: false });
 
         return jsonResponse({ data: files || [] }, 200, hdrs);
+      }
+
+      case "delete_file": {
+        // Soft-delete a file (internal users only, workspace-scoped)
+        const { file_id } = body;
+        if (!file_id) {
+          return jsonResponse({ error: "file_id required" }, 400, hdrs);
+        }
+
+        if (auth.type !== "internal") {
+          return jsonResponse({ error: "Portal users cannot delete files" }, 403, hdrs);
+        }
+
+        const { data: file } = await supabase
+          .from("files")
+          .select("workspace_id")
+          .eq("id", file_id)
+          .is("deleted_at", null)
+          .single();
+
+        if (!file) {
+          return jsonResponse({ error: "File not found" }, 404, hdrs);
+        }
+
+        const { data: access } = await supabase.rpc("has_workspace_access", {
+          _user_id: auth.userId!,
+          _workspace_id: file.workspace_id,
+        });
+        if (!access) {
+          return jsonResponse({ error: "Access denied" }, 403, hdrs);
+        }
+
+        const { error: delErr } = await supabase
+          .from("files")
+          .update({ deleted_at: new Date().toISOString() })
+          .eq("id", file_id);
+
+        if (delErr) {
+          return jsonResponse({ error: "Delete failed" }, 500, hdrs);
+        }
+
+        return jsonResponse({ success: true }, 200, hdrs);
+      }
+
+      // --------------- Internal mutation endpoints ---------------
+
+      case "create_client_update": {
+        if (auth.type !== "internal") {
+          return jsonResponse({ error: "Not allowed" }, 403, hdrs);
+        }
+
+        const { workspace_id, project_id, title, body: updateBody, file_id } = body;
+        if (!workspace_id || !project_id || !title) {
+          return jsonResponse({ error: "workspace_id, project_id, title required" }, 400, hdrs);
+        }
+
+        // Verify workspace access
+        const { data: access } = await supabase.rpc("has_workspace_access", {
+          _user_id: auth.userId!,
+          _workspace_id: workspace_id,
+        });
+        if (!access) {
+          return jsonResponse({ error: "Access denied" }, 403, hdrs);
+        }
+
+        // Verify project membership (team members) or admin role
+        const { data: isAdmin } = await supabase.rpc("has_workspace_role", {
+          _user_id: auth.userId!,
+          _workspace_id: workspace_id,
+          _role: "admin",
+        });
+
+        if (!isAdmin) {
+          const { data: isMember } = await supabase.rpc("is_project_member", {
+            _user_id: auth.userId!,
+            _project_id: project_id,
+          });
+          if (!isMember) {
+            return jsonResponse({ error: "Access denied: not a member of this project" }, 403, hdrs);
+          }
+        }
+
+        // Get project to find company_id
+        const { data: project } = await supabase
+          .from("projects")
+          .select("company_id")
+          .eq("id", project_id)
+          .eq("workspace_id", workspace_id)
+          .is("deleted_at", null)
+          .single();
+
+        if (!project) {
+          return jsonResponse({ error: "Project not found" }, 404, hdrs);
+        }
+
+        const { data: record, error: insertErr } = await supabase
+          .from("client_updates")
+          .insert({
+            workspace_id,
+            project_id,
+            company_id: project.company_id,
+            author_id: auth.userId!,
+            title: title.trim(),
+            body: updateBody?.trim() || null,
+            file_id: file_id || null,
+            is_published: false,
+          })
+          .select("id, title, created_at")
+          .single();
+
+        if (insertErr) {
+          return jsonResponse({ error: "Failed to create update: " + insertErr.message }, 500, hdrs);
+        }
+
+        return jsonResponse({ update: record }, 200, hdrs);
+      }
+
+      case "toggle_publish_client_update": {
+        if (auth.type !== "internal") {
+          return jsonResponse({ error: "Not allowed" }, 403, hdrs);
+        }
+
+        const { update_id } = body;
+        if (!update_id) {
+          return jsonResponse({ error: "update_id required" }, 400, hdrs);
+        }
+
+        // Fetch the update
+        const { data: existing } = await supabase
+          .from("client_updates")
+          .select("workspace_id, project_id, is_published, author_id")
+          .eq("id", update_id)
+          .is("deleted_at", null)
+          .single();
+
+        if (!existing) {
+          return jsonResponse({ error: "Update not found" }, 404, hdrs);
+        }
+
+        // Verify access: admin can toggle any, team member can toggle their own if project member
+        const { data: isAdmin } = await supabase.rpc("has_workspace_role", {
+          _user_id: auth.userId!,
+          _workspace_id: existing.workspace_id,
+          _role: "admin",
+        });
+
+        if (!isAdmin) {
+          if (existing.author_id !== auth.userId) {
+            return jsonResponse({ error: "Access denied: can only manage your own updates" }, 403, hdrs);
+          }
+          const { data: isMember } = await supabase.rpc("is_project_member", {
+            _user_id: auth.userId!,
+            _project_id: existing.project_id,
+          });
+          if (!isMember) {
+            return jsonResponse({ error: "Access denied" }, 403, hdrs);
+          }
+        }
+
+        const newPublished = !existing.is_published;
+        const { error: updateErr } = await supabase
+          .from("client_updates")
+          .update({
+            is_published: newPublished,
+            published_at: newPublished ? new Date().toISOString() : null,
+          })
+          .eq("id", update_id);
+
+        if (updateErr) {
+          return jsonResponse({ error: "Update failed" }, 500, hdrs);
+        }
+
+        return jsonResponse({ success: true, is_published: newPublished }, 200, hdrs);
       }
 
       default:
