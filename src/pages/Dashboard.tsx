@@ -4,12 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
 interface DashboardMetrics {
-  activeLeads: number;
-  openProposals: number;
-  runningProjects: number;
-  pendingInvoices: number;
-  totalReceivable: number;
-  totalCollected: number;
+  active_leads: number;
+  open_proposals: number;
+  running_projects: number;
+  pending_invoices: number;
+  total_receivable: number;
+  total_collected: number;
+  is_admin: boolean;
+  error?: string;
 }
 
 function useDashboardMetrics(workspaceId: string | undefined) {
@@ -18,83 +20,27 @@ function useDashboardMetrics(workspaceId: string | undefined) {
     enabled: !!workspaceId,
     queryFn: async (): Promise<DashboardMetrics> => {
       if (!workspaceId) throw new Error("No workspace");
-
-      const [leadsRes, proposalsRes, projectsRes, invoicesRes] = await Promise.all([
-        // Active leads: not converted/unqualified, not deleted
-        supabase
-          .from("leads")
-          .select("id", { count: "exact", head: true })
-          .eq("workspace_id", workspaceId)
-          .is("deleted_at", null)
-          .in("status", ["new", "contacted", "qualified"]),
-
-        // Open proposals: have at least one version in draft/sent status
-        supabase
-          .from("proposal_versions")
-          .select("id", { count: "exact", head: true })
-          .eq("workspace_id", workspaceId)
-          .in("status", ["draft", "sent"]),
-
-        // Running projects: active status, not deleted
-        supabase
-          .from("projects")
-          .select("id", { count: "exact", head: true })
-          .eq("workspace_id", workspaceId)
-          .is("deleted_at", null)
-          .eq("status", "active"),
-
-        // Pending invoices: draft/issued/partially_paid, not deleted
-        supabase
-          .from("invoices")
-          .select("id, grand_total, amount_paid, status")
-          .eq("workspace_id", workspaceId)
-          .is("deleted_at", null)
-          .in("status", ["draft", "issued", "partially_paid"]),
-      ]);
-
-      // Calculate financial rollups from invoices
-      const invoices = invoicesRes.data || [];
-      const totalReceivable = invoices.reduce(
-        (sum, inv) => sum + (Number(inv.grand_total) - Number(inv.amount_paid)),
-        0
-      );
-
-      // Get total collected (paid invoices)
-      const { data: paidInvoices } = await supabase
-        .from("invoices")
-        .select("amount_paid")
-        .eq("workspace_id", workspaceId)
-        .is("deleted_at", null)
-        .in("status", ["paid", "partially_paid"]);
-
-      const totalCollected = (paidInvoices || []).reduce(
-        (sum, inv) => sum + Number(inv.amount_paid),
-        0
-      );
-
-      return {
-        activeLeads: leadsRes.count ?? 0,
-        openProposals: proposalsRes.count ?? 0,
-        runningProjects: projectsRes.count ?? 0,
-        pendingInvoices: invoices.length,
-        totalReceivable,
-        totalCollected,
-      };
+      const { data, error } = await supabase.rpc("get_dashboard_metrics", {
+        _workspace_id: workspaceId,
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data as DashboardMetrics;
     },
-    refetchInterval: 30000, // refresh every 30s
+    refetchInterval: 30000,
   });
 }
 
 const cards = [
-  { key: "activeLeads" as const, label: "Active Leads", icon: Users, color: "text-blue-500" },
-  { key: "openProposals" as const, label: "Open Proposals", icon: FileText, color: "text-amber-500" },
-  { key: "runningProjects" as const, label: "Running Projects", icon: FolderKanban, color: "text-emerald-500" },
-  { key: "pendingInvoices" as const, label: "Pending Invoices", icon: Receipt, color: "text-rose-500" },
+  { key: "active_leads" as const, label: "Active Leads", icon: Users, color: "text-blue-500" },
+  { key: "open_proposals" as const, label: "Open Proposals", icon: FileText, color: "text-amber-500" },
+  { key: "running_projects" as const, label: "Running Projects", icon: FolderKanban, color: "text-emerald-500" },
+  { key: "pending_invoices" as const, label: "Pending Invoices", icon: Receipt, color: "text-rose-500" },
 ];
 
 const financialCards = [
-  { key: "totalReceivable" as const, label: "Total Receivable", icon: TrendingUp, color: "text-orange-500", isCurrency: true },
-  { key: "totalCollected" as const, label: "Total Collected", icon: DollarSign, color: "text-green-500", isCurrency: true },
+  { key: "total_receivable" as const, label: "Total Receivable", icon: TrendingUp, color: "text-orange-500" },
+  { key: "total_collected" as const, label: "Total Collected", icon: DollarSign, color: "text-green-500" },
 ];
 
 function formatCurrency(value: number, currency: string = "BDT") {
@@ -107,7 +53,7 @@ function formatCurrency(value: number, currency: string = "BDT") {
 }
 
 export default function Dashboard() {
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, currentRole } = useWorkspace();
   const { data: metrics, isLoading } = useDashboardMetrics(currentWorkspace?.id);
   const currency = currentWorkspace?.currency || "BDT";
 
@@ -116,6 +62,11 @@ export default function Dashboard() {
       <div className="mb-6 flex items-center gap-3">
         <LayoutDashboard className="h-6 w-6 text-primary" />
         <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
+        {currentRole && (
+          <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+            {currentRole === "admin" ? "Workspace Admin" : "Team Member"}
+          </span>
+        )}
       </div>
 
       {/* Count cards */}
@@ -147,6 +98,12 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
+
+      {currentRole === "team_member" && (
+        <p className="mt-4 text-xs text-muted-foreground">
+          Showing metrics scoped to your assigned projects and leads.
+        </p>
+      )}
     </div>
   );
 }
