@@ -1,22 +1,15 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const WORKER_SECRET = Deno.env.get("WORKER_SECRET");
-const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 Deno.serve(async (req) => {
-  // No CORS needed — server-to-server cron endpoint
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204 });
   }
 
-  // Authenticate: require Bearer token matching WORKER_SECRET or SERVICE_ROLE_KEY
-  const authHeader = req.headers.get("Authorization");
-  const token = authHeader?.replace("Bearer ", "");
-  const isAuthorized = token && (
-    (WORKER_SECRET && token === WORKER_SECRET) ||
-    (SERVICE_ROLE_KEY && token === SERVICE_ROLE_KEY)
-  );
-  if (!isAuthorized) {
+  // Authenticate via X-Worker-Secret header (avoids Supabase gateway Authorization interception)
+  const workerAuth = req.headers.get("X-Worker-Secret");
+  if (!WORKER_SECRET || workerAuth !== WORKER_SECRET) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
