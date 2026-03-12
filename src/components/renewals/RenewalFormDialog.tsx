@@ -54,27 +54,27 @@ export function RenewalFormDialog({ open, onOpenChange, renewal, companies, proj
       return;
     }
     setSaving(true);
-    const payload = {
-      workspace_id: currentWorkspace.id,
-      company_id: companyId,
-      project_id: projectId || null,
-      label: label.trim(),
-      amount: parseFloat(amount),
-      currency,
-      interval_months: parseInt(intervalMonths),
-      next_billing_date: nextBillingDate,
-      notes: notes.trim() || null,
-    };
-
-    if (renewal) {
-      const { error } = await supabase.from("renewals").update(payload).eq("id", renewal.id);
-      if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success("Renewal updated");
-    } else {
-      const { error } = await supabase.from("renewals").insert(payload);
-      if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success("Renewal created");
+    const { data, error } = await supabase.rpc("manage_renewal", {
+      _action: renewal ? "update" : "create",
+      _workspace_id: currentWorkspace.id,
+      _renewal_id: renewal?.id || null,
+      _label: label.trim(),
+      _company_id: companyId,
+      _project_id: projectId || null,
+      _amount: parseFloat(amount),
+      _currency: currency,
+      _interval_months: parseInt(intervalMonths),
+      _next_billing_date: nextBillingDate,
+      _notes: notes.trim() || null,
+      _is_active: renewal?.is_active ?? true,
+    });
+    const result = data as unknown as { success: boolean; error?: string };
+    if (error || !result?.success) {
+      toast.error(result?.error || error?.message || "Failed");
+      setSaving(false);
+      return;
     }
+    toast.success(renewal ? "Renewal updated" : "Renewal created");
     queryClient.invalidateQueries({ queryKey: ["renewals"] });
     setSaving(false);
     onOpenChange(false);

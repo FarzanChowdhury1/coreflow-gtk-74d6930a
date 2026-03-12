@@ -104,7 +104,17 @@ export default function Renewals() {
   }, [renewals]);
 
   const toggleActive = async (r: Renewal) => {
-    await supabase.from("renewals").update({ is_active: !r.is_active }).eq("id", r.id);
+    if (!currentWorkspace) return;
+    const { data, error } = await supabase.rpc("manage_renewal", {
+      _action: "toggle_active",
+      _workspace_id: currentWorkspace.id,
+      _renewal_id: r.id,
+    });
+    const result = data as unknown as { success: boolean; error?: string };
+    if (error || !result?.success) {
+      toast.error(result?.error || error?.message || "Failed");
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ["renewals"] });
   };
 
