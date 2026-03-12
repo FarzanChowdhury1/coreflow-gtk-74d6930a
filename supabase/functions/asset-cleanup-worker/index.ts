@@ -11,12 +11,20 @@ Deno.serve(async (req) => {
 
   // Authenticate: require Bearer token matching WORKER_SECRET or SERVICE_ROLE_KEY
   const authHeader = req.headers.get("Authorization");
-  const token = authHeader?.replace("Bearer ", "");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
   const isAuthorized = token && (
     (WORKER_SECRET && token === WORKER_SECRET) ||
     (SERVICE_ROLE_KEY && token === SERVICE_ROLE_KEY)
   );
   if (!isAuthorized) {
+    console.error("Auth failed", { 
+      hasAuthHeader: !!authHeader, 
+      hasWorkerSecret: !!WORKER_SECRET,
+      hasServiceRoleKey: !!SERVICE_ROLE_KEY,
+      tokenPrefix: token ? token.substring(0, 20) + "..." : "none",
+      workerSecretPrefix: WORKER_SECRET ? WORKER_SECRET.substring(0, 20) + "..." : "none",
+      serviceRoleKeyPrefix: SERVICE_ROLE_KEY ? SERVICE_ROLE_KEY.substring(0, 20) + "..." : "none",
+    });
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
