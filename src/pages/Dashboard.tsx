@@ -141,7 +141,7 @@ function SystemAlerts({ workspaceId }: { workspaceId: string | undefined }) {
   });
 
   const dismiss = async (id: string) => {
-    await supabase.from("system_alerts").update({ is_dismissed: true, dismissed_at: new Date().toISOString() }).eq("id", id);
+    await supabase.rpc("dismiss_system_alert", { _alert_id: id });
     queryClient.invalidateQueries({ queryKey: ["system-alerts"] });
   };
 

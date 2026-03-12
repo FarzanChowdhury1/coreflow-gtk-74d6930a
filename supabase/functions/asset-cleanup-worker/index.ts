@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // 1. Get retention candidates (files with deleted_at > 30 days)
+    // 1. Get retention candidates
     const { data: candidates, error: candErr } = await supabase.rpc(
       "select_retention_candidates"
     );
@@ -25,29 +25,21 @@ Deno.serve(async (req) => {
     // 2. Delete physical storage blobs for stale files
     const staleFiles = candidates?.stale_files || [];
     let blobsDeleted = 0;
-
     for (const file of staleFiles) {
       const { error: storageErr } = await supabase.storage
         .from("workspace-files")
         .remove([file.storage_path]);
-
-      if (!storageErr) {
-        blobsDeleted++;
-      }
-      // Continue even if individual blob deletion fails (may already be gone)
+      if (!storageErr) blobsDeleted++;
     }
 
-    // 3. Hard-delete stale file rows from DB
-    const { data: purgedFiles, error: purgeFilesErr } = await supabase.rpc(
-      "purge_stale_file_rows"
-    );
-    if (purgeFilesErr) throw purgeFilesErr;
+    // 3. Hard-delete stale file rows
+    const { data: purgedFiles } = await supabase.rpc("purge_stale_file_rows");
 
     // 4. Purge expired portal tokens
-    const { data: purgedTokens, error: purgeTokensErr } = await supabase.rpc(
-      "purge_expired_portal_tokens"
-    );
-    if (purgeTokensErr) throw purgeTokensErr;
+    const { data: purgedTokens } = await supabase.rpc("purge_expired_portal_tokens");
+
+    // 5. Purge expired short links
+    const { data: purgedLinks } = await supabase.rpc("purge_expired_short_links");
 
     return new Response(
       JSON.stringify({
@@ -55,6 +47,12 @@ Deno.serve(async (req) => {
         storage_blobs_deleted: blobsDeleted,
         file_rows_purged: purgedFiles?.purged_files || 0,
         portal_tokens_purged: purgedTokens?.purged_tokens || 0,
+        short_links_purged: purgedLinks?.purged_short_links || 0,
+        candidates_found: {
+          stale_files: staleFiles.length,
+          expired_tokens: (candidates?.expired_portal_tokens || []).length,
+          expired_short_links: (candidates?.expired_short_links || []).length,
+        },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
