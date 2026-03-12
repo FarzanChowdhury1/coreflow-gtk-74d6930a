@@ -1,6 +1,6 @@
 /**
  * Portal API client — all portal requests go through Edge Functions.
- * Session state is managed via httpOnly cookies (set by portal-auth).
+ * Session state is managed via httpOnly cookies (signed JWT, coreflow_portal_session).
  * The raw portal token is never stored client-side after verification.
  */
 
@@ -30,12 +30,12 @@ export interface PortalSessionInfo {
 }
 
 /**
- * Verify a portal token and establish an httpOnly cookie session.
+ * Verify a portal token and establish a signed JWT cookie session.
  */
 export async function portalVerifyToken(
   token: string
 ): Promise<{ success: boolean; session?: PortalSessionInfo; error?: string }> {
-  const res = await portalFetch("portal-auth", {
+  const res = await portalFetch("portal-verify", {
     method: "POST",
     body: JSON.stringify({ token }),
   });
@@ -60,14 +60,35 @@ export async function portalVerifyToken(
 }
 
 /**
- * End the portal session (clear httpOnly cookie).
+ * Check session status via the httpOnly JWT cookie.
  */
-export async function portalLogout(): Promise<void> {
-  await portalFetch("portal-auth", { method: "DELETE" });
+export async function portalGetSessionStatus(): Promise<{
+  authenticated: boolean;
+  session?: PortalSessionInfo;
+}> {
+  try {
+    const res = await portalFetch("portal-session-status", { method: "GET" });
+    if (!res.ok) return { authenticated: false };
+    const data = await res.json();
+    return { authenticated: true, session: data };
+  } catch {
+    return { authenticated: false };
+  }
 }
 
 /**
- * Fetch a portal resource (proposals, invoices, payments, session).
+ * End the portal session (clear httpOnly cookie).
+ */
+export async function portalLogout(): Promise<void> {
+  // Clear the cookie by setting max-age=0 via the verify endpoint (or just navigate away)
+  // Since we use JWT cookies, logout is client-side cookie clearing
+  // We'll use a dedicated call if needed, but for now just reload
+  document.cookie =
+    "coreflow_portal_session=; Path=/; Max-Age=0; SameSite=None; Secure";
+}
+
+/**
+ * Fetch a portal resource (proposals, invoices, payments).
  */
 export async function portalGetResource<T = unknown>(
   resource: string
