@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsUpDown,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -36,6 +37,7 @@ const navItems: NavItem[] = [
   { label: "Proposals", icon: FileText, path: "/proposals", section: "Commercial" },
   { label: "Approvals", icon: CheckSquare, path: "/approvals", section: "Commercial" },
   { label: "Projects", icon: FolderKanban, path: "/projects", section: "Operations" },
+  { label: "Client Updates", icon: MessageSquare, path: "/client-updates", section: "Operations" },
   { label: "Invoices", icon: Receipt, path: "/invoices", section: "Finance", adminOnly: true },
   { label: "Payments", icon: CreditCard, path: "/payments", section: "Finance", adminOnly: true },
   { label: "Notifications", icon: Bell, path: "/notifications", section: "System" },
