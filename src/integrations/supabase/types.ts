@@ -1193,6 +1193,7 @@ export type Database = {
         }
         Returns: string
       }
+      get_dashboard_metrics: { Args: { _workspace_id: string }; Returns: Json }
       has_workspace_access: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean

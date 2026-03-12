@@ -7,9 +7,10 @@ export const binSchema = z
   .regex(/^[0-9A-Za-z]{13}$/, "BIN must be 13 alphanumeric characters");
 
 // International phone: +[country code][number], 7-15 digits after +
+// E.164: + followed by 6-15 digits (relaxed to accept shorter valid intl numbers)
 export const internationalPhoneSchema = z
   .string()
-  .regex(/^\+[1-9][0-9]{6,14}$/, "Phone must be in international format (e.g. +8801712345678)")
+  .regex(/^\+[1-9]\d{4,13}$/, "Phone must be in E.164 international format (e.g. +8801712345678)")
   .optional()
   .or(z.literal(""))
   .transform((v) => v || undefined);
