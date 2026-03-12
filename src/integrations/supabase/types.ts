@@ -243,6 +243,83 @@ export type Database = {
           },
         ]
       }
+      client_updates: {
+        Row: {
+          author_id: string
+          body: string | null
+          company_id: string
+          created_at: string
+          deleted_at: string | null
+          file_id: string | null
+          id: string
+          is_published: boolean
+          project_id: string
+          published_at: string | null
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          author_id: string
+          body?: string | null
+          company_id: string
+          created_at?: string
+          deleted_at?: string | null
+          file_id?: string | null
+          id?: string
+          is_published?: boolean
+          project_id: string
+          published_at?: string | null
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string | null
+          company_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          file_id?: string | null
+          id?: string
+          is_published?: boolean
+          project_id?: string
+          published_at?: string | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_updates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_updates_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_updates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_updates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
@@ -337,6 +414,62 @@ export type Database = {
           },
           {
             foreignKeyName: "contacts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      files: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          file_name: string
+          file_size: number
+          id: string
+          mime_type: string
+          owner_id: string
+          owner_type: string
+          storage_path: string
+          updated_at: string
+          uploaded_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          file_name: string
+          file_size?: number
+          id?: string
+          mime_type: string
+          owner_id: string
+          owner_type: string
+          storage_path: string
+          updated_at?: string
+          uploaded_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          file_name?: string
+          file_size?: number
+          id?: string
+          mime_type?: string
+          owner_id?: string
+          owner_type?: string
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "files_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
