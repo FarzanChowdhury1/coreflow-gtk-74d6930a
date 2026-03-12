@@ -16,53 +16,94 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // 1. Run all sweeps first (DB-heavy, via RPC)
+    // 1. Run all DB-heavy sweeps via RPC
     const [overdueRes, followupRes, renewalRes] = await Promise.all([
       supabase.rpc("sweep_overdue_invoices"),
       supabase.rpc("sweep_lead_followups"),
       supabase.rpc("sweep_renewal_reminders"),
     ]);
 
-    // 2. Aggregate digest payload
+    // 2. Aggregate digest payload from RPC
     const { data: digest, error: digestErr } = await supabase.rpc(
       "aggregate_daily_digest"
     );
     if (digestErr) throw digestErr;
 
-    // 3. For each workspace with actionable items, create a notification
-    //    for admin users (WhatsApp-ready digest record)
     const workspaces = Array.isArray(digest) ? digest : [];
-    let notified = 0;
+    const dispatchPayloads: any[] = [];
 
     for (const ws of workspaces) {
-      const hasOverdue =
-        Array.isArray(ws.overdue_invoices) && ws.overdue_invoices.length > 0;
-      const hasFollowups =
-        Array.isArray(ws.overdue_followups) && ws.overdue_followups.length > 0;
-      const hasRenewals =
-        Array.isArray(ws.upcoming_renewals) && ws.upcoming_renewals.length > 0;
+      const overdueInvoices = Array.isArray(ws.overdue_invoices) ? ws.overdue_invoices : [];
+      const overdueFollowups = Array.isArray(ws.overdue_followups) ? ws.overdue_followups : [];
+      const upcomingRenewals = Array.isArray(ws.upcoming_renewals) ? ws.upcoming_renewals : [];
 
-      if (!hasOverdue && !hasFollowups && !hasRenewals) continue;
+      if (overdueInvoices.length === 0 && overdueFollowups.length === 0 && upcomingRenewals.length === 0) continue;
 
-      // Build digest body
-      const parts: string[] = [];
-      if (hasOverdue)
-        parts.push(`${ws.overdue_invoices.length} overdue invoice(s)`);
-      if (hasFollowups)
-        parts.push(`${ws.overdue_followups.length} lead follow-up(s) due`);
-      if (hasRenewals)
-        parts.push(
-          `${ws.upcoming_renewals.length} project(s) ending within 7 days`
-        );
+      // Generate short_links for portal-facing invoice items
+      const invoiceItems = [];
+      for (const inv of overdueInvoices) {
+        const portalUrl = `${supabaseUrl}/portal?invoice=${inv.invoice_id}`;
+        const { data: sl } = await supabase.rpc("create_short_link", {
+          _workspace_id: ws.workspace_id,
+          _target_url: portalUrl,
+          _context_type: "digest",
+          _context_id: inv.invoice_id,
+          _ttl_days: 30,
+        });
+        invoiceItems.push({
+          invoice_number: inv.invoice_number,
+          company: inv.company,
+          due_date: inv.due_date,
+          outstanding: inv.outstanding,
+          short_link_code: sl?.code || null,
+        });
+      }
 
-      const body = parts.join(", ");
+      // Build structured WhatsApp-template-ready payload
+      const payload = {
+        workspace_id: ws.workspace_id,
+        workspace_name: ws.workspace_name,
+        generated_at: new Date().toISOString(),
+        template: "daily_digest_v1",
+        sections: {
+          overdue_invoices: {
+            count: invoiceItems.length,
+            items: invoiceItems,
+          },
+          lead_followups: {
+            count: overdueFollowups.length,
+            items: overdueFollowups.map((l: any) => ({
+              title: l.title,
+              company: l.company,
+              due_since: l.next_follow_up,
+            })),
+          },
+          upcoming_renewals: {
+            count: upcomingRenewals.length,
+            items: upcomingRenewals.map((r: any) => ({
+              label: r.label,
+              company: r.company,
+              amount: `${r.currency} ${r.amount}`,
+              next_billing_date: r.next_billing_date,
+            })),
+          },
+        },
+      };
 
-      // Get admin users for this workspace
+      dispatchPayloads.push(payload);
+
+      // Also insert a notification for workspace admins
       const { data: admins } = await supabase
         .from("workspace_memberships")
         .select("user_id")
         .eq("workspace_id", ws.workspace_id)
         .eq("role", "admin");
+
+      const summary = [
+        invoiceItems.length > 0 ? `${invoiceItems.length} overdue invoice(s)` : null,
+        overdueFollowups.length > 0 ? `${overdueFollowups.length} lead follow-up(s) due` : null,
+        upcomingRenewals.length > 0 ? `${upcomingRenewals.length} renewal(s) approaching` : null,
+      ].filter(Boolean).join(", ");
 
       if (admins) {
         for (const admin of admins) {
@@ -70,10 +111,9 @@ Deno.serve(async (req) => {
             workspace_id: ws.workspace_id,
             user_id: admin.user_id,
             title: "Daily Digest",
-            body,
+            body: summary,
             link: "/dashboard",
           });
-          notified++;
         }
       }
     }
@@ -86,8 +126,7 @@ Deno.serve(async (req) => {
           followups: followupRes.data,
           renewals: renewalRes.data,
         },
-        digest_workspaces: workspaces.length,
-        notifications_sent: notified,
+        dispatch_payloads: dispatchPayloads,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

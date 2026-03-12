@@ -1209,6 +1209,130 @@ export type Database = {
           },
         ]
       }
+      renewals: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          currency: string
+          id: string
+          interval_months: number
+          invoice_id: string | null
+          is_active: boolean
+          label: string
+          next_billing_date: string
+          notes: string | null
+          project_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          amount?: number
+          company_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          interval_months?: number
+          invoice_id?: string | null
+          is_active?: boolean
+          label: string
+          next_billing_date: string
+          notes?: string | null
+          project_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          interval_months?: number
+          invoice_id?: string | null
+          is_active?: boolean
+          label?: string
+          next_billing_date?: string
+          notes?: string | null
+          project_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "renewals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewals_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "renewals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      short_links: {
+        Row: {
+          click_count: number
+          code: string
+          context_id: string | null
+          context_type: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          target_url: string
+          workspace_id: string
+        }
+        Insert: {
+          click_count?: number
+          code?: string
+          context_id?: string | null
+          context_type?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          target_url: string
+          workspace_id: string
+        }
+        Update: {
+          click_count?: number
+          code?: string
+          context_id?: string | null
+          context_type?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          target_url?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "short_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_alerts: {
         Row: {
           alert_type: string
@@ -1405,6 +1529,17 @@ export type Database = {
         }
         Returns: string
       }
+      create_short_link: {
+        Args: {
+          _context_id?: string
+          _context_type?: string
+          _target_url: string
+          _ttl_days?: number
+          _workspace_id: string
+        }
+        Returns: Json
+      }
+      dismiss_system_alert: { Args: { _alert_id: string }; Returns: Json }
       get_dashboard_metrics: { Args: { _workspace_id: string }; Returns: Json }
       has_workspace_access: {
         Args: { _user_id: string; _workspace_id: string }
@@ -1432,6 +1567,7 @@ export type Database = {
         Returns: Json
       }
       purge_expired_portal_tokens: { Args: never; Returns: Json }
+      purge_expired_short_links: { Args: never; Returns: Json }
       purge_stale_file_rows: { Args: never; Returns: Json }
       select_retention_candidates: { Args: never; Returns: Json }
       submit_for_approval: {
