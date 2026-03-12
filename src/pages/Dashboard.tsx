@@ -24,8 +24,9 @@ function useDashboardMetrics(workspaceId: string | undefined) {
         _workspace_id: workspaceId,
       });
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data as DashboardMetrics;
+      const result = data as unknown as DashboardMetrics;
+      if (result?.error) throw new Error(result.error);
+      return result;
     },
     refetchInterval: 30000,
   });
