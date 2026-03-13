@@ -94,10 +94,10 @@ export default function Leads() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Inbox className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-semibold text-foreground">Lead Inbox</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Lead Inbox</h1>
         </div>
         <Button size="sm" onClick={() => { setEditingLead(null); setDialogOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> New Lead
@@ -124,8 +124,8 @@ export default function Leads() {
           <p>No leads yet. Capture your first lead to start tracking momentum.</p>
         </div>
       ) : (
-        <div className="rounded-lg border bg-card overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="rounded-lg border bg-card overflow-x-auto">
+          <table className="w-full text-sm min-w-[700px]">
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Title</th>

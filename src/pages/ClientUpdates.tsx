@@ -118,17 +118,17 @@ export default function ClientUpdates() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <MessageSquare className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-semibold text-foreground">Client Updates</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Client Updates</h1>
         </div>
         <Button size="sm" onClick={() => setCreateOpen(true)}>
           <Plus className="h-4 w-4 mr-1" /> New Update
         </Button>
       </div>
 
-      <div className="mb-4 flex gap-3">
+      <div className="mb-4 flex flex-wrap gap-3">
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input

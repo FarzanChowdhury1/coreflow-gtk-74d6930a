@@ -128,10 +128,10 @@ export default function ApprovalsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <CheckSquare className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-semibold text-foreground">Approvals</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Approvals</h1>
           {myPendingRequests.length > 0 && (
             <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
               {myPendingRequests.length} awaiting you
@@ -220,8 +220,8 @@ export default function ApprovalsPage() {
               No completed approval requests yet.
             </div>
           ) : (
-            <div className="rounded-lg border bg-card mt-4">
-              <Table>
+            <div className="rounded-lg border bg-card mt-4 overflow-x-auto">
+              <Table className="min-w-[600px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Entity</TableHead>

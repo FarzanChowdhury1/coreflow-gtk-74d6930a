@@ -107,8 +107,8 @@ export default function DigestInspector() {
             {alerts.length === 0 ? (
               <p className="text-sm text-muted-foreground">No system alerts recorded.</p>
             ) : (
-              <div className="rounded-lg border bg-card overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="rounded-lg border bg-card overflow-x-auto">
+                <table className="w-full text-sm min-w-[550px]">
                   <thead>
                     <tr className="border-b bg-muted/50">
                       <th className="px-3 py-2 text-left font-medium text-muted-foreground">Type</th>
@@ -154,8 +154,8 @@ export default function DigestInspector() {
             {shortLinks.length === 0 ? (
               <p className="text-sm text-muted-foreground">No short links generated yet.</p>
             ) : (
-              <div className="rounded-lg border bg-card overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="rounded-lg border bg-card overflow-x-auto">
+                <table className="w-full text-sm min-w-[500px]">
                   <thead>
                     <tr className="border-b bg-muted/50">
                       <th className="px-3 py-2 text-left font-medium text-muted-foreground">Code</th>
