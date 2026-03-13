@@ -72,10 +72,10 @@ export default function Invoices() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Receipt className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-semibold text-foreground">Invoice Manager</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Invoice Manager</h1>
         </div>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="mr-1 h-4 w-4" /> New Invoice
