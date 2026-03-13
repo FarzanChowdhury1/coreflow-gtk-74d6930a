@@ -50,6 +50,24 @@ function parseCookies(header: string | null): Record<string, string> {
   );
 }
 
+/**
+ * Extract JWT from cookie or Authorization header (fallback for cross-site cookie blocking).
+ */
+function extractToken(req: Request): string | null {
+  // Try cookie first
+  const cookies = parseCookies(req.headers.get("Cookie"));
+  const cookieToken = cookies[COOKIE_NAME];
+  if (cookieToken) return cookieToken;
+
+  // Fallback: Authorization Bearer header
+  const authHeader = req.headers.get("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.slice(7);
+  }
+
+  return null;
+}
+
 interface PortalSession {
   workspace_id: string;
   company_id: string;
@@ -70,9 +88,8 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Method not allowed" }, 405, hdrs);
   }
 
-  // Authenticate via JWT cookie
-  const cookies = parseCookies(req.headers.get("Cookie"));
-  const token = cookies[COOKIE_NAME];
+  // Authenticate via JWT cookie OR Authorization header
+  const token = extractToken(req);
 
   if (!token) {
     return jsonResponse({ error: "Not authenticated" }, 401, hdrs);
@@ -181,7 +198,6 @@ async function handleResource(
     }
 
     case "client_updates": {
-      // Only published updates, scoped to this company
       const { data } = await supabase
         .from("client_updates")
         .select("id, title, body, published_at, project_id, projects(name)")
