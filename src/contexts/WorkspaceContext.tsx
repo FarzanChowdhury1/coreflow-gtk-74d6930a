@@ -45,7 +45,27 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const fetchWorkspaces = async () => {
       setLoading(true);
 
-      // Fetch memberships
+      // Step 1: Check for and accept any pending invites before anything else
+      try {
+        const { data: pendingInvites } = await supabase
+          .from("workspace_invites" as any)
+          .select("id")
+          .eq("status", "pending");
+
+        if (!cancelled && pendingInvites && pendingInvites.length > 0) {
+          for (const invite of pendingInvites) {
+            await supabase.rpc("accept_workspace_invite" as any, {
+              _invite_id: (invite as any).id,
+            });
+          }
+        }
+      } catch {
+        // Table may not exist yet during migration rollout — ignore
+      }
+
+      if (cancelled) return;
+
+      // Step 2: Fetch memberships (now includes any just-accepted invites)
       const { data: membershipData } = await supabase
         .from("workspace_memberships")
         .select("*")
@@ -73,7 +93,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           }
         }
       } else {
-        // No memberships — atomically create workspace + membership via RPC
+        // No memberships even after invite acceptance — bootstrap a new workspace
         const { data: result, error: rpcError } = await supabase
           .rpc("bootstrap_workspace", { _user_id: user.id, _name: "My Workspace" });
 
