@@ -282,7 +282,7 @@ async function handleAction(
         .eq("id", versionId);
 
       if (updateErr) {
-        return jsonResponse({ error: "Update failed" }, 500, hdrs);
+        return jsonResponse({ error: updateErr.message || "Update failed" }, 500, hdrs);
       }
 
       return jsonResponse({ success: true, new_status: decision }, 200, hdrs);
