@@ -79,10 +79,10 @@ export default function Notifications() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Bell className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-semibold text-foreground">Notifications</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Notifications</h1>
           {unreadCount > 0 && (
             <Badge className="bg-primary text-primary-foreground">{unreadCount} unread</Badge>
           )}

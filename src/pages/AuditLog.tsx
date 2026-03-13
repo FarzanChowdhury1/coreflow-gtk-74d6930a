@@ -50,8 +50,8 @@ export default function AuditLog() {
           <p>No audit records yet. Actions will be logged as you use the system.</p>
         </div>
       ) : (
-        <div className="rounded-lg border bg-card">
-          <Table>
+        <div className="rounded-lg border bg-card overflow-x-auto">
+          <Table className="min-w-[700px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Timestamp</TableHead>

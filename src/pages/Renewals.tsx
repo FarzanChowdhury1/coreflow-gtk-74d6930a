@@ -121,10 +121,10 @@ export default function Renewals() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <RefreshCw className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-semibold text-foreground">Renewals</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Renewals</h1>
         </div>
         {isAdmin && (
           <Button onClick={() => { setEditing(null); setFormOpen(true); }}>

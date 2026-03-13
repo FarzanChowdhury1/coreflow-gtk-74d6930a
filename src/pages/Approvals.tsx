@@ -220,8 +220,8 @@ export default function ApprovalsPage() {
               No completed approval requests yet.
             </div>
           ) : (
-            <div className="rounded-lg border bg-card mt-4">
-              <Table>
+            <div className="rounded-lg border bg-card mt-4 overflow-x-auto">
+              <Table className="min-w-[600px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Entity</TableHead>
