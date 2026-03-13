@@ -77,8 +77,8 @@ export default function Payments() {
           <p>No payments recorded yet. Issue an invoice first, then record payments against it.</p>
         </div>
       ) : (
-        <div className="rounded-lg border bg-card">
-          <Table>
+        <div className="rounded-lg border bg-card overflow-x-auto">
+          <Table className="min-w-[650px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Invoice</TableHead>

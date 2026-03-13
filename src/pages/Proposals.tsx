@@ -102,8 +102,8 @@ export default function Proposals() {
           <p>No proposals yet. Create your first proposal for a client.</p>
         </div>
       ) : (
-        <div className="rounded-lg border bg-card overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="rounded-lg border bg-card overflow-x-auto">
+          <table className="w-full text-sm min-w-[650px]">
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Title</th>
