@@ -45,6 +45,24 @@ function parseCookies(header: string | null): Record<string, string> {
   );
 }
 
+/**
+ * Extract JWT from cookie or Authorization header (fallback for cross-site cookie blocking).
+ */
+function extractToken(req: Request): string | null {
+  // Try cookie first
+  const cookies = parseCookies(req.headers.get("Cookie"));
+  const cookieToken = cookies[COOKIE_NAME];
+  if (cookieToken) return cookieToken;
+
+  // Fallback: Authorization Bearer header
+  const authHeader = req.headers.get("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.slice(7);
+  }
+
+  return null;
+}
+
 Deno.serve(async (req) => {
   const origin = req.headers.get("Origin");
   const hdrs = corsHeaders(origin);
@@ -57,8 +75,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Method not allowed" }, 405, hdrs);
   }
 
-  const cookies = parseCookies(req.headers.get("Cookie"));
-  const token = cookies[COOKIE_NAME];
+  const token = extractToken(req);
 
   if (!token) {
     return jsonResponse({ error: "Not authenticated" }, 401, hdrs);

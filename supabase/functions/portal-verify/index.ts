@@ -117,21 +117,22 @@ Deno.serve(async (req) => {
       .eq("token", token)
       .single();
 
-    if (
-      !tokenRecord ||
-      tokenRecord.revoked_at ||
-      tokenRecord.consumed_at ||
-      new Date(tokenRecord.expires_at) < new Date()
-    ) {
-      // Record failure
+    if (!tokenRecord || tokenRecord.revoked_at) {
       await supabase.from("portal_failed_attempts").insert({ ip_address: ip });
-      // Cleanup old entries (> 1 hour)
       await supabase
         .from("portal_failed_attempts")
         .delete()
         .lt("attempted_at", new Date(Date.now() - 60 * 60 * 1000).toISOString());
-
       return jsonResponse({ error: "Invalid or expired access token" }, 401, hdrs);
+    }
+
+    if (tokenRecord.consumed_at) {
+      return jsonResponse({ error: "This token has already been consumed. Please request a new portal link." }, 401, hdrs);
+    }
+
+    if (new Date(tokenRecord.expires_at) < new Date()) {
+      await supabase.from("portal_failed_attempts").insert({ ip_address: ip });
+      return jsonResponse({ error: "This access token has expired. Please request a new portal link." }, 401, hdrs);
     }
 
     // --- Consume the token (replay prevention) ---
@@ -169,6 +170,7 @@ Deno.serve(async (req) => {
     return jsonResponse(
       {
         success: true,
+        portal_jwt: jwt, // Return JWT in body for sessionStorage fallback
         workspace_id: tokenRecord.workspace_id,
         company_id: tokenRecord.company_id,
         contact_id: tokenRecord.contact_id,
