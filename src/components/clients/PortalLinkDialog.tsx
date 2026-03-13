@@ -38,22 +38,21 @@ export function PortalLinkDialog({ open, onOpenChange, contacts, companies }: Pr
     if (!currentWorkspace || !contactId || !companyId) return;
     setGenerating(true);
     try {
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + Number(expiryDays));
-
-      const { data, error } = await supabase
-        .from("portal_tokens")
-        .insert({
-          workspace_id: currentWorkspace.id,
-          contact_id: contactId,
-          company_id: companyId,
-          expires_at: expiresAt.toISOString(),
-        })
-        .select("token")
-        .single();
+      const { data, error } = await supabase.rpc("generate_portal_token", {
+        _workspace_id: currentWorkspace.id,
+        _company_id: companyId,
+        _contact_id: contactId,
+        _expires_in_days: Number(expiryDays),
+      });
 
       if (error) throw error;
-      const link = `${window.location.origin}/portal?token=${data.token}`;
+
+      const result = data as unknown as { success: boolean; token?: string; error?: string };
+      if (!result.success) {
+        throw new Error(result.error || "Failed to generate portal link");
+      }
+
+      const link = `${window.location.origin}/portal?token=${result.token}`;
       setGeneratedLink(link);
       toast.success("Portal link generated");
     } catch (err: any) {
