@@ -166,8 +166,8 @@ export default function Clients() {
               <p>No contacts yet. Add your first contact.</p>
             </div>
           ) : (
-            <div className="rounded-lg border bg-card overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="rounded-lg border bg-card overflow-x-auto">
+              <table className="w-full text-sm min-w-[600px]">
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
