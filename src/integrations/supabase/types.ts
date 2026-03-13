@@ -1540,6 +1540,15 @@ export type Database = {
         Returns: Json
       }
       dismiss_system_alert: { Args: { _alert_id: string }; Returns: Json }
+      generate_portal_token: {
+        Args: {
+          _company_id: string
+          _contact_id: string
+          _expires_in_days?: number
+          _workspace_id: string
+        }
+        Returns: Json
+      }
       get_dashboard_metrics: { Args: { _workspace_id: string }; Returns: Json }
       has_workspace_access: {
         Args: { _user_id: string; _workspace_id: string }
