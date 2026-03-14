@@ -67,7 +67,7 @@ export default function Login() {
       if (error) {
         toast({ title: "Sign in failed", description: error.message, variant: "destructive" });
       } else {
-        navigate("/dashboard", { replace: true });
+        navigate(redirectTo || "/dashboard", { replace: true });
       }
     }
 
