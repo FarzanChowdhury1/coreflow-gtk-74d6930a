@@ -16,6 +16,7 @@ import {
   MessageSquare,
   RefreshCw,
   FileSearch,
+  MessageSquarePlus,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
