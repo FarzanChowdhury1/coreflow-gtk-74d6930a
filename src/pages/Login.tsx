@@ -80,6 +80,27 @@ export default function Login() {
     setConfirmPassword("");
   };
 
+  const [forgotMode, setForgotMode] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast({ title: "Email required", description: "Enter your email address to reset your password.", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setLoading(false);
+    if (error) {
+      toast({ title: "Reset failed", description: error.message, variant: "destructive" });
+    } else {
+      setResetSent(true);
+    }
+  };
+
   const inputClass =
     "h-10 w-full rounded-md border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring";
 
@@ -95,74 +116,90 @@ export default function Login() {
             {isSignUp ? "Create your account" : "Sign in to your workspace"}
           </p>
         </div>
-        <form onSubmit={handleSubmit} className="rounded-lg border bg-card p-6">
-          <div className="space-y-4">
-            {isSignUp && (
+        {forgotMode ? (
+          resetSent ? (
+            <div className="rounded-lg border bg-card p-6 text-center space-y-4">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                <span className="text-2xl">✉️</span>
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">Check your email</h2>
+              <p className="text-sm text-muted-foreground">
+                We sent a password reset link to <strong>{email}</strong>. Click the link in the email to set a new password.
+              </p>
+              <button
+                type="button"
+                onClick={() => { setForgotMode(false); setResetSent(false); }}
+                className="text-sm text-primary hover:underline"
+              >
+                Back to sign in
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleForgotPassword} className="rounded-lg border bg-card p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@company.com"
+                    required
+                    className={inputClass}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Sending..." : "Send Reset Link"}
+                </Button>
+              </div>
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => setForgotMode(false)}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Back to sign in
+                </button>
+              </div>
+            </form>
+          )
+        ) : (
+          <form onSubmit={handleSubmit} className="rounded-lg border bg-card p-6">
+            <div className="space-y-4">
+              {isSignUp && (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">Full Name</label>
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Your name"
+                    required={isSignUp}
+                    className={inputClass}
+                  />
+                </div>
+              )}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Full Name</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
                 <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Your name"
-                  required={isSignUp}
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@company.com"
+                  required
                   className={inputClass}
                 />
               </div>
-            )}
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
-                required
-                className={inputClass}
-              />
-            </div>
 
-            {/* Password field with toggle */}
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (fieldErrors.password) setFieldErrors((p) => ({ ...p, password: "" }));
-                  }}
-                  placeholder="••••••••"
-                  required
-                  className={`${inputClass} pr-10`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  tabIndex={-1}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-              {fieldErrors.password && (
-                <p className="mt-1 text-xs text-destructive">{fieldErrors.password}</p>
-              )}
-            </div>
-
-            {/* Confirm password (signup only) */}
-            {isSignUp && (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Confirm Password</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Password</label>
                 <div className="relative">
                   <input
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={confirmPassword}
+                    type={showPassword ? "text" : "password"}
+                    value={password}
                     onChange={(e) => {
-                      setConfirmPassword(e.target.value);
-                      if (fieldErrors.confirmPassword) setFieldErrors((p) => ({ ...p, confirmPassword: "" }));
+                      setPassword(e.target.value);
+                      if (fieldErrors.password) setFieldErrors((p) => ({ ...p, password: "" }));
                     }}
                     placeholder="••••••••"
                     required
@@ -170,34 +207,77 @@ export default function Login() {
                   />
                   <button
                     type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     tabIndex={-1}
-                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                {fieldErrors.confirmPassword && (
-                  <p className="mt-1 text-xs text-destructive">{fieldErrors.confirmPassword}</p>
+                {fieldErrors.password && (
+                  <p className="mt-1 text-xs text-destructive">{fieldErrors.password}</p>
                 )}
               </div>
-            )}
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
-            </Button>
-          </div>
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={toggleMode}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {isSignUp ? "Already have an account? Sign in" : "Don't have an account? Sign up"}
-            </button>
-          </div>
-        </form>
+              {isSignUp && (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">Confirm Password</label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value);
+                        if (fieldErrors.confirmPassword) setFieldErrors((p) => ({ ...p, confirmPassword: "" }));
+                      }}
+                      placeholder="••••••••"
+                      required
+                      className={`${inputClass} pr-10`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      tabIndex={-1}
+                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {fieldErrors.confirmPassword && (
+                    <p className="mt-1 text-xs text-destructive">{fieldErrors.confirmPassword}</p>
+                  )}
+                </div>
+              )}
+
+              {!isSignUp && (
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => setForgotMode(true)}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
+              </Button>
+            </div>
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={toggleMode}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {isSignUp ? "Already have an account? Sign in" : "Don't have an account? Sign up"}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

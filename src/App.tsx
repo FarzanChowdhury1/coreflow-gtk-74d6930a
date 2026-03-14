@@ -25,6 +25,7 @@ import PortalEntry from "@/pages/portal/PortalEntry";
 import Renewals from "@/pages/Renewals";
 import DigestInspector from "@/pages/DigestInspector";
 import InviteAccept from "@/pages/InviteAccept";
+import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
           <Routes>
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/invite" element={<InviteAccept />} />
 
             {/* External client portal (completely decoupled auth — Phase 6) */}
