@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -16,7 +16,9 @@ export default function Login() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const redirectTo = searchParams.get("redirect");
 
   const validate = (): boolean => {
     const errors: Record<string, string> = {};
@@ -65,7 +67,7 @@ export default function Login() {
       if (error) {
         toast({ title: "Sign in failed", description: error.message, variant: "destructive" });
       } else {
-        navigate("/dashboard", { replace: true });
+        navigate(redirectTo || "/dashboard", { replace: true });
       }
     }
 

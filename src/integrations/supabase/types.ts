@@ -1566,6 +1566,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_invite_by_token: { Args: { _token: string }; Returns: Json }
       accept_workspace_invite: { Args: { _invite_id: string }; Returns: Json }
       aggregate_daily_digest: { Args: never; Returns: Json }
       bootstrap_workspace: {
@@ -1590,6 +1591,15 @@ export type Database = {
         }
         Returns: Json
       }
+      create_workspace_invite: {
+        Args: {
+          _email: string
+          _role?: Database["public"]["Enums"]["app_role"]
+          _workspace_id: string
+        }
+        Returns: Json
+      }
+      decline_workspace_invite: { Args: { _invite_id: string }; Returns: Json }
       dismiss_system_alert: { Args: { _alert_id: string }; Returns: Json }
       generate_portal_token: {
         Args: {
@@ -1648,6 +1658,8 @@ export type Database = {
       purge_expired_portal_tokens: { Args: never; Returns: Json }
       purge_expired_short_links: { Args: never; Returns: Json }
       purge_stale_file_rows: { Args: never; Returns: Json }
+      resolve_invite_by_token: { Args: { _token: string }; Returns: Json }
+      revoke_workspace_invite: { Args: { _invite_id: string }; Returns: Json }
       select_retention_candidates: { Args: never; Returns: Json }
       submit_for_approval: {
         Args: {

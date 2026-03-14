@@ -13,6 +13,17 @@ interface WorkspaceContextType {
   memberships: Membership[];
   setCurrentWorkspaceId: (id: string) => void;
   loading: boolean;
+  pendingInvites: PendingInvite[];
+  refreshWorkspaces: () => void;
+}
+
+interface PendingInvite {
+  id: string;
+  workspace_id: string;
+  email: string;
+  role: string;
+  created_at: string;
+  expires_at: string;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType>({
@@ -22,6 +33,8 @@ const WorkspaceContext = createContext<WorkspaceContextType>({
   memberships: [],
   setCurrentWorkspaceId: () => {},
   loading: true,
+  pendingInvites: [],
+  refreshWorkspaces: () => {},
 });
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
@@ -30,12 +43,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
+  const [fetchKey, setFetchKey] = useState(0);
+
+  const refreshWorkspaces = () => setFetchKey((k) => k + 1);
 
   useEffect(() => {
     if (!user) {
       setWorkspaces([]);
       setMemberships([]);
       setCurrentWorkspaceId(null);
+      setPendingInvites([]);
       setLoading(false);
       return;
     }
@@ -45,38 +63,31 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const fetchWorkspaces = async () => {
       setLoading(true);
 
-      // Step 1: Check for and accept any pending invites before anything else
-      try {
-        const { data: pendingInvites } = await supabase
-          .from("workspace_invites" as any)
-          .select("id")
-          .eq("status", "pending");
-
-        if (!cancelled && pendingInvites && pendingInvites.length > 0) {
-          for (const invite of pendingInvites) {
-            await supabase.rpc("accept_workspace_invite" as any, {
-              _invite_id: (invite as any).id,
-            });
-          }
-        }
-      } catch {
-        // Table may not exist yet during migration rollout — ignore
-      }
+      // Fetch memberships and pending invites in parallel
+      const [membershipRes, invitesRes] = await Promise.all([
+        supabase
+          .from("workspace_memberships")
+          .select("*")
+          .eq("user_id", user.id),
+        supabase
+          .from("workspace_invites")
+          .select("id, workspace_id, email, role, created_at, expires_at")
+          .eq("status", "pending"),
+      ]);
 
       if (cancelled) return;
 
-      // Step 2: Fetch memberships (now includes any just-accepted invites)
-      const { data: membershipData } = await supabase
-        .from("workspace_memberships")
-        .select("*")
-        .eq("user_id", user.id);
+      const membershipData = membershipRes.data ?? [];
+      const inviteData = (invitesRes.data ?? []) as unknown as PendingInvite[];
+      // Filter to non-expired invites matching user email
+      const validInvites = inviteData.filter(
+        (i) => new Date(i.expires_at) > new Date()
+      );
+      setPendingInvites(validInvites);
 
-      if (cancelled) return;
-
-      if (membershipData && membershipData.length > 0) {
+      if (membershipData.length > 0) {
         setMemberships(membershipData);
 
-        // Fetch workspaces
         const workspaceIds = membershipData.map((m) => m.workspace_id);
         const { data: workspaceData } = await supabase
           .from("workspaces")
@@ -92,8 +103,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             setCurrentWorkspaceId(workspaceData[0].id);
           }
         }
+      } else if (validInvites.length > 0) {
+        // User has pending invites but no memberships yet — don't bootstrap.
+        // They need to explicitly accept an invite first.
+        setWorkspaces([]);
+        setMemberships([]);
       } else {
-        // No memberships even after invite acceptance — bootstrap a new workspace
+        // No memberships and no pending invites — bootstrap a new workspace
         const { data: result, error: rpcError } = await supabase
           .rpc("bootstrap_workspace", { _user_id: user.id, _name: "My Workspace" });
 
@@ -104,7 +120,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
         const wsResult = result as unknown as { workspace_id: string; membership_id: string };
 
-        // Re-fetch the created workspace and membership
         const { data: wsData } = await supabase
           .from("workspaces")
           .select("*")
@@ -131,7 +146,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
     fetchWorkspaces();
     return () => { cancelled = true; };
-  }, [user]);
+  }, [user, fetchKey]);
 
   const currentWorkspace = workspaces.find((w) => w.id === currentWorkspaceId) ?? null;
   const currentMembership = memberships.find(
@@ -148,6 +163,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         memberships,
         setCurrentWorkspaceId,
         loading,
+        pendingInvites,
+        refreshWorkspaces,
       }}
     >
       {children}

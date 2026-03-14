@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, Trash2, Shield, User, Clock, XCircle } from "lucide-react";
+import { Loader2, Plus, Trash2, Shield, User, Clock, XCircle, Copy, Check } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -32,6 +32,7 @@ interface InviteRow {
   status: string;
   created_at: string;
   expires_at: string;
+  token: string;
 }
 
 export function TeamManagementTab() {
@@ -44,20 +45,21 @@ export function TeamManagementTab() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<AppRole>("team_member");
   const [inviting, setInviting] = useState(false);
+  const [lastCreatedToken, setLastCreatedToken] = useState<string | null>(null);
+  const [copiedToken, setCopiedToken] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!currentWorkspace) return;
     setLoading(true);
 
-    // Fetch members and invites in parallel
     const [membershipsRes, invitesRes] = await Promise.all([
       supabase
         .from("workspace_memberships")
         .select("id, user_id, role, created_at")
         .eq("workspace_id", currentWorkspace.id),
       supabase
-        .from("workspace_invites" as any)
-        .select("id, email, role, status, created_at, expires_at")
+        .from("workspace_invites")
+        .select("id, email, role, status, created_at, expires_at, token")
         .eq("workspace_id", currentWorkspace.id)
         .order("created_at", { ascending: false }),
     ]);
@@ -65,7 +67,6 @@ export function TeamManagementTab() {
     const memberships = membershipsRes.data ?? [];
     const inviteData = (invitesRes.data ?? []) as unknown as InviteRow[];
 
-    // Enrich members with profile names
     if (memberships.length > 0) {
       const userIds = memberships.map((m) => m.user_id);
       const { data: profiles } = await supabase
@@ -129,45 +130,61 @@ export function TeamManagementTab() {
     }
   };
 
+  // Backend-controlled invite creation via RPC
   const handleInvite = async () => {
-    if (!currentWorkspace || !inviteEmail.trim() || !user) return;
+    if (!currentWorkspace || !inviteEmail.trim()) return;
     setInviting(true);
 
-    const { error } = await supabase.from("workspace_invites" as any).insert({
-      workspace_id: currentWorkspace.id,
-      email: inviteEmail.trim().toLowerCase(),
-      role: inviteRole,
-      invited_by: user.id,
-    } as any);
+    const { data, error } = await supabase.rpc("create_workspace_invite", {
+      _workspace_id: currentWorkspace.id,
+      _email: inviteEmail.trim(),
+      _role: inviteRole,
+    });
 
     if (error) {
-      if (error.code === "23505") {
-        toast.error("A pending invite already exists for this email");
-      } else {
-        toast.error("Failed to create invite: " + error.message);
-      }
+      toast.error("Failed to create invite: " + error.message);
     } else {
-      toast.success(`Invite sent to ${inviteEmail.trim()}`);
-      setInviteOpen(false);
-      setInviteEmail("");
-      setInviteRole("team_member");
-      fetchData();
+      const res = data as any;
+      if (res.success) {
+        toast.success(`Invite created for ${inviteEmail.trim()}`);
+        setLastCreatedToken(res.token);
+        setInviteEmail("");
+        setInviteRole("team_member");
+        fetchData();
+      } else {
+        toast.error(res.error || "Failed to create invite");
+      }
     }
     setInviting(false);
   };
 
+  // Backend-controlled invite revocation via RPC
   const handleRevokeInvite = async (inviteId: string) => {
-    const { error } = await supabase
-      .from("workspace_invites" as any)
-      .update({ status: "revoked" } as any)
-      .eq("id", inviteId);
+    const { data, error } = await supabase.rpc("revoke_workspace_invite", {
+      _invite_id: inviteId,
+    });
 
     if (error) {
       toast.error("Failed to revoke invite");
     } else {
-      toast.success("Invite revoked");
-      fetchData();
+      const res = data as any;
+      if (res.success) {
+        toast.success("Invite revoked");
+        fetchData();
+      } else {
+        toast.error(res.error || "Failed to revoke invite");
+      }
     }
+  };
+
+  const getInviteLink = (token: string) => {
+    return `${window.location.origin}/invite?token=${token}`;
+  };
+
+  const handleCopyLink = async (token: string) => {
+    await navigator.clipboard.writeText(getInviteLink(token));
+    setCopiedToken(true);
+    setTimeout(() => setCopiedToken(false), 2000);
   };
 
   const pendingInvites = invites.filter((i) => i.status === "pending");
@@ -192,7 +209,7 @@ export function TeamManagementTab() {
             <CardTitle>Team Members</CardTitle>
             <CardDescription>Manage who has access to this workspace</CardDescription>
           </div>
-          <Button size="sm" onClick={() => setInviteOpen(true)}>
+          <Button size="sm" onClick={() => { setInviteOpen(true); setLastCreatedToken(null); }}>
             <Plus className="mr-2 h-4 w-4" />
             Invite Member
           </Button>
@@ -283,6 +300,7 @@ export function TeamManagementTab() {
                     <TableHead>Role</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Sent</TableHead>
+                    <TableHead>Link</TableHead>
                     <TableHead className="w-[80px]" />
                   </TableRow>
                 </TableHeader>
@@ -315,6 +333,19 @@ export function TeamManagementTab() {
                           {new Date(inv.created_at).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
+                          {!expired && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 gap-1 text-xs"
+                              onClick={() => handleCopyLink(inv.token)}
+                            >
+                              <Copy className="h-3 w-3" />
+                              Copy
+                            </Button>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -341,39 +372,61 @@ export function TeamManagementTab() {
           <DialogHeader>
             <DialogTitle>Invite Team Member</DialogTitle>
             <DialogDescription>
-              The invited user will receive access once they sign up or log in with this email address.
+              Send an invite link. The user will need to accept it after logging in or signing up.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Email Address</Label>
-              <Input
-                type="email"
-                placeholder="colleague@company.com"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-              />
+
+          {lastCreatedToken ? (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Invite created! Share this link with the user:</p>
+              <div className="flex items-center gap-2 rounded-md border bg-muted/50 p-3">
+                <code className="flex-1 text-xs break-all">{getInviteLink(lastCreatedToken)}</code>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleCopyLink(lastCreatedToken)}
+                >
+                  {copiedToken ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+              <DialogFooter>
+                <Button onClick={() => { setInviteOpen(false); setLastCreatedToken(null); }}>Done</Button>
+              </DialogFooter>
             </div>
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as AppRole)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="team_member">Team Member</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
-            <Button onClick={handleInvite} disabled={inviting || !inviteEmail.trim()}>
-              {inviting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Send Invite
-            </Button>
-          </DialogFooter>
+          ) : (
+            <>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Email Address</Label>
+                  <Input
+                    type="email"
+                    placeholder="colleague@company.com"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Role</Label>
+                  <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as AppRole)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="team_member">Team Member</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
+                <Button onClick={handleInvite} disabled={inviting || !inviteEmail.trim()}>
+                  {inviting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Create Invite
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
