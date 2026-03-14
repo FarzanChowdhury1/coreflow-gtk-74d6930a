@@ -40,6 +40,7 @@ const App = () => (
           <Routes>
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/invite" element={<InviteAccept />} />
 
             {/* External client portal (completely decoupled auth — Phase 6) */}
