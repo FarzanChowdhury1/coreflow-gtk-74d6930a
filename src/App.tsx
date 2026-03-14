@@ -70,6 +70,7 @@ const App = () => (
               <Route path="/client-updates" element={<ClientUpdates />} />
               <Route path="/renewals" element={<Renewals />} />
               <Route path="/digest-inspector" element={<DigestInspector />} />
+              <Route path="/beta-feedback" element={<BetaFeedback />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
 
