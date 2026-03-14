@@ -1,5 +1,6 @@
 import { Bell, Menu, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
 
 interface Props {
   onMenuClick: () => void;
