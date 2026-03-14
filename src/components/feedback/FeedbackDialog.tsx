@@ -1,0 +1,135 @@
+import { useState } from "react";
+import { MessageSquarePlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+
+const CATEGORIES = [
+  { value: "bug", label: "Bug Report" },
+  { value: "ui_ux", label: "UI / UX" },
+  { value: "feature_request", label: "Feature Request" },
+  { value: "performance", label: "Performance" },
+  { value: "other", label: "Other" },
+] as const;
+
+export function FeedbackDialog() {
+  const [open, setOpen] = useState(false);
+  const [category, setCategory] = useState<string>("bug");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
+
+  const handleSubmit = async () => {
+    if (!title.trim() || !user || !currentWorkspace) return;
+
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from("beta_feedback" as any).insert({
+        workspace_id: currentWorkspace.id,
+        submitted_by: user.id,
+        category,
+        title: title.trim(),
+        description: description.trim() || null,
+      } as any);
+
+      if (error) throw error;
+
+      toast({ title: "Feedback submitted", description: "Thank you for your input!" });
+      setTitle("");
+      setDescription("");
+      setCategory("bug");
+      setOpen(false);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+        >
+          <MessageSquarePlus className="h-4 w-4" />
+          <span className="hidden sm:inline">Beta Feedback</span>
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Submit Beta Feedback</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label htmlFor="fb-category">Category</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger id="fb-category">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="fb-title">Title</Label>
+            <Input
+              id="fb-title"
+              placeholder="Brief summary"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={200}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="fb-desc">Description (optional)</Label>
+            <Textarea
+              id="fb-desc"
+              placeholder="Steps to reproduce, details, suggestions..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={4}
+              maxLength={2000}
+            />
+          </div>
+          <Button
+            onClick={handleSubmit}
+            disabled={!title.trim() || submitting}
+            className="w-full"
+          >
+            {submitting ? "Submitting…" : "Submit Feedback"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

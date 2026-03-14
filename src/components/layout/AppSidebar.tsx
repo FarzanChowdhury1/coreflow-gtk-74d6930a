@@ -16,6 +16,7 @@ import {
   MessageSquare,
   RefreshCw,
   FileSearch,
+  MessageSquarePlus,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,7 @@ const navItems: NavItem[] = [
   { label: "Renewals", icon: RefreshCw, path: "/renewals", section: "Finance" },
   { label: "Notifications", icon: Bell, path: "/notifications", section: "System" },
   { label: "Digest Inspector", icon: FileSearch, path: "/digest-inspector", section: "System", adminOnly: true },
+  { label: "Beta Feedback", icon: MessageSquarePlus, path: "/beta-feedback", section: "System", adminOnly: true },
   { label: "Audit Log", icon: Shield, path: "/audit", section: "System", adminOnly: true },
   { label: "Settings", icon: Settings, path: "/settings", section: "System", adminOnly: true },
 ];

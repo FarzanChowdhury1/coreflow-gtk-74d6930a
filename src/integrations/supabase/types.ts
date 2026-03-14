@@ -243,6 +243,60 @@ export type Database = {
           },
         ]
       }
+      beta_feedback: {
+        Row: {
+          category: Database["public"]["Enums"]["feedback_category"]
+          created_at: string
+          description: string | null
+          file_id: string | null
+          id: string
+          status: Database["public"]["Enums"]["feedback_status"]
+          submitted_by: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["feedback_category"]
+          created_at?: string
+          description?: string | null
+          file_id?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["feedback_status"]
+          submitted_by: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["feedback_category"]
+          created_at?: string
+          description?: string | null
+          file_id?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["feedback_status"]
+          submitted_by?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beta_feedback_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "beta_feedback_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_updates: {
         Row: {
           author_id: string
@@ -1682,6 +1736,13 @@ export type Database = {
       app_role: "admin" | "team_member"
       approvable_type: "proposal_version" | "invoice" | "project"
       approval_status: "pending" | "approved" | "rejected" | "cancelled"
+      feedback_category:
+        | "bug"
+        | "ui_ux"
+        | "feature_request"
+        | "performance"
+        | "other"
+      feedback_status: "new" | "reviewed" | "accepted" | "closed"
       invoice_status: "draft" | "issued" | "paid" | "partially_paid" | "void"
       lead_status:
         | "new"
@@ -1834,6 +1895,14 @@ export const Constants = {
       app_role: ["admin", "team_member"],
       approvable_type: ["proposal_version", "invoice", "project"],
       approval_status: ["pending", "approved", "rejected", "cancelled"],
+      feedback_category: [
+        "bug",
+        "ui_ux",
+        "feature_request",
+        "performance",
+        "other",
+      ],
+      feedback_status: ["new", "reviewed", "accepted", "closed"],
       invoice_status: ["draft", "issued", "paid", "partially_paid", "void"],
       lead_status: [
         "new",

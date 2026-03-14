@@ -26,6 +26,7 @@ import Renewals from "@/pages/Renewals";
 import DigestInspector from "@/pages/DigestInspector";
 import InviteAccept from "@/pages/InviteAccept";
 import ResetPassword from "@/pages/ResetPassword";
+import BetaFeedback from "@/pages/BetaFeedback";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,6 +70,7 @@ const App = () => (
               <Route path="/client-updates" element={<ClientUpdates />} />
               <Route path="/renewals" element={<Renewals />} />
               <Route path="/digest-inspector" element={<DigestInspector />} />
+              <Route path="/beta-feedback" element={<BetaFeedback />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
 
