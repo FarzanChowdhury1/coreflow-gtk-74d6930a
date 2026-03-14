@@ -24,6 +24,7 @@ import ClientUpdates from "@/pages/ClientUpdates";
 import PortalEntry from "@/pages/portal/PortalEntry";
 import Renewals from "@/pages/Renewals";
 import DigestInspector from "@/pages/DigestInspector";
+import InviteAccept from "@/pages/InviteAccept";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
