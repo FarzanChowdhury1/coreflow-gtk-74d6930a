@@ -25,6 +25,7 @@ import PortalEntry from "@/pages/portal/PortalEntry";
 import Renewals from "@/pages/Renewals";
 import DigestInspector from "@/pages/DigestInspector";
 import InviteAccept from "@/pages/InviteAccept";
+import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
