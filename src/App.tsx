@@ -39,6 +39,7 @@ const App = () => (
           <Routes>
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
+            <Route path="/invite" element={<InviteAccept />} />
 
             {/* External client portal (completely decoupled auth — Phase 6) */}
             <Route path="/portal/*" element={<PortalEntry />} />
