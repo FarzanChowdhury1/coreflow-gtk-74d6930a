@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -6,29 +7,32 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-
 import { AppLayout } from "@/components/layout/AppLayout";
+
+// Critical path – loaded eagerly
 import Login from "@/pages/Login";
-import Dashboard from "@/pages/Dashboard";
-import Leads from "@/pages/Leads";
-import Clients from "@/pages/Clients";
-import Proposals from "@/pages/Proposals";
-import ApprovalsPage from "@/pages/Approvals";
-import Projects from "@/pages/Projects";
-import Invoices from "@/pages/Invoices";
-import Payments from "@/pages/Payments";
-import Notifications from "@/pages/Notifications";
-import AuditLog from "@/pages/AuditLog";
-import Team from "@/pages/Team";
-import SettingsPage from "@/pages/SettingsPage";
-import ClientUpdates from "@/pages/ClientUpdates";
-import PortalEntry from "@/pages/portal/PortalEntry";
-import Renewals from "@/pages/Renewals";
-import DigestInspector from "@/pages/DigestInspector";
-import InviteAccept from "@/pages/InviteAccept";
-import ResetPassword from "@/pages/ResetPassword";
-import BetaFeedback from "@/pages/BetaFeedback";
-import NotFound from "@/pages/NotFound";
+
+// Route-level code splitting – lazy loaded
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const Leads = lazy(() => import("@/pages/Leads"));
+const Clients = lazy(() => import("@/pages/Clients"));
+const Proposals = lazy(() => import("@/pages/Proposals"));
+const ApprovalsPage = lazy(() => import("@/pages/Approvals"));
+const Projects = lazy(() => import("@/pages/Projects"));
+const Invoices = lazy(() => import("@/pages/Invoices"));
+const Payments = lazy(() => import("@/pages/Payments"));
+const Notifications = lazy(() => import("@/pages/Notifications"));
+const AuditLog = lazy(() => import("@/pages/AuditLog"));
+const Team = lazy(() => import("@/pages/Team"));
+const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
+const ClientUpdates = lazy(() => import("@/pages/ClientUpdates"));
+const PortalEntry = lazy(() => import("@/pages/portal/PortalEntry"));
+const Renewals = lazy(() => import("@/pages/Renewals"));
+const DigestInspector = lazy(() => import("@/pages/DigestInspector"));
+const InviteAccept = lazy(() => import("@/pages/InviteAccept"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const BetaFeedback = lazy(() => import("@/pages/BetaFeedback"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient();
 
