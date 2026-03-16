@@ -109,6 +109,59 @@ async function authenticateRequest(req: Request, supabase: ReturnType<typeof cre
   return null;
 }
 
+// --------------- Direct access-check helpers ---------------
+// NOTE: We cannot use has_workspace_access / has_workspace_role / is_project_member RPCs
+// because those security-definer functions compare _user_id against auth.uid().
+// The edge function uses the service-role client, so auth.uid() is NULL and the checks
+// always return false. Instead we query the underlying tables directly.
+
+async function checkWorkspaceAccess(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  workspaceId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("workspace_memberships")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("workspace_id", workspaceId)
+    .limit(1)
+    .maybeSingle();
+  return !!data;
+}
+
+async function checkWorkspaceRole(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  workspaceId: string,
+  role: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("workspace_memberships")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("workspace_id", workspaceId)
+    .eq("role", role)
+    .limit(1)
+    .maybeSingle();
+  return !!data;
+}
+
+async function checkProjectMember(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  projectId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("project_members")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("project_id", projectId)
+    .limit(1)
+    .maybeSingle();
+  return !!data;
+}
+
 // --------------- Storage verification helpers ---------------
 
 /**
