@@ -103,7 +103,7 @@ export function OnboardingChecklist() {
         contacts: contacts.count ?? 0,
         leads: leads.count ?? 0,
         proposals: proposals.count ?? 0,
-        portal_tokens: portal_tokens.count ?? 0,
+        portal_tokens: (portal_tokens.data as number) ?? 0,
         invoices: invoices.count ?? 0,
         members: members.count ?? 0,
       };
