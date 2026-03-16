@@ -129,7 +129,7 @@ export default function InviteAccept() {
   // Result after action
   if (result) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <main className="flex min-h-screen items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center gap-4 pt-8 pb-6">
             {result.success ? (
