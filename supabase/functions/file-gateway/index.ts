@@ -643,20 +643,13 @@ Deno.serve(async (req) => {
         }
 
         // Verify access: admin can toggle any, team member can toggle their own if project member
-        const { data: isAdmin } = await supabase.rpc("has_workspace_role", {
-          _user_id: auth.userId!,
-          _workspace_id: existing.workspace_id,
-          _role: "admin",
-        });
+        const isAdmin = await checkWorkspaceRole(supabase, auth.userId!, existing.workspace_id, "admin");
 
         if (!isAdmin) {
           if (existing.author_id !== auth.userId) {
             return jsonResponse({ error: "Access denied: can only manage your own updates" }, 403, hdrs);
           }
-          const { data: isMember } = await supabase.rpc("is_project_member", {
-            _user_id: auth.userId!,
-            _project_id: existing.project_id,
-          });
+          const isMember = await checkProjectMember(supabase, auth.userId!, existing.project_id);
           if (!isMember) {
             return jsonResponse({ error: "Access denied" }, 403, hdrs);
           }
