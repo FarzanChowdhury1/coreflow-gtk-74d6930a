@@ -75,6 +75,7 @@ export function FeedbackDialog() {
           variant="outline"
           size="sm"
           className="gap-2"
+          aria-label="Submit beta feedback"
         >
           <MessageSquarePlus className="h-4 w-4" />
           <span className="hidden sm:inline">Beta Feedback</span>
