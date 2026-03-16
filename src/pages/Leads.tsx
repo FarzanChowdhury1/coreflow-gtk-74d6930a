@@ -3,9 +3,10 @@ import { Inbox, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { LeadFormDialog } from "@/components/leads/LeadFormDialog";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
@@ -39,6 +40,7 @@ export default function Leads() {
       return data;
     },
     enabled: !!workspaceId,
+    staleTime: 30000,
   });
 
   const { data: companies = [] } = useQuery({
@@ -53,6 +55,7 @@ export default function Leads() {
       return data;
     },
     enabled: !!workspaceId,
+    staleTime: 60000,
   });
 
   const { data: contacts = [] } = useQuery({
@@ -67,6 +70,7 @@ export default function Leads() {
       return data;
     },
     enabled: !!workspaceId,
+    staleTime: 60000,
   });
 
   const filteredLeads = leads.filter((l) =>
@@ -94,6 +98,7 @@ export default function Leads() {
 
   return (
     <div>
+      {/* Shell renders immediately */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Inbox className="h-6 w-6 text-primary" />
@@ -118,7 +123,15 @@ export default function Leads() {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
+        <div className="rounded-lg border bg-card p-4 space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex gap-4">
+              <Skeleton className="h-5 flex-1" />
+              <Skeleton className="h-5 w-20" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+          ))}
+        </div>
       ) : filteredLeads.length === 0 ? (
         <div className="rounded-lg border bg-card p-10 text-center">
           <Inbox className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />

@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface DashboardMetrics {
   active_leads: number;
@@ -31,6 +32,7 @@ function useDashboardMetrics(workspaceId: string | undefined) {
       if (result?.error) throw new Error(result.error);
       return result;
     },
+    staleTime: 30000,
     refetchInterval: 30000,
   });
 }
@@ -56,18 +58,31 @@ function formatCurrency(value: number, currency: string = "BDT") {
   }).format(value);
 }
 
+function MetricCardSkeleton() {
+  return (
+    <div className="rounded-lg border bg-card p-5">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-5 w-5 rounded" />
+      </div>
+      <Skeleton className="mt-3 h-7 w-16" />
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { currentWorkspace, currentRole } = useWorkspace();
   const { data: metrics, isLoading } = useDashboardMetrics(currentWorkspace?.id);
   const currency = currentWorkspace?.currency || "BDT";
 
+  // Render the structural shell immediately — data loads into cards
   return (
     <div>
       <div className="mb-6 flex items-center gap-3">
         <LayoutDashboard className="h-6 w-6 text-primary" />
         <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
         {currentRole && (
-          <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+          <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground/70">
             {currentRole === "admin" ? "Workspace Admin" : "Team Member"}
           </span>
         )}
@@ -75,32 +90,36 @@ export default function Dashboard() {
 
       {/* Count cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {cards.map(({ key, label, icon: Icon, color }) => (
-          <div key={key} className="rounded-lg border bg-card p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">{label}</p>
-              <Icon className={`h-5 w-5 ${color}`} />
-            </div>
-            <p className="mt-2 text-2xl font-semibold text-card-foreground">
-              {isLoading ? "—" : metrics?.[key] ?? 0}
-            </p>
-          </div>
-        ))}
+        {isLoading
+          ? cards.map(({ key }) => <MetricCardSkeleton key={key} />)
+          : cards.map(({ key, label, icon: Icon, color }) => (
+              <div key={key} className="rounded-lg border bg-card p-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">{label}</p>
+                  <Icon className={`h-5 w-5 ${color}`} />
+                </div>
+                <p className="mt-2 text-2xl font-semibold text-card-foreground">
+                  {metrics?.[key] ?? 0}
+                </p>
+              </div>
+            ))}
       </div>
 
       {/* Financial rollups */}
       <div className="mt-4 grid gap-4 md:grid-cols-2">
-        {financialCards.map(({ key, label, icon: Icon, color }) => (
-          <div key={key} className="rounded-lg border bg-card p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">{label}</p>
-              <Icon className={`h-5 w-5 ${color}`} />
-            </div>
-            <p className="mt-2 text-2xl font-semibold text-card-foreground">
-              {isLoading ? "—" : formatCurrency(metrics?.[key] ?? 0, currency)}
-            </p>
-          </div>
-        ))}
+        {isLoading
+          ? financialCards.map(({ key }) => <MetricCardSkeleton key={key} />)
+          : financialCards.map(({ key, label, icon: Icon, color }) => (
+              <div key={key} className="rounded-lg border bg-card p-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">{label}</p>
+                  <Icon className={`h-5 w-5 ${color}`} />
+                </div>
+                <p className="mt-2 text-2xl font-semibold text-card-foreground">
+                  {formatCurrency(metrics?.[key] ?? 0, currency)}
+                </p>
+              </div>
+            ))}
       </div>
 
       {/* Onboarding checklist for new admins */}
@@ -141,6 +160,7 @@ function SystemAlerts({ workspaceId }: { workspaceId: string | undefined }) {
       if (error) throw error;
       return data;
     },
+    staleTime: 60000,
     refetchInterval: 60000,
   });
 
@@ -165,7 +185,7 @@ function SystemAlerts({ workspaceId }: { workspaceId: string | undefined }) {
               <span className="font-medium">{a.title}</span>
               {a.body && <p className="text-xs opacity-80">{a.body}</p>}
             </div>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => dismiss(a.id)}>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => dismiss(a.id)} aria-label={`Dismiss alert: ${a.title}`}>
               <X className="h-3 w-3" />
             </Button>
           </div>

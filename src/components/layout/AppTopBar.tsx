@@ -24,6 +24,7 @@ export function AppTopBar({ onMenuClick }: Props) {
           <input
             type="text"
             placeholder="Search..."
+            aria-label="Search"
             className="h-9 w-48 md:w-64 rounded-md border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
@@ -33,7 +34,7 @@ export function AppTopBar({ onMenuClick }: Props) {
         <Button variant="ghost" size="icon" className="relative" aria-label="View notifications">
           <Bell className="h-4 w-4" />
         </Button>
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground" aria-hidden="true">
           A
         </div>
       </div>
