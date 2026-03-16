@@ -1,7 +1,15 @@
-import { Users } from "lucide-react";
+import { Users, ShieldAlert } from "lucide-react";
 import { TeamManagementTab } from "@/components/settings/TeamManagementTab";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { Navigate } from "react-router-dom";
 
 export default function Team() {
+  const { currentRole } = useWorkspace();
+
+  if (currentRole !== "admin") {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return (
     <div>
       <div className="mb-6 flex items-center gap-3">

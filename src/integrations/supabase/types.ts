@@ -1627,6 +1627,7 @@ export type Database = {
         Args: { _name?: string; _user_id: string }
         Returns: Json
       }
+      count_portal_tokens: { Args: { _workspace_id: string }; Returns: number }
       create_project_from_approved_version: {
         Args: {
           _created_by: string

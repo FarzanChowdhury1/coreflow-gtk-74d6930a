@@ -94,7 +94,7 @@ export function OnboardingChecklist() {
         supabase.from("contacts").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
         supabase.from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
         supabase.from("proposals").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
-        supabase.from("portal_tokens").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+        supabase.rpc("count_portal_tokens", { _workspace_id: workspaceId }),
         supabase.from("invoices").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
         supabase.from("workspace_memberships").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
       ]);
@@ -103,7 +103,7 @@ export function OnboardingChecklist() {
         contacts: contacts.count ?? 0,
         leads: leads.count ?? 0,
         proposals: proposals.count ?? 0,
-        portal_tokens: portal_tokens.count ?? 0,
+        portal_tokens: (portal_tokens.data as number) ?? 0,
         invoices: invoices.count ?? 0,
         members: members.count ?? 0,
       };
