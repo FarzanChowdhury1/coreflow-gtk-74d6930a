@@ -87,7 +87,7 @@ export default function Invoices() {
       ) : invoices.length === 0 ? (
         <div className="rounded-lg border bg-card p-10 text-center">
           <Receipt className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
-          <h3 className="text-sm font-medium text-foreground mb-1">No invoices yet</h3>
+          <h2 className="text-sm font-medium text-foreground mb-1">No invoices yet</h2>
           <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
             Invoices let you bill clients and track payments. Create one linked to a company, add line items, and issue it when ready.
           </p>

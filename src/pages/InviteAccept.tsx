@@ -88,9 +88,9 @@ export default function InviteAccept() {
   // Still loading auth
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <main className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      </main>
     );
   }
 
@@ -98,7 +98,7 @@ export default function InviteAccept() {
   if (!user) {
     const returnUrl = `/invite?token=${encodeURIComponent(token || "")}`;
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <main className="flex min-h-screen items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -113,23 +113,23 @@ export default function InviteAccept() {
             </Button>
           </CardContent>
         </Card>
-      </div>
+        </main>
     );
   }
 
   // Loading invite info
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <main className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+        </main>
     );
   }
 
   // Result after action
   if (result) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <main className="flex min-h-screen items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center gap-4 pt-8 pb-6">
             {result.success ? (
@@ -143,14 +143,14 @@ export default function InviteAccept() {
             </Button>
           </CardContent>
         </Card>
-      </div>
+        </main>
     );
   }
 
   // Invalid invite
   if (!inviteInfo?.valid) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <main className="flex min-h-screen items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center gap-4 pt-8 pb-6">
             <AlertTriangle className="h-12 w-12 text-amber-500" />
@@ -161,7 +161,7 @@ export default function InviteAccept() {
             </Button>
           </CardContent>
         </Card>
-      </div>
+        </main>
     );
   }
 
@@ -169,7 +169,7 @@ export default function InviteAccept() {
   const emailMatch = inviteInfo.email?.toLowerCase() === user.email?.toLowerCase();
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <main className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -217,6 +217,6 @@ export default function InviteAccept() {
           )}
         </CardContent>
       </Card>
-    </div>
+      </main>
   );
 }

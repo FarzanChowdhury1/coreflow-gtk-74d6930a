@@ -15,6 +15,7 @@ export function AppTopBar({ onMenuClick }: Props) {
           size="icon"
           className="lg:hidden shrink-0"
           onClick={onMenuClick}
+          aria-label="Open navigation menu"
         >
           <Menu className="h-5 w-5" />
         </Button>
@@ -29,7 +30,7 @@ export function AppTopBar({ onMenuClick }: Props) {
       </div>
       <div className="flex items-center gap-2">
         <FeedbackDialog />
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative" aria-label="View notifications">
           <Bell className="h-4 w-4" />
         </Button>
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
