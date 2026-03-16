@@ -99,6 +99,7 @@ export function AppSidebar({ mobileOpen, onClose }: Props) {
         <button
           onClick={onClose}
           className="lg:hidden p-1 rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+          aria-label="Close navigation menu"
         >
           <X className="h-5 w-5" />
         </button>
