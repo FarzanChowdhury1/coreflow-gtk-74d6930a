@@ -108,7 +108,7 @@ export function OnboardingChecklist() {
         members: members.count ?? 0,
       };
     },
-    staleTime: 30000,
+    staleTime: 60000,
   });
 
   if (currentRole !== "admin" || isLoading || !counts) return null;
@@ -128,12 +128,12 @@ export function OnboardingChecklist() {
           <h2 className="text-sm font-semibold text-foreground">Get Started</h2>
           <span className="text-xs text-muted-foreground">{completed}/{total} complete</span>
         </div>
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setCollapsed(!collapsed)}>
+        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? "Expand checklist" : "Collapse checklist"}>
           {collapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
         </Button>
       </div>
 
-      <Progress value={progress} className="h-2 mb-4" />
+      <Progress value={progress} className="h-2 mb-4" aria-label={`Onboarding progress: ${completed} of ${total} steps complete`} />
 
       {!collapsed && (
         <div className="space-y-1">

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FileText, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -28,6 +29,7 @@ export default function Proposals() {
       return data;
     },
     enabled: !!workspaceId,
+    staleTime: 30000,
   });
 
   const { data: latestVersions = [] } = useQuery({
@@ -43,6 +45,7 @@ export default function Proposals() {
       return data;
     },
     enabled: !!workspaceId,
+    staleTime: 30000,
   });
 
   const getLatestVersion = (proposalId: string) =>
@@ -54,11 +57,11 @@ export default function Proposals() {
   );
 
   const statusColors: Record<string, string> = {
-    draft: "bg-muted text-muted-foreground",
+    draft: "bg-muted text-foreground/70",
     sent: "bg-secondary text-secondary-foreground",
     approved: "bg-success/15 text-success",
     rejected: "bg-destructive/15 text-destructive",
-    voided: "bg-muted text-muted-foreground line-through",
+    voided: "bg-muted text-foreground/70 line-through",
   };
 
   if (selectedProposalId) {
@@ -96,7 +99,15 @@ export default function Proposals() {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
+        <div className="rounded-lg border bg-card p-4 space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex gap-4">
+              <Skeleton className="h-5 flex-1" />
+              <Skeleton className="h-5 w-20" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+          ))}
+        </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border bg-card p-10 text-center">
           <FileText className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />

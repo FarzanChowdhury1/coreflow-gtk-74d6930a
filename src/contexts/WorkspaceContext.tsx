@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
@@ -37,16 +37,36 @@ const WorkspaceContext = createContext<WorkspaceContextType>({
   refreshWorkspaces: () => {},
 });
 
+// Cache workspace data so route transitions don't re-fetch
+let cachedWorkspaces: Workspace[] | null = null;
+let cachedMemberships: Membership[] | null = null;
+let cachedForUserId: string | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [memberships, setMemberships] = useState<Membership[]>([]);
-  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>(
+    cachedForUserId === user?.id && cachedWorkspaces ? cachedWorkspaces : []
+  );
+  const [memberships, setMemberships] = useState<Membership[]>(
+    cachedForUserId === user?.id && cachedMemberships ? cachedMemberships : []
+  );
+  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(
+    cachedForUserId === user?.id && cachedWorkspaces?.length ? cachedWorkspaces[0].id : null
+  );
+  const [loading, setLoading] = useState(
+    !(cachedForUserId === user?.id && cachedWorkspaces && Date.now() - cacheTimestamp < CACHE_TTL)
+  );
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [fetchKey, setFetchKey] = useState(0);
 
-  const refreshWorkspaces = () => setFetchKey((k) => k + 1);
+  const refreshWorkspaces = useCallback(() => {
+    cachedWorkspaces = null;
+    cachedMemberships = null;
+    cacheTimestamp = 0;
+    setFetchKey((k) => k + 1);
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -54,6 +74,24 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setMemberships([]);
       setCurrentWorkspaceId(null);
       setPendingInvites([]);
+      setLoading(false);
+      cachedForUserId = null;
+      return;
+    }
+
+    // If cache is fresh, skip network fetch
+    if (
+      cachedForUserId === user.id &&
+      cachedWorkspaces &&
+      cachedMemberships &&
+      Date.now() - cacheTimestamp < CACHE_TTL &&
+      fetchKey === 0
+    ) {
+      setWorkspaces(cachedWorkspaces);
+      setMemberships(cachedMemberships);
+      if (!currentWorkspaceId && cachedWorkspaces.length > 0) {
+        setCurrentWorkspaceId(cachedWorkspaces[0].id);
+      }
       setLoading(false);
       return;
     }
@@ -63,7 +101,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const fetchWorkspaces = async () => {
       setLoading(true);
 
-      // Fetch memberships and pending invites in parallel
       const [membershipRes, invitesRes] = await Promise.all([
         supabase
           .from("workspace_memberships")
@@ -79,7 +116,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
       const membershipData = membershipRes.data ?? [];
       const inviteData = (invitesRes.data ?? []) as unknown as PendingInvite[];
-      // Filter to non-expired invites matching user email
       const validInvites = inviteData.filter(
         (i) => new Date(i.expires_at) > new Date()
       );
@@ -99,17 +135,20 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
         if (workspaceData) {
           setWorkspaces(workspaceData);
+          // Update cache
+          cachedWorkspaces = workspaceData;
+          cachedMemberships = membershipData;
+          cachedForUserId = user.id;
+          cacheTimestamp = Date.now();
+
           if (!currentWorkspaceId && workspaceData.length > 0) {
             setCurrentWorkspaceId(workspaceData[0].id);
           }
         }
       } else if (validInvites.length > 0) {
-        // User has pending invites but no memberships yet — don't bootstrap.
-        // They need to explicitly accept an invite first.
         setWorkspaces([]);
         setMemberships([]);
       } else {
-        // No memberships and no pending invites — bootstrap a new workspace
         const { data: result, error: rpcError } = await supabase
           .rpc("bootstrap_workspace", { _user_id: user.id, _name: "My Workspace" });
 
@@ -138,6 +177,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           setMemberships([memData]);
           setWorkspaces([wsData]);
           setCurrentWorkspaceId(wsData.id);
+          // Update cache
+          cachedWorkspaces = [wsData];
+          cachedMemberships = [memData];
+          cachedForUserId = user.id;
+          cacheTimestamp = Date.now();
         }
       }
 

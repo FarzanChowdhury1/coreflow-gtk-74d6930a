@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FolderKanban, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -35,6 +36,7 @@ export default function Projects() {
       return data;
     },
     enabled: !!workspaceId,
+    staleTime: 30000,
   });
 
   const filtered = projects.filter((p) =>
@@ -47,6 +49,7 @@ export default function Projects() {
 
   return (
     <div>
+      {/* Shell renders immediately */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <FolderKanban className="h-6 w-6 text-primary" />
@@ -71,11 +74,19 @@ export default function Projects() {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-lg border bg-card p-4 space-y-3">
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-3 w-1/3" />
+            </div>
+          ))}
+        </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border bg-card p-10 text-center">
           <FolderKanban className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
-          <h3 className="text-sm font-medium text-foreground mb-1">No projects yet</h3>
+          <h2 className="text-sm font-medium text-foreground mb-1">No projects yet</h2>
           <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
             Projects track delivery work for your clients. You can create one from an approved proposal or start fresh. Each project has its own task board.
           </p>
@@ -92,7 +103,7 @@ export default function Projects() {
               className="rounded-lg border bg-card p-4 hover:border-primary/30 transition-colors cursor-pointer"
             >
               <div className="flex items-start justify-between mb-2">
-                <h3 className="font-medium text-foreground text-sm leading-tight">{project.name}</h3>
+                <h2 className="font-medium text-foreground text-sm leading-tight">{project.name}</h2>
                 <Badge variant="secondary" className={`text-xs shrink-0 ml-2 ${statusColors[project.status]}`}>
                   {project.status.replace("_", " ")}
                 </Badge>
