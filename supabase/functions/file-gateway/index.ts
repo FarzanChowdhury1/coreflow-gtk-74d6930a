@@ -540,10 +540,7 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "File not found" }, 404, hdrs);
         }
 
-        const { data: access } = await supabase.rpc("has_workspace_access", {
-          _user_id: auth.userId!,
-          _workspace_id: file.workspace_id,
-        });
+        const access = await checkWorkspaceAccess(supabase, auth.userId!, file.workspace_id);
         if (!access) {
           return jsonResponse({ error: "Access denied" }, 403, hdrs);
         }
