@@ -15,6 +15,7 @@ export function AppTopBar({ onMenuClick }: Props) {
           size="icon"
           className="lg:hidden shrink-0"
           onClick={onMenuClick}
+          aria-label="Open navigation menu"
         >
           <Menu className="h-5 w-5" />
         </Button>
