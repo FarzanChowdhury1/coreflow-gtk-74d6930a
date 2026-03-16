@@ -120,8 +120,15 @@ export default function Leads() {
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
       ) : filteredLeads.length === 0 ? (
-        <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-          <p>No leads yet. Capture your first lead to start tracking momentum.</p>
+        <div className="rounded-lg border bg-card p-10 text-center">
+          <Inbox className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
+          <h3 className="text-sm font-medium text-foreground mb-1">No leads yet</h3>
+          <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+            Leads track new business opportunities from first contact to conversion. Add your first lead to start managing your sales pipeline.
+          </p>
+          <Button size="sm" onClick={() => { setEditingLead(null); setDialogOpen(true); }}>
+            <Plus className="h-4 w-4 mr-1" /> Add First Lead
+          </Button>
         </div>
       ) : (
         <div className="rounded-lg border bg-card overflow-x-auto">

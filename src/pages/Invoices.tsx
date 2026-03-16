@@ -85,8 +85,15 @@ export default function Invoices() {
       {loading ? (
         <div className="text-center py-8 text-muted-foreground">Loading…</div>
       ) : invoices.length === 0 ? (
-        <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-          <p>No invoices yet. Create your first invoice to get started.</p>
+        <div className="rounded-lg border bg-card p-10 text-center">
+          <Receipt className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
+          <h3 className="text-sm font-medium text-foreground mb-1">No invoices yet</h3>
+          <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+            Invoices let you bill clients and track payments. Create one linked to a company, add line items, and issue it when ready.
+          </p>
+          <Button onClick={() => setShowForm(true)} size="sm">
+            <Plus className="mr-1 h-4 w-4" /> Create First Invoice
+          </Button>
         </div>
       ) : (
         <div className="rounded-lg border bg-card overflow-x-auto">

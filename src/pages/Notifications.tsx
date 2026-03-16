@@ -24,7 +24,7 @@ export default function Notifications() {
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(100);
+      .limit(50);
     setNotifications(data || []);
     setLoading(false);
   }, [user]);
@@ -97,8 +97,12 @@ export default function Notifications() {
       {loading ? (
         <div className="text-center py-8 text-muted-foreground">Loading…</div>
       ) : notifications.length === 0 ? (
-        <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-          <p>No notifications yet.</p>
+        <div className="rounded-lg border bg-card p-10 text-center">
+          <Bell className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
+          <h3 className="text-sm font-medium text-foreground mb-1">No notifications yet</h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            You'll see alerts here when approvals are needed, invoices are overdue, follow-ups are due, and more.
+          </p>
         </div>
       ) : (
         <div className="space-y-2">

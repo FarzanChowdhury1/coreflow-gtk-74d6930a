@@ -73,8 +73,12 @@ export default function Payments() {
       {loading ? (
         <div className="text-center py-8 text-muted-foreground">Loading…</div>
       ) : payments.length === 0 ? (
-        <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-          <p>No payments recorded yet. Issue an invoice first, then record payments against it.</p>
+        <div className="rounded-lg border bg-card p-10 text-center">
+          <CreditCard className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
+          <h3 className="text-sm font-medium text-foreground mb-1">No payments recorded</h3>
+          <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+            Payments are recorded against invoices. First create and issue an invoice, then record payments here as they come in.
+          </p>
         </div>
       ) : (
         <div className="rounded-lg border bg-card overflow-x-auto">

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Building2, Plus, Search, Link2 } from "lucide-react";
+import { Building2, Plus, Search, Link2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -116,8 +116,15 @@ export default function Clients() {
           {loadingCompanies ? (
             <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
           ) : filteredCompanies.length === 0 ? (
-            <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-              <p>No companies yet. Add your first client company.</p>
+            <div className="rounded-lg border bg-card p-10 text-center">
+              <Building2 className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
+              <h3 className="text-sm font-medium text-foreground mb-1">No companies yet</h3>
+              <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+                Companies are your client organizations. Add one to start linking contacts, proposals, invoices, and projects to them.
+              </p>
+              <Button size="sm" onClick={() => { setEditingCompany(null); setCompanyDialogOpen(true); }}>
+                <Plus className="h-4 w-4 mr-1" /> Add First Company
+              </Button>
             </div>
           ) : (
             <div className="rounded-lg border bg-card overflow-x-auto">
@@ -162,8 +169,15 @@ export default function Clients() {
           {loadingContacts ? (
             <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
           ) : filteredContacts.length === 0 ? (
-            <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-              <p>No contacts yet. Add your first contact.</p>
+            <div className="rounded-lg border bg-card p-10 text-center">
+              <User className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
+              <h3 className="text-sm font-medium text-foreground mb-1">No contacts yet</h3>
+              <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+                Contacts are the people at your client companies. Add contacts to send portal links and track communication.
+              </p>
+              <Button size="sm" onClick={() => { setEditingContact(null); setContactDialogOpen(true); }}>
+                <Plus className="h-4 w-4 mr-1" /> Add First Contact
+              </Button>
             </div>
           ) : (
             <div className="rounded-lg border bg-card overflow-x-auto">
