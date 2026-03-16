@@ -171,7 +171,7 @@ export default function Clients() {
           ) : filteredContacts.length === 0 ? (
             <div className="rounded-lg border bg-card p-10 text-center">
               <User className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
-              <h3 className="text-sm font-medium text-foreground mb-1">No contacts yet</h3>
+              <h2 className="text-sm font-medium text-foreground mb-1">No contacts yet</h2>
               <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
                 Contacts are the people at your client companies. Add contacts to send portal links and track communication.
               </p>

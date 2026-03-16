@@ -100,7 +100,7 @@ export default function Proposals() {
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border bg-card p-10 text-center">
           <FileText className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
-          <h3 className="text-sm font-medium text-foreground mb-1">No proposals yet</h3>
+          <h2 className="text-sm font-medium text-foreground mb-1">No proposals yet</h2>
           <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
             Proposals let you send pricing and scope to clients for approval. Create one, add line items, then send it for sign-off.
           </p>

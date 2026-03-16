@@ -122,7 +122,7 @@ export default function Leads() {
       ) : filteredLeads.length === 0 ? (
         <div className="rounded-lg border bg-card p-10 text-center">
           <Inbox className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
-          <h3 className="text-sm font-medium text-foreground mb-1">No leads yet</h3>
+          <h2 className="text-sm font-medium text-foreground mb-1">No leads yet</h2>
           <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
             Leads track new business opportunities from first contact to conversion. Add your first lead to start managing your sales pipeline.
           </p>
