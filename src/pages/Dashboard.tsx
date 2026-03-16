@@ -103,6 +103,9 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* Onboarding checklist for new admins */}
+      <OnboardingChecklist />
+
       {/* System Alerts */}
       <SystemAlerts workspaceId={currentWorkspace?.id} />
 

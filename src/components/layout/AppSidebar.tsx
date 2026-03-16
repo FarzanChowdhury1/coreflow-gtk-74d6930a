@@ -47,7 +47,8 @@ const navItems: NavItem[] = [
   { label: "Digest Inspector", icon: FileSearch, path: "/digest-inspector", section: "System", adminOnly: true },
   { label: "Beta Feedback", icon: MessageSquarePlus, path: "/beta-feedback", section: "System", adminOnly: true },
   { label: "Audit Log", icon: Shield, path: "/audit", section: "System", adminOnly: true },
-  { label: "Settings", icon: Settings, path: "/settings", section: "System", adminOnly: true },
+  { label: "Team", icon: Users, path: "/team", section: "System", adminOnly: true },
+  { label: "Settings", icon: Settings, path: "/settings", section: "System" },
 ];
 
 interface Props {

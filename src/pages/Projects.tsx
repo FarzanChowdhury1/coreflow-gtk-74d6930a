@@ -73,8 +73,15 @@ export default function Projects() {
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-          <p>No projects yet. Projects are created from approved proposals or manually.</p>
+        <div className="rounded-lg border bg-card p-10 text-center">
+          <FolderKanban className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
+          <h3 className="text-sm font-medium text-foreground mb-1">No projects yet</h3>
+          <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+            Projects track delivery work for your clients. You can create one from an approved proposal or start fresh. Each project has its own task board.
+          </p>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Create First Project
+          </Button>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

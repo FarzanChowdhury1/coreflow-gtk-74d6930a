@@ -1,8 +1,6 @@
-import { useState } from "react";
-import { Settings, Building2, Users, UserCircle } from "lucide-react";
+import { Settings, Building2, UserCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkspaceSettingsTab } from "@/components/settings/WorkspaceSettingsTab";
-import { TeamManagementTab } from "@/components/settings/TeamManagementTab";
 import { ProfileSettingsTab } from "@/components/settings/ProfileSettingsTab";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
@@ -24,16 +22,10 @@ export default function SettingsPage() {
             Profile
           </TabsTrigger>
           {isAdmin && (
-            <>
-              <TabsTrigger value="workspace" className="gap-2">
-                <Building2 className="h-4 w-4" />
-                Workspace
-              </TabsTrigger>
-              <TabsTrigger value="team" className="gap-2">
-                <Users className="h-4 w-4" />
-                Team
-              </TabsTrigger>
-            </>
+            <TabsTrigger value="workspace" className="gap-2">
+              <Building2 className="h-4 w-4" />
+              Workspace
+            </TabsTrigger>
           )}
         </TabsList>
 
@@ -42,14 +34,9 @@ export default function SettingsPage() {
         </TabsContent>
 
         {isAdmin && (
-          <>
-            <TabsContent value="workspace">
-              <WorkspaceSettingsTab />
-            </TabsContent>
-            <TabsContent value="team">
-              <TeamManagementTab />
-            </TabsContent>
-          </>
+          <TabsContent value="workspace">
+            <WorkspaceSettingsTab />
+          </TabsContent>
         )}
       </Tabs>
     </div>

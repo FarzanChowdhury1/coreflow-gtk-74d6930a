@@ -98,8 +98,15 @@ export default function Proposals() {
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-          <p>No proposals yet. Create your first proposal for a client.</p>
+        <div className="rounded-lg border bg-card p-10 text-center">
+          <FileText className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
+          <h3 className="text-sm font-medium text-foreground mb-1">No proposals yet</h3>
+          <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+            Proposals let you send pricing and scope to clients for approval. Create one, add line items, then send it for sign-off.
+          </p>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Create First Proposal
+          </Button>
         </div>
       ) : (
         <div className="rounded-lg border bg-card overflow-x-auto">

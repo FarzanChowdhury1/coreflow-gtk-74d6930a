@@ -28,7 +28,7 @@ export default function AuditLog() {
       .select("*")
       .eq("workspace_id", currentWorkspace.id)
       .order("created_at", { ascending: false })
-      .limit(200);
+      .limit(50);
     setLogs(data || []);
     setLoading(false);
   }, [currentWorkspace]);
