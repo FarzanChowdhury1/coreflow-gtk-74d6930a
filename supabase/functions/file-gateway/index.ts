@@ -500,10 +500,7 @@ Deno.serve(async (req) => {
         }
 
         if (auth.type === "internal") {
-          const { data: access } = await supabase.rpc("has_workspace_access", {
-            _user_id: auth.userId!,
-            _workspace_id: workspace_id,
-          });
+          const access = await checkWorkspaceAccess(supabase, auth.userId!, workspace_id);
           if (!access) {
             return jsonResponse({ error: "Access denied" }, 403, hdrs);
           }
