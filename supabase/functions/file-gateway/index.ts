@@ -570,26 +570,16 @@ Deno.serve(async (req) => {
         }
 
         // Verify workspace access
-        const { data: access } = await supabase.rpc("has_workspace_access", {
-          _user_id: auth.userId!,
-          _workspace_id: workspace_id,
-        });
+        const access = await checkWorkspaceAccess(supabase, auth.userId!, workspace_id);
         if (!access) {
           return jsonResponse({ error: "Access denied" }, 403, hdrs);
         }
 
         // Verify project membership (team members) or admin role
-        const { data: isAdmin } = await supabase.rpc("has_workspace_role", {
-          _user_id: auth.userId!,
-          _workspace_id: workspace_id,
-          _role: "admin",
-        });
+        const isAdmin = await checkWorkspaceRole(supabase, auth.userId!, workspace_id, "admin");
 
         if (!isAdmin) {
-          const { data: isMember } = await supabase.rpc("is_project_member", {
-            _user_id: auth.userId!,
-            _project_id: project_id,
-          });
+          const isMember = await checkProjectMember(supabase, auth.userId!, project_id);
           if (!isMember) {
             return jsonResponse({ error: "Access denied: not a member of this project" }, 403, hdrs);
           }
