@@ -150,7 +150,7 @@ export default function InviteAccept() {
   // Invalid invite
   if (!inviteInfo?.valid) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <main className="flex min-h-screen items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center gap-4 pt-8 pb-6">
             <AlertTriangle className="h-12 w-12 text-amber-500" />
