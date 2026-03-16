@@ -118,7 +118,7 @@ export default function Clients() {
           ) : filteredCompanies.length === 0 ? (
             <div className="rounded-lg border bg-card p-10 text-center">
               <Building2 className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
-              <h3 className="text-sm font-medium text-foreground mb-1">No companies yet</h3>
+              <h2 className="text-sm font-medium text-foreground mb-1">No companies yet</h2>
               <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
                 Companies are your client organizations. Add one to start linking contacts, proposals, invoices, and projects to them.
               </p>
