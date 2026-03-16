@@ -109,6 +109,59 @@ async function authenticateRequest(req: Request, supabase: ReturnType<typeof cre
   return null;
 }
 
+// --------------- Direct access-check helpers ---------------
+// NOTE: We cannot use has_workspace_access / has_workspace_role / is_project_member RPCs
+// because those security-definer functions compare _user_id against auth.uid().
+// The edge function uses the service-role client, so auth.uid() is NULL and the checks
+// always return false. Instead we query the underlying tables directly.
+
+async function checkWorkspaceAccess(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  workspaceId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("workspace_memberships")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("workspace_id", workspaceId)
+    .limit(1)
+    .maybeSingle();
+  return !!data;
+}
+
+async function checkWorkspaceRole(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  workspaceId: string,
+  role: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("workspace_memberships")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("workspace_id", workspaceId)
+    .eq("role", role)
+    .limit(1)
+    .maybeSingle();
+  return !!data;
+}
+
+async function checkProjectMember(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  projectId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("project_members")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("project_id", projectId)
+    .limit(1)
+    .maybeSingle();
+  return !!data;
+}
+
 // --------------- Storage verification helpers ---------------
 
 /**
@@ -216,10 +269,7 @@ Deno.serve(async (req) => {
         // Internal: verify workspace access
         if (auth.type === "internal") {
           auth.workspaceId = workspace_id;
-          const { data: access } = await supabase.rpc("has_workspace_access", {
-            _user_id: auth.userId!,
-            _workspace_id: workspace_id,
-          });
+          const access = await checkWorkspaceAccess(supabase, auth.userId!, workspace_id);
           if (!access) {
             return jsonResponse({ error: "Access denied" }, 403, hdrs);
           }
@@ -386,10 +436,7 @@ Deno.serve(async (req) => {
 
         // Internal: verify workspace
         if (auth.type === "internal") {
-          const { data: access } = await supabase.rpc("has_workspace_access", {
-            _user_id: auth.userId!,
-            _workspace_id: file.workspace_id,
-          });
+          const access = await checkWorkspaceAccess(supabase, auth.userId!, file.workspace_id);
           if (!access) {
             return jsonResponse({ error: "Access denied" }, 403, hdrs);
           }
@@ -453,10 +500,7 @@ Deno.serve(async (req) => {
         }
 
         if (auth.type === "internal") {
-          const { data: access } = await supabase.rpc("has_workspace_access", {
-            _user_id: auth.userId!,
-            _workspace_id: workspace_id,
-          });
+          const access = await checkWorkspaceAccess(supabase, auth.userId!, workspace_id);
           if (!access) {
             return jsonResponse({ error: "Access denied" }, 403, hdrs);
           }
@@ -496,10 +540,7 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "File not found" }, 404, hdrs);
         }
 
-        const { data: access } = await supabase.rpc("has_workspace_access", {
-          _user_id: auth.userId!,
-          _workspace_id: file.workspace_id,
-        });
+        const access = await checkWorkspaceAccess(supabase, auth.userId!, file.workspace_id);
         if (!access) {
           return jsonResponse({ error: "Access denied" }, 403, hdrs);
         }
@@ -529,26 +570,16 @@ Deno.serve(async (req) => {
         }
 
         // Verify workspace access
-        const { data: access } = await supabase.rpc("has_workspace_access", {
-          _user_id: auth.userId!,
-          _workspace_id: workspace_id,
-        });
+        const access = await checkWorkspaceAccess(supabase, auth.userId!, workspace_id);
         if (!access) {
           return jsonResponse({ error: "Access denied" }, 403, hdrs);
         }
 
         // Verify project membership (team members) or admin role
-        const { data: isAdmin } = await supabase.rpc("has_workspace_role", {
-          _user_id: auth.userId!,
-          _workspace_id: workspace_id,
-          _role: "admin",
-        });
+        const isAdmin = await checkWorkspaceRole(supabase, auth.userId!, workspace_id, "admin");
 
         if (!isAdmin) {
-          const { data: isMember } = await supabase.rpc("is_project_member", {
-            _user_id: auth.userId!,
-            _project_id: project_id,
-          });
+          const isMember = await checkProjectMember(supabase, auth.userId!, project_id);
           if (!isMember) {
             return jsonResponse({ error: "Access denied: not a member of this project" }, 403, hdrs);
           }
@@ -612,20 +643,13 @@ Deno.serve(async (req) => {
         }
 
         // Verify access: admin can toggle any, team member can toggle their own if project member
-        const { data: isAdmin } = await supabase.rpc("has_workspace_role", {
-          _user_id: auth.userId!,
-          _workspace_id: existing.workspace_id,
-          _role: "admin",
-        });
+        const isAdmin = await checkWorkspaceRole(supabase, auth.userId!, existing.workspace_id, "admin");
 
         if (!isAdmin) {
           if (existing.author_id !== auth.userId) {
             return jsonResponse({ error: "Access denied: can only manage your own updates" }, 403, hdrs);
           }
-          const { data: isMember } = await supabase.rpc("is_project_member", {
-            _user_id: auth.userId!,
-            _project_id: existing.project_id,
-          });
+          const isMember = await checkProjectMember(supabase, auth.userId!, existing.project_id);
           if (!isMember) {
             return jsonResponse({ error: "Access denied" }, 403, hdrs);
           }
