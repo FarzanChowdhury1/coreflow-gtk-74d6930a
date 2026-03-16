@@ -217,6 +217,6 @@ export default function InviteAccept() {
           )}
         </CardContent>
       </Card>
-    </div>
+      </main>
   );
 }
