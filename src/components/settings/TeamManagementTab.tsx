@@ -151,16 +151,8 @@ export function TeamManagementTab() {
       if (res.success) {
         toast.success(`Invite created for ${inviteEmail.trim()}`);
         setLastCreatedToken(res.token);
-
-        // Look up invite id by token for email sending
-        const { data: inviteRow } = await supabase
-          .from("workspace_invites")
-          .select("id")
-          .eq("workspace_id", currentWorkspace.id)
-          .eq("token", res.token)
-          .single();
-        setLastCreatedInviteId(inviteRow?.id || null);
-
+        // RPC already returns invite_id — no second lookup needed
+        setLastCreatedInviteId(res.invite_id || null);
         setEmailStatus("idle");
         setEmailError(null);
         setInviteEmail("");
@@ -213,7 +205,6 @@ export function TeamManagementTab() {
           type: "invite",
           workspace_id: currentWorkspace.id,
           invite_id: inviteId,
-          app_base_url: window.location.origin,
         },
       });
 
@@ -230,9 +221,9 @@ export function TeamManagementTab() {
         setEmailError(data?.error || "Failed to send email");
         toast.error(data?.error || "Failed to send invite email");
       }
-    } catch (err: any) {
+    } catch {
       setEmailStatus("failed");
-      setEmailError(err.message || "Failed to send email");
+      setEmailError("Failed to send email");
       toast.error("Failed to send invite email");
     } finally {
       setSendingEmail(false);
@@ -249,7 +240,6 @@ export function TeamManagementTab() {
           type: "invite",
           workspace_id: currentWorkspace.id,
           invite_id: invite.id,
-          app_base_url: window.location.origin,
         },
       });
 
@@ -262,7 +252,7 @@ export function TeamManagementTab() {
       } else {
         toast.error(data?.error || "Failed to send invite email");
       }
-    } catch (err: any) {
+    } catch {
       toast.error("Failed to send invite email");
     } finally {
       setSendingEmail(false);

@@ -27,6 +27,7 @@ export function PortalLinkDialog({ open, onOpenChange, contacts, companies }: Pr
   const [companyId, setCompanyId] = useState("");
   const [expiryDays, setExpiryDays] = useState("30");
   const [generatedLink, setGeneratedLink] = useState("");
+  const [portalToken, setPortalToken] = useState("");
   const [generating, setGenerating] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailStatus, setEmailStatus] = useState<"idle" | "sent" | "failed" | "skipped">("idle");
@@ -62,6 +63,7 @@ export function PortalLinkDialog({ open, onOpenChange, contacts, companies }: Pr
 
       const link = `${window.location.origin}/portal?token=${result.token}`;
       setGeneratedLink(link);
+      setPortalToken(result.token!);
       toast.success("Portal link generated");
     } catch (err: any) {
       toast.error(err.message);
@@ -76,7 +78,7 @@ export function PortalLinkDialog({ open, onOpenChange, contacts, companies }: Pr
   };
 
   const handleSendPortalEmail = async () => {
-    if (!currentWorkspace || !contactId || !generatedLink || sendingEmail) return;
+    if (!currentWorkspace || !contactId || !portalToken || sendingEmail) return;
     setSendingEmail(true);
     setEmailStatus("idle");
     setEmailError(null);
@@ -87,7 +89,7 @@ export function PortalLinkDialog({ open, onOpenChange, contacts, companies }: Pr
           type: "portal",
           workspace_id: currentWorkspace.id,
           contact_id: contactId,
-          portal_url: generatedLink,
+          portal_token: portalToken,
         },
       });
 
@@ -116,6 +118,7 @@ export function PortalLinkDialog({ open, onOpenChange, contacts, companies }: Pr
   const handleClose = (val: boolean) => {
     if (!val) {
       setGeneratedLink("");
+      setPortalToken("");
       setContactId("");
       setCompanyId("");
       setEmailStatus("idle");
@@ -245,7 +248,7 @@ export function PortalLinkDialog({ open, onOpenChange, contacts, companies }: Pr
             )}
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => { setGeneratedLink(""); setEmailStatus("idle"); setEmailError(null); }}>
+              <Button variant="outline" onClick={() => { setGeneratedLink(""); setPortalToken(""); setEmailStatus("idle"); setEmailError(null); }}>
                 Generate Another
               </Button>
               <Button onClick={() => handleClose(false)}>Done</Button>
