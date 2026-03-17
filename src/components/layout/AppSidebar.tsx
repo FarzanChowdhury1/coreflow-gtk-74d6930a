@@ -18,6 +18,7 @@ import {
   FileSearch,
   MessageSquarePlus,
   Users,
+  Activity,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
