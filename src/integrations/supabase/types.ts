@@ -1888,6 +1888,11 @@ export type Database = {
       purge_operational_logs: { Args: never; Returns: Json }
       purge_stale_file_rows: { Args: never; Returns: Json }
       resolve_invite_by_token: { Args: { _token: string }; Returns: Json }
+      retention_days_notification: {
+        Args: { _severity: string }
+        Returns: number
+      }
+      retention_days_ops_log: { Args: { _log_type: string }; Returns: number }
       revoke_workspace_invite: { Args: { _invite_id: string }; Returns: Json }
       select_retention_candidates: { Args: never; Returns: Json }
       submit_for_approval: {
