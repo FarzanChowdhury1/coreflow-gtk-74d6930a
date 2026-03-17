@@ -121,7 +121,9 @@ Deno.serve(async (req) => {
             started_at: new Date().toISOString(),
             finished_at: new Date().toISOString(),
             duration_ms: 0,
-            summary: { triggered_by: "manual", cooldown_remaining_sec: retryAfter },
+            trigger_source: "manual",
+            triggered_by: user.id,
+            summary: { cooldown_remaining_sec: retryAfter },
           });
         } catch (_) { /* best-effort */ }
 
