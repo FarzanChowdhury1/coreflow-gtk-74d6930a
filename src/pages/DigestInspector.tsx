@@ -59,10 +59,10 @@ export default function DigestInspector() {
     },
   });
 
-  function SectionSkeleton() {
+  function SectionSkeleton({ rows = 3, height = "h-12" }: { rows?: number; height?: string }) {
     return (
-      <div className="space-y-2">
-        {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+      <div className="space-y-2" style={{ minHeight: `${rows * 56}px` }}>
+        {Array.from({ length: rows }, (_, i) => <Skeleton key={i} className={`${height} w-full`} />)}
       </div>
     );
   }

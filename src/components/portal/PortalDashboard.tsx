@@ -18,7 +18,7 @@ export function PortalDashboard({ session }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background">
       <div className="border-b bg-card">
         <div className="mx-auto max-w-5xl flex items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
@@ -67,6 +67,6 @@ export function PortalDashboard({ session }: Props) {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </main>
   );
 }
