@@ -1,68 +1,68 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
+const COOLDOWN_MINUTES = 5;
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 /**
- * Admin-triggered digest execution for a single workspace.
- * Reuses existing sweep RPCs + aggregate_daily_digest.
- * Auth: standard JWT (admin role required for the target workspace).
+ * Admin-triggered digest for a SINGLE workspace.
+ *
+ * Key safety properties:
+ *  - NO global sweep RPCs (those are cross-workspace and reserved for scheduled worker)
+ *  - Reads digest data via aggregate_daily_digest, filtered to the target workspace
+ *  - Writes (notifications) only to the target workspace
+ *  - 5-minute cooldown between "run" executions per workspace
  */
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "authorization, content-type, x-client-info, apikey",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-      },
-    });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Content-Type": "application/json",
-  };
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
 
   try {
-    // Extract JWT from Authorization header
+    // --- Auth ---
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Missing authorization" }), {
-        status: 401,
-        headers: corsHeaders,
-      });
+      return json({ error: "Missing authorization" }, 401);
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Validate JWT and get user
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await userClient.auth.getUser();
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid session" }), {
-        status: 401,
-        headers: corsHeaders,
-      });
+      return json({ error: "Invalid session" }, 401);
     }
 
-    // Parse request
+    // --- Parse request ---
     const body = await req.json().catch(() => ({}));
     const workspaceId = body.workspace_id;
-    const mode = body.mode || "run"; // "run" | "preview"
+    const mode: "run" | "preview" = body.mode === "preview" ? "preview" : "run";
 
     if (!workspaceId || typeof workspaceId !== "string") {
-      return new Response(JSON.stringify({ error: "workspace_id required" }), {
-        status: 400,
-        headers: corsHeaders,
-      });
+      return json({ error: "workspace_id required" }, 400);
     }
 
-    // Verify admin role using service client (bypasses auth.uid() guard)
-    const serviceClient = createClient(supabaseUrl, serviceKey);
-    const { data: membership } = await serviceClient
+    // --- Admin check (service client, bypasses auth.uid() guard) ---
+    const sc = createClient(supabaseUrl, serviceKey);
+    const { data: membership } = await sc
       .from("workspace_memberships")
       .select("role")
       .eq("user_id", user.id)
@@ -70,93 +70,115 @@ Deno.serve(async (req) => {
       .single();
 
     if (!membership || membership.role !== "admin") {
-      return new Response(JSON.stringify({ error: "Admin access required" }), {
-        status: 403,
-        headers: corsHeaders,
-      });
+      return json({ error: "Admin access required" }, 403);
     }
 
-    // Run sweeps (cross-workspace but idempotent — same as scheduled job)
-    let sweepResults: Record<string, unknown> = {};
+    // --- Cooldown check (run mode only) ---
+    let lastRunAt: string | null = null;
     if (mode === "run") {
-      const [overdueRes, followupRes, renewalRes] = await Promise.all([
-        serviceClient.rpc("sweep_overdue_invoices"),
-        serviceClient.rpc("sweep_lead_followups"),
-        serviceClient.rpc("sweep_renewal_reminders"),
-      ]);
-      sweepResults = {
-        overdue: overdueRes.data,
-        followups: followupRes.data,
-        renewals: renewalRes.data,
-      };
-    }
+      const { data: recent } = await sc
+        .from("notifications")
+        .select("created_at")
+        .eq("workspace_id", workspaceId)
+        .eq("title", "Daily Digest")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    // Get digest data (all workspaces, we filter below)
-    const { data: allDigest, error: digestErr } = await serviceClient.rpc("aggregate_daily_digest");
-    if (digestErr) throw digestErr;
-
-    const workspaces = Array.isArray(allDigest) ? allDigest : [];
-    const wsDigest = workspaces.find((ws: any) => ws.workspace_id === workspaceId) || null;
-
-    // In "run" mode, create notification for the admin (same as the worker does)
-    if (mode === "run" && wsDigest) {
-      const overdueInvoices = Array.isArray(wsDigest.overdue_invoices) ? wsDigest.overdue_invoices : [];
-      const overdueFollowups = Array.isArray(wsDigest.overdue_followups) ? wsDigest.overdue_followups : [];
-      const upcomingRenewals = Array.isArray(wsDigest.upcoming_renewals) ? wsDigest.upcoming_renewals : [];
-
-      const summary = [
-        overdueInvoices.length > 0 ? `${overdueInvoices.length} overdue invoice(s)` : null,
-        overdueFollowups.length > 0 ? `${overdueFollowups.length} lead follow-up(s) due` : null,
-        upcomingRenewals.length > 0 ? `${upcomingRenewals.length} renewal(s) approaching` : null,
-      ].filter(Boolean).join(", ");
-
-      if (summary) {
-        // Get all admins in the workspace
-        const { data: admins } = await serviceClient
-          .from("workspace_memberships")
-          .select("user_id")
-          .eq("workspace_id", workspaceId)
-          .eq("role", "admin");
-
-        if (admins) {
-          for (const admin of admins) {
-            await serviceClient.from("notifications").insert({
-              workspace_id: workspaceId,
-              user_id: admin.user_id,
-              title: "Daily Digest",
-              body: summary,
-              link: "/dashboard",
-            });
-          }
+      if (recent?.created_at) {
+        lastRunAt = recent.created_at;
+        const elapsed = Date.now() - new Date(recent.created_at).getTime();
+        if (elapsed < COOLDOWN_MINUTES * 60 * 1000) {
+          return json({
+            success: false,
+            error: "cooldown",
+            message: `Please wait ${COOLDOWN_MINUTES} minutes between digest runs.`,
+            last_run_at: recent.created_at,
+            cooldown_remaining_seconds: Math.ceil(
+              (COOLDOWN_MINUTES * 60 * 1000 - elapsed) / 1000
+            ),
+          });
         }
       }
     }
 
-    // Build response
-    const digestSummary = wsDigest
-      ? {
-          overdue_invoices: Array.isArray(wsDigest.overdue_invoices) ? wsDigest.overdue_invoices.length : 0,
-          overdue_followups: Array.isArray(wsDigest.overdue_followups) ? wsDigest.overdue_followups.length : 0,
-          upcoming_renewals: Array.isArray(wsDigest.upcoming_renewals) ? wsDigest.upcoming_renewals.length : 0,
-          details: wsDigest,
-        }
-      : { overdue_invoices: 0, overdue_followups: 0, upcoming_renewals: 0, details: null };
+    // --- Aggregate digest (read-only, all workspaces) then filter ---
+    // NOTE: We intentionally do NOT call sweep_overdue_invoices / sweep_lead_followups /
+    // sweep_renewal_reminders here. Those are global cross-workspace RPCs and must only
+    // run from the scheduled worker. The aggregate RPC reads existing data only.
+    const { data: allDigest, error: digestErr } = await sc.rpc(
+      "aggregate_daily_digest"
+    );
+    if (digestErr) throw digestErr;
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        mode,
-        workspace_id: workspaceId,
-        executed_at: new Date().toISOString(),
-        sweeps: mode === "run" ? sweepResults : null,
-        digest: digestSummary,
-      }),
-      { headers: corsHeaders }
-    );
+    const workspaces = Array.isArray(allDigest) ? allDigest : [];
+    const wsDigest =
+      workspaces.find((ws: any) => ws.workspace_id === workspaceId) || null;
+
+    const overdueInvoices = Array.isArray(wsDigest?.overdue_invoices)
+      ? wsDigest.overdue_invoices
+      : [];
+    const overdueFollowups = Array.isArray(wsDigest?.overdue_followups)
+      ? wsDigest.overdue_followups
+      : [];
+    const upcomingRenewals = Array.isArray(wsDigest?.upcoming_renewals)
+      ? wsDigest.upcoming_renewals
+      : [];
+
+    // --- Run mode: create workspace-scoped notifications only ---
+    if (mode === "run") {
+      const summary = [
+        overdueInvoices.length > 0
+          ? `${overdueInvoices.length} overdue invoice(s)`
+          : null,
+        overdueFollowups.length > 0
+          ? `${overdueFollowups.length} lead follow-up(s) due`
+          : null,
+        upcomingRenewals.length > 0
+          ? `${upcomingRenewals.length} renewal(s) approaching`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(", ");
+
+      const body = summary || "No actionable items found.";
+
+      // Only notify admins in THIS workspace
+      const { data: admins } = await sc
+        .from("workspace_memberships")
+        .select("user_id")
+        .eq("workspace_id", workspaceId)
+        .eq("role", "admin");
+
+      if (admins && admins.length > 0) {
+        await sc.from("notifications").insert(
+          admins.map((a: { user_id: string }) => ({
+            workspace_id: workspaceId,
+            user_id: a.user_id,
+            title: "Daily Digest",
+            body,
+            link: "/dashboard",
+          }))
+        );
+      }
+    }
+
+    // --- Response ---
+    const executedAt = new Date().toISOString();
+    return json({
+      success: true,
+      mode,
+      workspace_id: workspaceId,
+      executed_at: executedAt,
+      last_run_at: mode === "run" ? executedAt : lastRunAt,
+      digest: {
+        overdue_invoices: overdueInvoices.length,
+        overdue_followups: overdueFollowups.length,
+        upcoming_renewals: upcomingRenewals.length,
+        details: wsDigest,
+      },
+    });
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: "Internal server error", message: String(err) }),
-      { status: 500, headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" } }
-    );
+    return json({ error: "Internal server error", message: String(err) }, 500);
   }
 });

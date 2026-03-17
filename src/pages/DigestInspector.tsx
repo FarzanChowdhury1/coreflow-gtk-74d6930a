@@ -1,5 +1,8 @@
-import { useState, useCallback } from "react";
-import { FileSearch, Bell, Play, Eye, RefreshCw, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
+import {
+  FileSearch, Bell, Play, Eye, RefreshCw,
+  CheckCircle2, XCircle, Loader2, Clock,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -10,6 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
+const COOLDOWN_SECONDS = 5 * 60; // must match edge function
+
 /* ------------------------------------------------------------------ */
 /* Digest Control Panel                                                */
 /* ------------------------------------------------------------------ */
@@ -18,22 +23,42 @@ interface DigestResult {
   success: boolean;
   mode: string;
   executed_at: string;
+  last_run_at?: string | null;
   digest: {
     overdue_invoices: number;
     overdue_followups: number;
     upcoming_renewals: number;
   };
-  sweeps?: Record<string, unknown> | null;
   error?: string;
+  cooldown_remaining_seconds?: number;
 }
 
 function DigestControls({ workspaceId }: { workspaceId: string }) {
   const queryClient = useQueryClient();
   const [running, setRunning] = useState<"run" | "preview" | null>(null);
   const [lastResult, setLastResult] = useState<DigestResult | null>(null);
+  const [cooldownEnd, setCooldownEnd] = useState<number | null>(null);
+  const [cooldownLeft, setCooldownLeft] = useState(0);
+
+  // Tick down cooldown
+  useEffect(() => {
+    if (!cooldownEnd) {
+      setCooldownLeft(0);
+      return;
+    }
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((cooldownEnd - Date.now()) / 1000));
+      setCooldownLeft(remaining);
+      if (remaining <= 0) setCooldownEnd(null);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [cooldownEnd]);
 
   const triggerDigest = useCallback(
     async (mode: "run" | "preview") => {
+      if (mode === "run" && cooldownEnd && Date.now() < cooldownEnd) return;
       setRunning(mode);
       setLastResult(null);
       try {
@@ -53,50 +78,94 @@ function DigestControls({ workspaceId }: { workspaceId: string }) {
         );
 
         const json = await res.json();
+
+        // Cooldown rejection from server
+        if (json.error === "cooldown") {
+          const remaining = json.cooldown_remaining_seconds || COOLDOWN_SECONDS;
+          setCooldownEnd(Date.now() + remaining * 1000);
+          setLastResult({
+            success: false,
+            mode,
+            executed_at: new Date().toISOString(),
+            digest: { overdue_invoices: 0, overdue_followups: 0, upcoming_renewals: 0 },
+            error: json.message,
+          });
+          toast({ title: "Cooldown active", description: json.message, variant: "destructive" });
+          return;
+        }
+
         if (!res.ok) throw new Error(json.error || "Request failed");
 
         setLastResult(json);
+
+        // Set cooldown after successful run
+        if (mode === "run") {
+          setCooldownEnd(Date.now() + COOLDOWN_SECONDS * 1000);
+        }
+
         toast({
           title: mode === "run" ? "Digest executed" : "Preview generated",
           description: `Overdue invoices: ${json.digest?.overdue_invoices ?? 0}, Follow-ups: ${json.digest?.overdue_followups ?? 0}, Renewals: ${json.digest?.upcoming_renewals ?? 0}`,
         });
 
-        // Refresh inspector data after run
         if (mode === "run") {
           queryClient.invalidateQueries({ queryKey: ["digest-notifications", workspaceId] });
           queryClient.invalidateQueries({ queryKey: ["all-system-alerts", workspaceId] });
         }
       } catch (err: any) {
-        setLastResult({ success: false, mode, executed_at: new Date().toISOString(), digest: { overdue_invoices: 0, overdue_followups: 0, upcoming_renewals: 0 }, error: err.message });
+        setLastResult({
+          success: false,
+          mode,
+          executed_at: new Date().toISOString(),
+          digest: { overdue_invoices: 0, overdue_followups: 0, upcoming_renewals: 0 },
+          error: err.message,
+        });
         toast({ title: "Digest failed", description: err.message, variant: "destructive" });
       } finally {
         setRunning(null);
       }
     },
-    [workspaceId, queryClient]
+    [workspaceId, queryClient, cooldownEnd]
   );
+
+  const runDisabled = running !== null || cooldownLeft > 0;
 
   return (
     <Card className="border-primary/20">
       <CardContent className="py-4 space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <span className="text-sm font-medium text-foreground">Digest Controls</span>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            {cooldownLeft > 0 && (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {Math.floor(cooldownLeft / 60)}:{String(cooldownLeft % 60).padStart(2, "0")}
+              </span>
+            )}
             <Button
               size="sm"
               variant="outline"
               disabled={running !== null}
               onClick={() => triggerDigest("preview")}
             >
-              {running === "preview" ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Eye className="h-3.5 w-3.5 mr-1.5" />}
+              {running === "preview" ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Eye className="h-3.5 w-3.5 mr-1.5" />
+              )}
               Preview
             </Button>
             <Button
               size="sm"
-              disabled={running !== null}
+              disabled={runDisabled}
               onClick={() => triggerDigest("run")}
+              title={cooldownLeft > 0 ? "Cooldown active — please wait" : undefined}
             >
-              {running === "run" ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Play className="h-3.5 w-3.5 mr-1.5" />}
+              {running === "run" ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Play className="h-3.5 w-3.5 mr-1.5" />
+              )}
               Run Now
             </Button>
           </div>
@@ -111,7 +180,11 @@ function DigestControls({ workspaceId }: { workspaceId: string }) {
                 <XCircle className="h-3.5 w-3.5 text-destructive" />
               )}
               <span className="font-medium text-foreground">
-                {lastResult.success ? (lastResult.mode === "run" ? "Executed" : "Preview") : "Failed"}
+                {lastResult.success
+                  ? lastResult.mode === "run"
+                    ? "Executed"
+                    : "Preview"
+                  : "Failed"}
               </span>
               <span className="text-muted-foreground ml-auto">
                 {format(new Date(lastResult.executed_at), "HH:mm:ss")}
@@ -224,7 +297,6 @@ export default function DigestInspector() {
       </div>
 
       <div className="space-y-8">
-        {/* Admin Digest Controls */}
         {currentRole === "admin" && currentWorkspace?.id && (
           <DigestControls workspaceId={currentWorkspace.id} />
         )}
