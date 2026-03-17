@@ -1785,6 +1785,10 @@ export type Database = {
         }
         Returns: Json
       }
+      create_worker_failure_alert: {
+        Args: { _error_summary?: string; _worker_name: string }
+        Returns: undefined
+      }
       create_workspace_invite: {
         Args: {
           _email: string
