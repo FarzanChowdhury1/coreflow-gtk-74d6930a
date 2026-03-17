@@ -298,6 +298,10 @@ export default function OpsHealth() {
         </Button>
       </div>
 
+      <p className="text-xs text-muted-foreground mt-4">
+        Retention: worker &amp; digest runs kept 90 days · email logs kept 180 days · older entries purged automatically.
+      </p>
+
       <div className="space-y-8">
         <WorkerRunsSection />
 

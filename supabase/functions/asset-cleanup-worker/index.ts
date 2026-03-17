@@ -46,12 +46,16 @@ Deno.serve(async (req) => {
     // 5. Purge expired short links
     const { data: purgedLinks } = await supabase.rpc("purge_expired_short_links");
 
+    // 6. Purge stale operational logs (digest_runs, worker_runs, email_logs)
+    const { data: purgedOpsLogs } = await supabase.rpc("purge_operational_logs");
+
     const durationMs = Date.now() - startTime;
     const resultSummary = {
       storage_blobs_deleted: blobsDeleted,
       file_rows_purged: purgedFiles?.purged_files || 0,
       portal_tokens_purged: purgedTokens?.purged_tokens || 0,
       short_links_purged: purgedLinks?.purged_short_links || 0,
+      ops_logs_purged: purgedOpsLogs || {},
       candidates_found: {
         stale_files: staleFiles.length,
         expired_tokens: (candidates?.expired_portal_tokens || []).length,
