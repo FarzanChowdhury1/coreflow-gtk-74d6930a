@@ -7,7 +7,6 @@ Deno.serve(async (req) => {
     return new Response(null, { status: 204 });
   }
 
-  // Authenticate via X-Worker-Secret header (avoids Supabase gateway Authorization interception)
   const workerAuth = req.headers.get("X-Worker-Secret");
   if (!WORKER_SECRET || workerAuth !== WORKER_SECRET) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -16,11 +15,12 @@ Deno.serve(async (req) => {
     });
   }
 
-  try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, serviceKey);
+  const startTime = Date.now();
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, serviceKey);
 
+  try {
     // 1. Get retention candidates
     const { data: candidates, error: candErr } = await supabase.rpc(
       "select_retention_candidates"
@@ -46,23 +46,55 @@ Deno.serve(async (req) => {
     // 5. Purge expired short links
     const { data: purgedLinks } = await supabase.rpc("purge_expired_short_links");
 
+    const durationMs = Date.now() - startTime;
+    const resultSummary = {
+      storage_blobs_deleted: blobsDeleted,
+      file_rows_purged: purgedFiles?.purged_files || 0,
+      portal_tokens_purged: purgedTokens?.purged_tokens || 0,
+      short_links_purged: purgedLinks?.purged_short_links || 0,
+      candidates_found: {
+        stale_files: staleFiles.length,
+        expired_tokens: (candidates?.expired_portal_tokens || []).length,
+        expired_short_links: (candidates?.expired_short_links || []).length,
+      },
+    };
+
+    // Best-effort worker run log
+    try {
+      await supabase.from("worker_runs").insert({
+        worker_name: "asset_cleanup",
+        status: "success",
+        started_at: new Date(startTime).toISOString(),
+        finished_at: new Date().toISOString(),
+        duration_ms: durationMs,
+        summary: resultSummary,
+      });
+    } catch (_logErr) {
+      console.warn("Failed to log worker run:", _logErr);
+    }
+
     return new Response(
-      JSON.stringify({
-        success: true,
-        storage_blobs_deleted: blobsDeleted,
-        file_rows_purged: purgedFiles?.purged_files || 0,
-        portal_tokens_purged: purgedTokens?.purged_tokens || 0,
-        short_links_purged: purgedLinks?.purged_short_links || 0,
-        candidates_found: {
-          stale_files: staleFiles.length,
-          expired_tokens: (candidates?.expired_portal_tokens || []).length,
-          expired_short_links: (candidates?.expired_short_links || []).length,
-        },
-      }),
+      JSON.stringify({ success: true, ...resultSummary }),
       { headers: { "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("Asset cleanup error:", err);
+    const durationMs = Date.now() - startTime;
+
+    // Best-effort failure log
+    try {
+      await supabase.from("worker_runs").insert({
+        worker_name: "asset_cleanup",
+        status: "failed",
+        started_at: new Date(startTime).toISOString(),
+        finished_at: new Date().toISOString(),
+        duration_ms: durationMs,
+        error_message: String(err),
+      });
+    } catch (_logErr) {
+      console.warn("Failed to log worker failure:", _logErr);
+    }
+
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       {
