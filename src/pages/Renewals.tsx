@@ -57,7 +57,7 @@ export default function Renewals() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("renewals")
-        .select("*, companies(legal_name)")
+        .select("*, companies(legal_name), invoices(invoice_number, status)")
         .eq("workspace_id", currentWorkspace!.id)
         .order("next_billing_date", { ascending: true });
       if (error) throw error;
