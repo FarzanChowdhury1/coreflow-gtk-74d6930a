@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Bell, CheckCheck } from "lucide-react";
+import { Bell, CheckCheck, AlertTriangle, AlertCircle, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -9,12 +9,40 @@ import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
+type Severity = "info" | "warning" | "critical";
+
+const SEVERITY_CONFIG: Record<Severity, { icon: typeof Info; label: string; badgeClass: string; dotClass: string }> = {
+  info: { icon: Info, label: "Info", badgeClass: "bg-muted text-muted-foreground", dotClass: "bg-primary" },
+  warning: { icon: AlertTriangle, label: "Warning", badgeClass: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400", dotClass: "bg-yellow-500" },
+  critical: { icon: AlertCircle, label: "Critical", badgeClass: "bg-destructive/10 text-destructive", dotClass: "bg-destructive" },
+};
+
+function SeverityBadge({ severity }: { severity: Severity }) {
+  const config = SEVERITY_CONFIG[severity] || SEVERITY_CONFIG.info;
+  const Icon = config.icon;
+  if (severity === "info") return null;
+  return (
+    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 gap-0.5 font-medium ${config.badgeClass}`}>
+      <Icon className="h-3 w-3" />
+      {config.label}
+    </Badge>
+  );
+}
+
+const FILTER_OPTIONS: { value: string; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "critical", label: "Critical" },
+  { value: "warning", label: "Warning" },
+  { value: "info", label: "Info" },
+];
+
 export default function Notifications() {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [severityFilter, setSeverityFilter] = useState("all");
 
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
@@ -31,7 +59,6 @@ export default function Notifications() {
 
   useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
 
-  // Realtime subscription
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -75,6 +102,10 @@ export default function Notifications() {
     if (notification.link) navigate(notification.link);
   };
 
+  const filtered = severityFilter === "all"
+    ? notifications
+    : notifications.filter((n) => (n.severity || "info") === severityFilter);
+
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   return (
@@ -87,51 +118,77 @@ export default function Notifications() {
             <Badge className="bg-primary text-primary-foreground">{unreadCount} unread</Badge>
           )}
         </div>
-        {unreadCount > 0 && (
-          <Button variant="outline" size="sm" onClick={markAllRead}>
-            <CheckCheck className="mr-1 h-4 w-4" /> Mark All Read
+        <div className="flex items-center gap-2">
+          {unreadCount > 0 && (
+            <Button variant="outline" size="sm" onClick={markAllRead}>
+              <CheckCheck className="mr-1 h-4 w-4" /> Mark All Read
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Severity filter */}
+      <div className="mb-4 flex items-center gap-1.5">
+        {FILTER_OPTIONS.map((opt) => (
+          <Button
+            key={opt.value}
+            variant={severityFilter === opt.value ? "default" : "outline"}
+            size="sm"
+            className="text-xs h-7 px-2.5"
+            onClick={() => setSeverityFilter(opt.value)}
+          >
+            {opt.label}
           </Button>
-        )}
+        ))}
       </div>
 
       {loading ? (
         <div className="text-center py-8 text-muted-foreground">Loading…</div>
-      ) : notifications.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="rounded-lg border bg-card p-10 text-center">
           <Bell className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
-          <h3 className="text-sm font-medium text-foreground mb-1">No notifications yet</h3>
+          <h3 className="text-sm font-medium text-foreground mb-1">
+            {severityFilter !== "all" ? `No ${severityFilter} notifications` : "No notifications yet"}
+          </h3>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            You'll see alerts here when approvals are needed, invoices are overdue, follow-ups are due, and more.
+            {severityFilter !== "all"
+              ? "Try a different filter to see other notifications."
+              : "You'll see alerts here when approvals are needed, invoices are overdue, follow-ups are due, and more."}
           </p>
         </div>
       ) : (
         <div className="space-y-2">
-          {notifications.map((n) => (
-            <Card
-              key={n.id}
-              className={`cursor-pointer transition-colors hover:bg-muted/50 ${
-                !n.is_read ? "border-primary/30 bg-primary/5" : ""
-              }`}
-              onClick={() => handleClick(n)}
-            >
-              <CardContent className="flex items-center justify-between py-3">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    {!n.is_read && (
-                      <span className="h-2 w-2 rounded-full bg-primary" />
+          {filtered.map((n) => {
+            const severity = (n.severity || "info") as Severity;
+            const config = SEVERITY_CONFIG[severity] || SEVERITY_CONFIG.info;
+            return (
+              <Card
+                key={n.id}
+                className={`cursor-pointer transition-colors hover:bg-muted/50 ${
+                  !n.is_read ? "border-primary/30 bg-primary/5" : ""
+                }`}
+                onClick={() => handleClick(n)}
+              >
+                <CardContent className="flex items-center justify-between py-3">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      {!n.is_read && (
+                        <span className={`h-2 w-2 rounded-full shrink-0 ${config.dotClass}`} />
+                      )}
+                      <span className="text-sm font-medium text-foreground">{n.title}</span>
+                      <SeverityBadge severity={severity} />
+                    </div>
+                    {n.body && (
+                      <p className="text-xs text-muted-foreground">{n.body}</p>
                     )}
-                    <span className="text-sm font-medium text-foreground">{n.title}</span>
                   </div>
-                  {n.body && (
-                    <p className="text-xs text-muted-foreground">{n.body}</p>
-                  )}
-                </div>
-                <span className="text-xs text-muted-foreground whitespace-nowrap ml-4">
-                  {format(new Date(n.created_at), "dd MMM HH:mm")}
-                </span>
-              </CardContent>
-            </Card>
-          ))}
+                  <span className="text-xs text-muted-foreground whitespace-nowrap ml-4">
+                    {format(new Date(n.created_at), "dd MMM HH:mm")}
+                  </span>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
