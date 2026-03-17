@@ -1,7 +1,6 @@
 import { useCallback } from "react";
 import {
   Activity, Server, History, Mail, RefreshCw,
-  CheckCircle2, XCircle, AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
