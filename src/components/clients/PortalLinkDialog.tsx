@@ -28,6 +28,7 @@ export function PortalLinkDialog({ open, onOpenChange, contacts, companies }: Pr
   const [expiryDays, setExpiryDays] = useState("30");
   const [generatedLink, setGeneratedLink] = useState("");
   const [portalToken, setPortalToken] = useState("");
+  const [generating, setGenerating] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailStatus, setEmailStatus] = useState<"idle" | "sent" | "failed" | "skipped">("idle");
   const [emailError, setEmailError] = useState<string | null>(null);
