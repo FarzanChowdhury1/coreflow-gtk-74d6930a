@@ -1851,6 +1851,7 @@ export type Database = {
       }
       purge_expired_portal_tokens: { Args: never; Returns: Json }
       purge_expired_short_links: { Args: never; Returns: Json }
+      purge_operational_logs: { Args: never; Returns: Json }
       purge_stale_file_rows: { Args: never; Returns: Json }
       resolve_invite_by_token: { Args: { _token: string }; Returns: Json }
       revoke_workspace_invite: { Args: { _invite_id: string }; Returns: Json }
