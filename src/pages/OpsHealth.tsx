@@ -55,6 +55,34 @@ function WorkerRunsSection() {
     },
   });
 
+  // Resolve profile names for manual runs
+  const manualUserIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const r of runs) {
+      if ((r as any).triggered_by) ids.add((r as any).triggered_by);
+    }
+    return Array.from(ids);
+  }, [runs]);
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["worker-run-profiles", manualUserIds],
+    enabled: manualUserIds.length > 0,
+    staleTime: 60000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", manualUserIds);
+      return data || [];
+    },
+  });
+
+  const profileMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const p of profiles) map[p.user_id] = p.full_name || "Admin";
+    return map;
+  }, [profiles]);
+
   const workerLabel = (name: string) => {
     if (name === "daily_digest") return "Daily Digest";
     if (name === "asset_cleanup") return "Asset Cleanup";

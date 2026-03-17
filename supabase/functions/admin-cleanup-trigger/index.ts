@@ -178,7 +178,6 @@ Deno.serve(async (req) => {
           expired_tokens: (candidates?.expired_portal_tokens || []).length,
           expired_short_links: (candidates?.expired_short_links || []).length,
         },
-        triggered_by: "manual",
       };
 
       // Log success
