@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from "react";
 import { Bell, CheckCheck, AlertTriangle, AlertCircle, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
