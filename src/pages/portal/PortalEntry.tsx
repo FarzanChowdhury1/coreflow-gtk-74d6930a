@@ -110,9 +110,9 @@ export default function PortalEntry() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <main className="flex min-h-screen items-center justify-center bg-background">
         <p className="text-muted-foreground">Validating access…</p>
-      </div>
+      </main>
     );
   }
 
@@ -121,7 +121,7 @@ export default function PortalEntry() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
           <ShieldCheck className="h-10 w-10 text-primary mx-auto" />
@@ -162,6 +162,6 @@ export default function PortalEntry() {
           </Button>
         </form>
       </div>
-    </div>
+    </main>
   );
 }
