@@ -162,6 +162,6 @@ export default function PortalEntry() {
           </Button>
         </form>
       </div>
-    </div>
+    </main>
   );
 }

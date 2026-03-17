@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
@@ -37,39 +37,51 @@ const WorkspaceContext = createContext<WorkspaceContextType>({
   refreshWorkspaces: () => {},
 });
 
-// Cache workspace data so route transitions don't re-fetch
+// Module-level cache + in-flight dedup
 let cachedWorkspaces: Workspace[] | null = null;
 let cachedMemberships: Membership[] | null = null;
+let cachedInvites: PendingInvite[] | null = null;
 let cachedForUserId: string | null = null;
 let cacheTimestamp = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+// In-flight promise dedup — prevents duplicate concurrent fetches
+let inflightPromise: Promise<void> | null = null;
+
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  // Stabilize on user.id to avoid re-fetching on token refresh (new user object ref)
+  const userId = user?.id ?? null;
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
+
   const [workspaces, setWorkspaces] = useState<Workspace[]>(
-    cachedForUserId === user?.id && cachedWorkspaces ? cachedWorkspaces : []
+    cachedForUserId === userId && cachedWorkspaces ? cachedWorkspaces : []
   );
   const [memberships, setMemberships] = useState<Membership[]>(
-    cachedForUserId === user?.id && cachedMemberships ? cachedMemberships : []
+    cachedForUserId === userId && cachedMemberships ? cachedMemberships : []
   );
   const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(
-    cachedForUserId === user?.id && cachedWorkspaces?.length ? cachedWorkspaces[0].id : null
+    cachedForUserId === userId && cachedWorkspaces?.length ? cachedWorkspaces[0].id : null
   );
-  const [loading, setLoading] = useState(
-    !(cachedForUserId === user?.id && cachedWorkspaces && Date.now() - cacheTimestamp < CACHE_TTL)
+  const isCacheValid = cachedForUserId === userId && cachedWorkspaces && Date.now() - cacheTimestamp < CACHE_TTL;
+  const [loading, setLoading] = useState(!isCacheValid);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>(
+    cachedForUserId === userId && cachedInvites ? cachedInvites : []
   );
-  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [fetchKey, setFetchKey] = useState(0);
 
   const refreshWorkspaces = useCallback(() => {
     cachedWorkspaces = null;
     cachedMemberships = null;
+    cachedInvites = null;
     cacheTimestamp = 0;
+    inflightPromise = null;
     setFetchKey((k) => k + 1);
   }, []);
 
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
       setWorkspaces([]);
       setMemberships([]);
       setCurrentWorkspaceId(null);
@@ -79,9 +91,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // If cache is fresh, skip network fetch
+    // If cache is fresh and this isn't a forced refresh, use cache
     if (
-      cachedForUserId === user.id &&
+      cachedForUserId === userId &&
       cachedWorkspaces &&
       cachedMemberships &&
       Date.now() - cacheTimestamp < CACHE_TTL &&
@@ -89,6 +101,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     ) {
       setWorkspaces(cachedWorkspaces);
       setMemberships(cachedMemberships);
+      if (cachedInvites) setPendingInvites(cachedInvites);
       if (!currentWorkspaceId && cachedWorkspaces.length > 0) {
         setCurrentWorkspaceId(cachedWorkspaces[0].id);
       }
@@ -98,14 +111,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
     let cancelled = false;
 
-    const fetchWorkspaces = async () => {
+    const doFetch = async () => {
       setLoading(true);
 
       const [membershipRes, invitesRes] = await Promise.all([
         supabase
           .from("workspace_memberships")
           .select("*")
-          .eq("user_id", user.id),
+          .eq("user_id", userId),
         supabase
           .from("workspace_invites")
           .select("id, workspace_id, email, role, created_at, expires_at")
@@ -120,6 +133,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         (i) => new Date(i.expires_at) > new Date()
       );
       setPendingInvites(validInvites);
+      cachedInvites = validInvites;
 
       if (membershipData.length > 0) {
         setMemberships(membershipData);
@@ -135,10 +149,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
         if (workspaceData) {
           setWorkspaces(workspaceData);
-          // Update cache
           cachedWorkspaces = workspaceData;
           cachedMemberships = membershipData;
-          cachedForUserId = user.id;
+          cachedForUserId = userId;
           cacheTimestamp = Date.now();
 
           if (!currentWorkspaceId && workspaceData.length > 0) {
@@ -150,7 +163,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         setMemberships([]);
       } else {
         const { data: result, error: rpcError } = await supabase
-          .rpc("bootstrap_workspace", { _user_id: user.id, _name: "My Workspace" });
+          .rpc("bootstrap_workspace", { _user_id: userId, _name: "My Workspace" });
 
         if (cancelled || rpcError || !result) {
           if (!cancelled) setLoading(false);
@@ -159,17 +172,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
         const wsResult = result as unknown as { workspace_id: string; membership_id: string };
 
-        const { data: wsData } = await supabase
-          .from("workspaces")
-          .select("*")
-          .eq("id", wsResult.workspace_id)
-          .single();
-
-        const { data: memData } = await supabase
-          .from("workspace_memberships")
-          .select("*")
-          .eq("id", wsResult.membership_id)
-          .single();
+        const [{ data: wsData }, { data: memData }] = await Promise.all([
+          supabase.from("workspaces").select("*").eq("id", wsResult.workspace_id).single(),
+          supabase.from("workspace_memberships").select("*").eq("id", wsResult.membership_id).single(),
+        ]);
 
         if (cancelled) return;
 
@@ -177,24 +183,40 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           setMemberships([memData]);
           setWorkspaces([wsData]);
           setCurrentWorkspaceId(wsData.id);
-          // Update cache
           cachedWorkspaces = [wsData];
           cachedMemberships = [memData];
-          cachedForUserId = user.id;
+          cachedForUserId = userId;
           cacheTimestamp = Date.now();
         }
       }
 
       if (!cancelled) setLoading(false);
+      inflightPromise = null;
     };
 
-    fetchWorkspaces();
+    // Dedup: if there's already an in-flight fetch for the same user, reuse it
+    if (!inflightPromise) {
+      inflightPromise = doFetch();
+    } else {
+      inflightPromise.then(() => {
+        if (!cancelled && cachedWorkspaces) {
+          setWorkspaces(cachedWorkspaces);
+          setMemberships(cachedMemberships ?? []);
+          if (cachedInvites) setPendingInvites(cachedInvites);
+          if (!currentWorkspaceId && cachedWorkspaces.length > 0) {
+            setCurrentWorkspaceId(cachedWorkspaces[0].id);
+          }
+          setLoading(false);
+        }
+      });
+    }
+
     return () => { cancelled = true; };
-  }, [user, fetchKey]);
+  }, [userId, fetchKey]);
 
   const currentWorkspace = workspaces.find((w) => w.id === currentWorkspaceId) ?? null;
   const currentMembership = memberships.find(
-    (m) => m.workspace_id === currentWorkspaceId && m.user_id === user?.id
+    (m) => m.workspace_id === currentWorkspaceId && m.user_id === userId
   );
   const currentRole = currentMembership?.role ?? null;
 

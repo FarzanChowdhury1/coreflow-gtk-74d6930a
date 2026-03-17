@@ -84,11 +84,15 @@ export function OnboardingChecklist() {
   const [collapsed, setCollapsed] = useState(false);
   const workspaceId = currentWorkspace?.id;
 
+  // Defer checklist counts: don't fire until 1.5s after mount so primary
+  // dashboard cards (LCP) render first. Also use long staleTime to avoid refetch.
   const { data: counts, isLoading } = useQuery({
     queryKey: ["onboarding-counts", workspaceId],
     enabled: !!workspaceId && currentRole === "admin",
     queryFn: async () => {
       if (!workspaceId) return {};
+      // Small delay to yield to LCP-critical queries
+      await new Promise((r) => setTimeout(r, 1500));
       const [companies, contacts, leads, proposals, portal_tokens, invoices, members] = await Promise.all([
         supabase.from("companies").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
         supabase.from("contacts").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
@@ -108,9 +112,11 @@ export function OnboardingChecklist() {
         members: members.count ?? 0,
       };
     },
-    staleTime: 60000,
+    staleTime: 5 * 60 * 1000, // 5 minutes — checklist data is very low-churn
+    refetchOnWindowFocus: false,
   });
 
+  // Don't block LCP: return null while loading (no skeleton, no spinner)
   if (currentRole !== "admin" || isLoading || !counts) return null;
 
   const completed = items.filter((i) => i.check(counts)).length;
