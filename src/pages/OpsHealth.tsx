@@ -276,15 +276,15 @@ export default function OpsHealth() {
   const { currentWorkspace, currentRole } = useWorkspace();
   const queryClient = useQueryClient();
 
-  if (currentRole !== "admin") {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   const refreshAll = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["worker-runs"] });
     queryClient.invalidateQueries({ queryKey: ["digest-runs", currentWorkspace?.id] });
     queryClient.invalidateQueries({ queryKey: ["email-logs", currentWorkspace?.id] });
   }, [queryClient, currentWorkspace?.id]);
+
+  if (currentRole !== "admin") {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div>
