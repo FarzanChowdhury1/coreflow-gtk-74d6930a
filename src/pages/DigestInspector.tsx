@@ -423,6 +423,7 @@ export default function DigestInspector() {
     queryClient.invalidateQueries({ queryKey: ["all-system-alerts", currentWorkspace?.id] });
     queryClient.invalidateQueries({ queryKey: ["short-links", currentWorkspace?.id] });
     queryClient.invalidateQueries({ queryKey: ["digest-runs", currentWorkspace?.id] });
+    queryClient.invalidateQueries({ queryKey: ["worker-runs"] });
   }, [queryClient, currentWorkspace?.id]);
 
   const isAdmin = currentRole === "admin";
