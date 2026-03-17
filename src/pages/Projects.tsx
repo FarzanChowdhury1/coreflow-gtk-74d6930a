@@ -13,7 +13,7 @@ const statusColors: Record<string, string> = {
   active: "bg-success/15 text-success",
   on_hold: "bg-warning/15 text-warning",
   completed: "bg-primary/15 text-primary",
-  cancelled: "bg-muted text-foreground/70",
+  cancelled: "bg-secondary text-foreground/80",
 };
 
 export default function Projects() {
