@@ -29,6 +29,7 @@ const ClientUpdates = lazy(() => import("@/pages/ClientUpdates"));
 const PortalEntry = lazy(() => import("@/pages/portal/PortalEntry"));
 const Renewals = lazy(() => import("@/pages/Renewals"));
 const DigestInspector = lazy(() => import("@/pages/DigestInspector"));
+const OpsHealth = lazy(() => import("@/pages/OpsHealth"));
 const InviteAccept = lazy(() => import("@/pages/InviteAccept"));
 const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 const BetaFeedback = lazy(() => import("@/pages/BetaFeedback"));
