@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { RefreshCw, Plus, Pause, Play } from "lucide-react";
+import { RefreshCw, Plus, Pause, Play, Receipt } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -24,6 +24,7 @@ interface Renewal {
   notes: string | null;
   created_at: string;
   companies?: { legal_name: string } | null;
+  invoices?: { invoice_number: string; status: string } | null;
 }
 
 function urgencyBucket(nextDate: string): "overdue" | "within_7" | "within_30" | "future" {
@@ -57,7 +58,7 @@ export default function Renewals() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("renewals")
-        .select("*, companies(legal_name)")
+        .select("*, companies(legal_name), invoices(invoice_number, status)")
         .eq("workspace_id", currentWorkspace!.id)
         .order("next_billing_date", { ascending: true });
       if (error) throw error;
@@ -161,6 +162,13 @@ export default function Renewals() {
                         </div>
                         <p className="text-xs opacity-80">
                           {r.currency} {Number(r.amount).toLocaleString()} · every {r.interval_months}mo · next {format(new Date(r.next_billing_date), "dd MMM yyyy")}
+                          {r.invoice_id && r.invoices && (
+                            <span className="inline-flex items-center gap-1 ml-2 opacity-90">
+                              <Receipt className="h-3 w-3 inline" />
+                              {r.invoices.invoice_number}
+                              {r.invoices.status === "paid" && " ✓"}
+                            </span>
+                          )}
                         </p>
                       </div>
                       {isAdmin && (
