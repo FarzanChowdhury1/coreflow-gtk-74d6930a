@@ -895,6 +895,7 @@ export type Database = {
           id: string
           is_read: boolean
           link: string | null
+          severity: string
           title: string
           user_id: string
           workspace_id: string
@@ -905,6 +906,7 @@ export type Database = {
           id?: string
           is_read?: boolean
           link?: string | null
+          severity?: string
           title: string
           user_id: string
           workspace_id: string
@@ -915,6 +917,7 @@ export type Database = {
           id?: string
           is_read?: boolean
           link?: string | null
+          severity?: string
           title?: string
           user_id?: string
           workspace_id?: string
