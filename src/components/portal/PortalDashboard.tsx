@@ -67,6 +67,6 @@ export function PortalDashboard({ session }: Props) {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </main>
   );
 }

@@ -108,10 +108,10 @@ export default function Projects() {
                   {project.status.replace("_", " ")}
                 </Badge>
               </div>
-              <p className="text-xs text-muted-foreground mb-3">
+              <p className="text-xs text-foreground/70 mb-3">
                 {(project.companies as any)?.legal_name ?? "—"}
               </p>
-              <div className="flex gap-4 text-xs text-muted-foreground">
+              <div className="flex gap-4 text-xs text-foreground/60">
                 {project.start_date && <span>Start: {project.start_date}</span>}
                 {project.target_end_date && <span>Target: {project.target_end_date}</span>}
               </div>
