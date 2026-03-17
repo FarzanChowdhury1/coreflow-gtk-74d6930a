@@ -77,7 +77,7 @@ export function PortalLinkDialog({ open, onOpenChange, contacts, companies }: Pr
   };
 
   const handleSendPortalEmail = async () => {
-    if (!currentWorkspace || !contactId || !generatedLink || sendingEmail) return;
+    if (!currentWorkspace || !contactId || !portalToken || sendingEmail) return;
     setSendingEmail(true);
     setEmailStatus("idle");
     setEmailError(null);
@@ -88,7 +88,7 @@ export function PortalLinkDialog({ open, onOpenChange, contacts, companies }: Pr
           type: "portal",
           workspace_id: currentWorkspace.id,
           contact_id: contactId,
-          portal_url: generatedLink,
+          portal_token: portalToken,
         },
       });
 
