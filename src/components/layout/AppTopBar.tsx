@@ -54,6 +54,7 @@ export function AppTopBar({ onMenuClick }: Props) {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
+  const sorted = useMemo(() => sortByPriority(notifications), [notifications]);
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   const handleClick = async (n: any) => {
