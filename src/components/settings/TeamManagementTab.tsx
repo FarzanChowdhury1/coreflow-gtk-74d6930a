@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, Trash2, Shield, User, Clock, XCircle, Copy, Check } from "lucide-react";
+import { Loader2, Plus, Trash2, Shield, User, Clock, XCircle, Copy, Check, Mail } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -46,7 +46,11 @@ export function TeamManagementTab() {
   const [inviteRole, setInviteRole] = useState<AppRole>("team_member");
   const [inviting, setInviting] = useState(false);
   const [lastCreatedToken, setLastCreatedToken] = useState<string | null>(null);
+  const [lastCreatedInviteId, setLastCreatedInviteId] = useState<string | null>(null);
   const [copiedToken, setCopiedToken] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<"idle" | "sent" | "failed" | "skipped">("idle");
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!currentWorkspace) return;
@@ -130,7 +134,6 @@ export function TeamManagementTab() {
     }
   };
 
-  // Backend-controlled invite creation via RPC
   const handleInvite = async () => {
     if (!currentWorkspace || !inviteEmail.trim()) return;
     setInviting(true);
@@ -148,6 +151,9 @@ export function TeamManagementTab() {
       if (res.success) {
         toast.success(`Invite created for ${inviteEmail.trim()}`);
         setLastCreatedToken(res.token);
+        setLastCreatedInviteId(res.invite_id || null);
+        setEmailStatus("idle");
+        setEmailError(null);
         setInviteEmail("");
         setInviteRole("team_member");
         fetchData();
@@ -158,7 +164,6 @@ export function TeamManagementTab() {
     setInviting(false);
   };
 
-  // Backend-controlled invite revocation via RPC
   const handleRevokeInvite = async (inviteId: string) => {
     const { data, error } = await supabase.rpc("revoke_workspace_invite", {
       _invite_id: inviteId,
@@ -187,6 +192,74 @@ export function TeamManagementTab() {
     setTimeout(() => setCopiedToken(false), 2000);
   };
 
+  const handleSendInviteEmail = async (inviteId: string) => {
+    if (!currentWorkspace || sendingEmail) return;
+    setSendingEmail(true);
+    setEmailStatus("idle");
+    setEmailError(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("send-email", {
+        body: {
+          type: "invite",
+          workspace_id: currentWorkspace.id,
+          invite_id: inviteId,
+          app_base_url: window.location.origin,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        setEmailStatus("sent");
+        toast.success("Invite email sent successfully");
+      } else if (data?.status === "skipped") {
+        setEmailStatus("skipped");
+        setEmailError(data.error);
+      } else {
+        setEmailStatus("failed");
+        setEmailError(data?.error || "Failed to send email");
+        toast.error(data?.error || "Failed to send invite email");
+      }
+    } catch (err: any) {
+      setEmailStatus("failed");
+      setEmailError(err.message || "Failed to send email");
+      toast.error("Failed to send invite email");
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const handleSendInviteEmailFromRow = async (invite: InviteRow) => {
+    if (!currentWorkspace || sendingEmail) return;
+    setSendingEmail(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("send-email", {
+        body: {
+          type: "invite",
+          workspace_id: currentWorkspace.id,
+          invite_id: invite.id,
+          app_base_url: window.location.origin,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success(`Invite email sent to ${invite.email}`);
+      } else if (data?.status === "skipped") {
+        toast.info(data.error || "Email sending is not configured yet");
+      } else {
+        toast.error(data?.error || "Failed to send invite email");
+      }
+    } catch (err: any) {
+      toast.error("Failed to send invite email");
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   const pendingInvites = invites.filter((i) => i.status === "pending");
   const isExpired = (expiresAt: string) => new Date(expiresAt) < new Date();
 
@@ -209,7 +282,7 @@ export function TeamManagementTab() {
             <CardTitle>Team Members</CardTitle>
             <CardDescription>Manage who has access to this workspace</CardDescription>
           </div>
-          <Button size="sm" onClick={() => { setInviteOpen(true); setLastCreatedToken(null); }}>
+          <Button size="sm" onClick={() => { setInviteOpen(true); setLastCreatedToken(null); setLastCreatedInviteId(null); setEmailStatus("idle"); setEmailError(null); }}>
             <Plus className="mr-2 h-4 w-4" />
             Invite Member
           </Button>
@@ -271,6 +344,7 @@ export function TeamManagementTab() {
                           size="icon"
                           className="text-destructive hover:text-destructive"
                           onClick={() => handleRemoveMember(m.id, m.user_id)}
+                          aria-label="Remove member"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -300,7 +374,7 @@ export function TeamManagementTab() {
                     <TableHead>Role</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Sent</TableHead>
-                    <TableHead>Link</TableHead>
+                    <TableHead>Actions</TableHead>
                     <TableHead className="w-[80px]" />
                   </TableRow>
                 </TableHeader>
@@ -334,15 +408,28 @@ export function TeamManagementTab() {
                         </TableCell>
                         <TableCell>
                           {!expired && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 gap-1 text-xs"
-                              onClick={() => handleCopyLink(inv.token)}
-                            >
-                              <Copy className="h-3 w-3" />
-                              Copy
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 gap-1 text-xs"
+                                onClick={() => handleCopyLink(inv.token)}
+                              >
+                                <Copy className="h-3 w-3" />
+                                Copy
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 gap-1 text-xs"
+                                onClick={() => handleSendInviteEmailFromRow(inv)}
+                                disabled={sendingEmail}
+                                aria-label={`Send invite email to ${inv.email}`}
+                              >
+                                {sendingEmail ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
+                                Email
+                              </Button>
+                            </div>
                           )}
                         </TableCell>
                         <TableCell>
@@ -351,7 +438,7 @@ export function TeamManagementTab() {
                             size="icon"
                             className="text-destructive hover:text-destructive"
                             onClick={() => handleRevokeInvite(inv.id)}
-                            title="Revoke invite"
+                            aria-label="Revoke invite"
                           >
                             <XCircle className="h-4 w-4" />
                           </Button>
@@ -385,12 +472,45 @@ export function TeamManagementTab() {
                   size="sm"
                   variant="outline"
                   onClick={() => handleCopyLink(lastCreatedToken)}
+                  aria-label="Copy invite link"
                 >
                   {copiedToken ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </div>
+
+              {/* Email send action */}
+              {lastCreatedInviteId && emailStatus === "idle" && (
+                <Button
+                  variant="outline"
+                  className="w-full gap-2"
+                  onClick={() => handleSendInviteEmail(lastCreatedInviteId)}
+                  disabled={sendingEmail}
+                >
+                  {sendingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                  Send Invite via Email
+                </Button>
+              )}
+
+              {emailStatus === "sent" && (
+                <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-950/30 dark:text-green-300">
+                  <Check className="inline h-4 w-4 mr-1" /> Invite email sent successfully.
+                </div>
+              )}
+
+              {emailStatus === "skipped" && (
+                <div className="rounded-md border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-300">
+                  <Mail className="inline h-4 w-4 mr-1" /> {emailError || "Email sending is not configured yet. Share the link manually."}
+                </div>
+              )}
+
+              {emailStatus === "failed" && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                  Email failed: {emailError || "Unknown error"}. You can still share the link manually.
+                </div>
+              )}
+
               <DialogFooter>
-                <Button onClick={() => { setInviteOpen(false); setLastCreatedToken(null); }}>Done</Button>
+                <Button onClick={() => { setInviteOpen(false); setLastCreatedToken(null); setLastCreatedInviteId(null); setEmailStatus("idle"); }}>Done</Button>
               </DialogFooter>
             </div>
           ) : (
