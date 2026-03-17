@@ -30,12 +30,8 @@ export function AppTopBar({ onMenuClick }: Props) {
   const fetchRecent = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(8);
-    setNotifications(data || []);
+      .rpc("fetch_prioritized_notifications", { _user_id: user.id, _limit: 8 });
+    setNotifications((data as any[]) || []);
   }, [user]);
 
   useEffect(() => { fetchRecent(); }, [fetchRecent]);

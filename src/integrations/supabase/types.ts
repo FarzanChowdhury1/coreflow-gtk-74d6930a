@@ -1806,6 +1806,26 @@ export type Database = {
       }
       decline_workspace_invite: { Args: { _invite_id: string }; Returns: Json }
       dismiss_system_alert: { Args: { _alert_id: string }; Returns: Json }
+      fetch_prioritized_notifications: {
+        Args: { _limit?: number; _user_id: string }
+        Returns: {
+          body: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          link: string | null
+          severity: string
+          title: string
+          user_id: string
+          workspace_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "notifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       generate_portal_token: {
         Args: {
           _company_id: string
