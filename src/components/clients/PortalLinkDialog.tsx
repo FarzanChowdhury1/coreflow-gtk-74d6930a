@@ -248,7 +248,7 @@ export function PortalLinkDialog({ open, onOpenChange, contacts, companies }: Pr
             )}
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => { setGeneratedLink(""); setEmailStatus("idle"); setEmailError(null); }}>
+              <Button variant="outline" onClick={() => { setGeneratedLink(""); setPortalToken(""); setEmailStatus("idle"); setEmailError(null); }}>
                 Generate Another
               </Button>
               <Button onClick={() => handleClose(false)}>Done</Button>
