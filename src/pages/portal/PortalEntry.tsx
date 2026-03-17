@@ -110,9 +110,9 @@ export default function PortalEntry() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <main className="flex min-h-screen items-center justify-center bg-background">
         <p className="text-muted-foreground">Validating access…</p>
-      </div>
+      </main>
     );
   }
 
