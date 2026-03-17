@@ -62,6 +62,7 @@ export function PortalLinkDialog({ open, onOpenChange, contacts, companies }: Pr
 
       const link = `${window.location.origin}/portal?token=${result.token}`;
       setGeneratedLink(link);
+      setPortalToken(result.token!);
       toast.success("Portal link generated");
     } catch (err: any) {
       toast.error(err.message);
