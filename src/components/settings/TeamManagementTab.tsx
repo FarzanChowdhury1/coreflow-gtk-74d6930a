@@ -151,16 +151,8 @@ export function TeamManagementTab() {
       if (res.success) {
         toast.success(`Invite created for ${inviteEmail.trim()}`);
         setLastCreatedToken(res.token);
-
-        // Look up invite id by token for email sending
-        const { data: inviteRow } = await supabase
-          .from("workspace_invites")
-          .select("id")
-          .eq("workspace_id", currentWorkspace.id)
-          .eq("token", res.token)
-          .single();
-        setLastCreatedInviteId(inviteRow?.id || null);
-
+        // RPC already returns invite_id — no second lookup needed
+        setLastCreatedInviteId(res.invite_id || null);
         setEmailStatus("idle");
         setEmailError(null);
         setInviteEmail("");
