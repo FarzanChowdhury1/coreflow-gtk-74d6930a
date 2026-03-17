@@ -73,12 +73,8 @@ export default function Notifications() {
     if (!user) return;
     setLoading(true);
     const { data } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(50);
-    setNotifications(data || []);
+      .rpc("fetch_prioritized_notifications", { _user_id: user.id, _limit: 50 });
+    setNotifications((data as any[]) || []);
     setLoading(false);
   }, [user]);
 
