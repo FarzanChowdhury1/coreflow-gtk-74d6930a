@@ -49,6 +49,9 @@ Deno.serve(async (req) => {
     // 6. Purge stale operational logs (digest_runs, worker_runs, email_logs)
     const { data: purgedOpsLogs } = await supabase.rpc("purge_operational_logs");
 
+    // 7. Purge old read notifications (30d info, 90d warning, 180d critical)
+    const { data: purgedNotifications } = await supabase.rpc("purge_old_notifications");
+
     const durationMs = Date.now() - startTime;
     const resultSummary = {
       storage_blobs_deleted: blobsDeleted,
@@ -56,6 +59,7 @@ Deno.serve(async (req) => {
       portal_tokens_purged: purgedTokens?.purged_tokens || 0,
       short_links_purged: purgedLinks?.purged_short_links || 0,
       ops_logs_purged: purgedOpsLogs || {},
+      notifications_purged: purgedNotifications || {},
       candidates_found: {
         stale_files: staleFiles.length,
         expired_tokens: (candidates?.expired_portal_tokens || []).length,
