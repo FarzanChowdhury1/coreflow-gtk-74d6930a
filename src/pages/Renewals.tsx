@@ -162,6 +162,13 @@ export default function Renewals() {
                         </div>
                         <p className="text-xs opacity-80">
                           {r.currency} {Number(r.amount).toLocaleString()} · every {r.interval_months}mo · next {format(new Date(r.next_billing_date), "dd MMM yyyy")}
+                          {r.invoice_id && r.invoices && (
+                            <span className="inline-flex items-center gap-1 ml-2 opacity-90">
+                              <Receipt className="h-3 w-3 inline" />
+                              {r.invoices.invoice_number}
+                              {r.invoices.status === "paid" && " ✓"}
+                            </span>
+                          )}
                         </p>
                       </div>
                       {isAdmin && (
