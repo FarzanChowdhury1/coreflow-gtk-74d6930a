@@ -110,15 +110,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    // --- Aggregate digest (read-only) then filter to workspace ---
-    const { data: allDigest, error: digestErr } = await sc.rpc(
-      "aggregate_daily_digest"
+    // --- Workspace-scoped digest aggregate (reads only target workspace) ---
+    const { data: wsDigest, error: digestErr } = await sc.rpc(
+      "aggregate_daily_digest_for_workspace",
+      { _workspace_id: workspaceId }
     );
     if (digestErr) throw digestErr;
-
-    const workspaces = Array.isArray(allDigest) ? allDigest : [];
-    const wsDigest =
-      workspaces.find((ws: any) => ws.workspace_id === workspaceId) || null;
 
     const overdueInvoices = Array.isArray(wsDigest?.overdue_invoices)
       ? wsDigest.overdue_invoices
