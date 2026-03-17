@@ -1,6 +1,6 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import {
-  Activity, Server, History, Mail, RefreshCw,
+  Activity, Server, History, Mail, RefreshCw, Trash2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -73,6 +73,16 @@ function WorkerRunsSection() {
       parts.push(`${summary.portal_tokens_purged} tokens`);
     if (summary.short_links_purged)
       parts.push(`${summary.short_links_purged} links`);
+    if (summary.notifications_purged && typeof summary.notifications_purged === "object") {
+      const np = summary.notifications_purged;
+      const total = (np.purged_info || 0) + (np.purged_warning || 0) + (np.purged_critical || 0);
+      if (total > 0) parts.push(`${total} notifs`);
+    }
+    if (summary.ops_logs_purged && typeof summary.ops_logs_purged === "object") {
+      const ol = summary.ops_logs_purged;
+      const total = (ol.purged_digest_runs || 0) + (ol.purged_worker_runs || 0) + (ol.purged_email_logs || 0);
+      if (total > 0) parts.push(`${total} ops logs`);
+    }
     return parts.length > 0 ? parts.join(", ") : "—";
   };
 
@@ -269,6 +279,67 @@ function EmailLogsSection({ workspaceId }: { workspaceId: string }) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Latest Cleanup Summary                                               */
+/* ------------------------------------------------------------------ */
+
+function LatestCleanupSummary() {
+  const { data: runs = [], isLoading } = useQuery({
+    queryKey: ["worker-runs"],
+    staleTime: 30000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("worker_runs")
+        .select("*")
+        .order("started_at", { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const latest = useMemo(
+    () => runs.find((r: any) => r.worker_name === "asset_cleanup" && r.status === "success"),
+    [runs]
+  );
+
+  if (isLoading || !latest) return null;
+
+  const s = latest.summary as any;
+  if (!s || typeof s !== "object") return null;
+
+  const np = s.notifications_purged || {};
+  const notifTotal = (np.purged_info || 0) + (np.purged_warning || 0) + (np.purged_critical || 0);
+
+  const items = [
+    { label: "Blobs deleted", value: s.storage_blobs_deleted ?? 0 },
+    { label: "File rows purged", value: s.file_rows_purged ?? 0 },
+    { label: "Portal tokens purged", value: s.portal_tokens_purged ?? 0 },
+    { label: "Short links purged", value: s.short_links_purged ?? 0 },
+    { label: "Notifications purged", value: notifTotal, detail: notifTotal > 0 ? `info ${np.purged_info || 0} · warn ${np.purged_warning || 0} · crit ${np.purged_critical || 0}` : undefined },
+  ];
+
+  return (
+    <section>
+      <h2 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+        <Trash2 className="h-4 w-4" /> Latest Cleanup Summary
+        <span className="text-xs font-normal text-muted-foreground">
+          {format(new Date(latest.started_at), "dd MMM HH:mm")}
+        </span>
+      </h2>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+        {items.map((item) => (
+          <div key={item.label} className="rounded-lg border bg-card px-3 py-2.5">
+            <p className="text-xs text-muted-foreground">{item.label}</p>
+            <p className="text-lg font-semibold text-foreground">{item.value}</p>
+            {item.detail && <p className="text-[10px] text-muted-foreground mt-0.5">{item.detail}</p>}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Main Page                                                            */
 /* ------------------------------------------------------------------ */
 
@@ -303,6 +374,7 @@ export default function OpsHealth() {
       </p>
 
       <div className="space-y-8">
+        <LatestCleanupSummary />
         <WorkerRunsSection />
 
         {currentWorkspace?.id && (
