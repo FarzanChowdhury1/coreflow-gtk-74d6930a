@@ -246,6 +246,108 @@ function DigestRunHistory({ workspaceId }: { workspaceId: string }) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Worker Run History (automated jobs)                                  */
+/* ------------------------------------------------------------------ */
+
+function WorkerRunHistory() {
+  const { data: runs = [], isLoading } = useQuery({
+    queryKey: ["worker-runs"],
+    staleTime: 30000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("worker_runs")
+        .select("*")
+        .order("started_at", { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const statusBadge = (status: string) => {
+    if (status === "success") return <Badge variant="secondary" className="text-green-700 bg-green-100">success</Badge>;
+    return <Badge variant="destructive">{status}</Badge>;
+  };
+
+  const workerLabel = (name: string) => {
+    if (name === "daily_digest") return "Daily Digest";
+    if (name === "asset_cleanup") return "Asset Cleanup";
+    return name;
+  };
+
+  return (
+    <section>
+      <h2 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+        <Server className="h-4 w-4" /> Scheduled Worker Runs
+        {!isLoading && <Badge variant="secondary">{runs.length}</Badge>}
+      </h2>
+      {isLoading ? (
+        <SectionSkeleton rows={3} />
+      ) : runs.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No automated worker runs recorded yet.</p>
+      ) : (
+        <div className="rounded-lg border bg-card overflow-x-auto">
+          <table className="w-full text-sm min-w-[650px]">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Worker</th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Status</th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Started</th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Duration</th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Summary</th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Error</th>
+              </tr>
+            </thead>
+            <tbody>
+              {runs.map((r: any) => {
+                const summary = r.summary || {};
+                const summaryParts: string[] = [];
+                // daily_digest summary
+                if (summary.workspaces_with_items !== undefined) {
+                  summaryParts.push(`${summary.workspaces_with_items}/${summary.total_workspaces || '?'} ws`);
+                }
+                // asset_cleanup summary
+                if (summary.storage_blobs_deleted !== undefined) {
+                  summaryParts.push(`${summary.storage_blobs_deleted} blobs`);
+                }
+                if (summary.file_rows_purged !== undefined) {
+                  summaryParts.push(`${summary.file_rows_purged} files`);
+                }
+                if (summary.portal_tokens_purged !== undefined && summary.portal_tokens_purged > 0) {
+                  summaryParts.push(`${summary.portal_tokens_purged} tokens`);
+                }
+                if (summary.short_links_purged !== undefined && summary.short_links_purged > 0) {
+                  summaryParts.push(`${summary.short_links_purged} links`);
+                }
+
+                return (
+                  <tr key={r.id} className="border-b last:border-0">
+                    <td className="px-3 py-2 text-foreground font-medium text-xs">{workerLabel(r.worker_name)}</td>
+                    <td className="px-3 py-2">{statusBadge(r.status)}</td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                      {format(new Date(r.started_at), "dd MMM HH:mm:ss")}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground">
+                      {r.duration_ms != null ? `${(r.duration_ms / 1000).toFixed(1)}s` : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground max-w-[200px] truncate" title={summaryParts.join(", ")}>
+                      {summaryParts.length > 0 ? summaryParts.join(", ") : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-destructive max-w-[200px] truncate" title={r.error_message || ""}>
+                      {r.error_message || "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Shared Skeleton                                                     */
 /* ------------------------------------------------------------------ */
 
