@@ -475,6 +475,53 @@ export type Database = {
           },
         ]
       }
+      digest_runs: {
+        Row: {
+          error_message: string | null
+          executed_at: string
+          id: string
+          mode: string
+          overdue_followups_count: number
+          overdue_invoices_count: number
+          status: string
+          triggered_by: string
+          upcoming_renewals_count: number
+          workspace_id: string
+        }
+        Insert: {
+          error_message?: string | null
+          executed_at?: string
+          id?: string
+          mode?: string
+          overdue_followups_count?: number
+          overdue_invoices_count?: number
+          status?: string
+          triggered_by: string
+          upcoming_renewals_count?: number
+          workspace_id: string
+        }
+        Update: {
+          error_message?: string | null
+          executed_at?: string
+          id?: string
+          mode?: string
+          overdue_followups_count?: number
+          overdue_invoices_count?: number
+          status?: string
+          triggered_by?: string
+          upcoming_renewals_count?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "digest_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_logs: {
         Row: {
           created_at: string

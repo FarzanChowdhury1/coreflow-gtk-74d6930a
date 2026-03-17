@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import {
   FileSearch, Bell, Play, Eye, RefreshCw,
-  CheckCircle2, XCircle, Loader2, Clock,
+  CheckCircle2, XCircle, Loader2, Clock, History,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
-const COOLDOWN_SECONDS = 5 * 60; // must match edge function
+const COOLDOWN_SECONDS = 5 * 60;
 
 /* ------------------------------------------------------------------ */
 /* Digest Control Panel                                                */
@@ -23,7 +23,6 @@ interface DigestResult {
   success: boolean;
   mode: string;
   executed_at: string;
-  last_run_at?: string | null;
   digest: {
     overdue_invoices: number;
     overdue_followups: number;
@@ -40,12 +39,8 @@ function DigestControls({ workspaceId }: { workspaceId: string }) {
   const [cooldownEnd, setCooldownEnd] = useState<number | null>(null);
   const [cooldownLeft, setCooldownLeft] = useState(0);
 
-  // Tick down cooldown
   useEffect(() => {
-    if (!cooldownEnd) {
-      setCooldownLeft(0);
-      return;
-    }
+    if (!cooldownEnd) { setCooldownLeft(0); return; }
     const tick = () => {
       const remaining = Math.max(0, Math.ceil((cooldownEnd - Date.now()) / 1000));
       setCooldownLeft(remaining);
@@ -79,44 +74,39 @@ function DigestControls({ workspaceId }: { workspaceId: string }) {
 
         const json = await res.json();
 
-        // Cooldown rejection from server
         if (json.error === "cooldown") {
           const remaining = json.cooldown_remaining_seconds || COOLDOWN_SECONDS;
           setCooldownEnd(Date.now() + remaining * 1000);
           setLastResult({
-            success: false,
-            mode,
-            executed_at: new Date().toISOString(),
+            success: false, mode, executed_at: new Date().toISOString(),
             digest: { overdue_invoices: 0, overdue_followups: 0, upcoming_renewals: 0 },
             error: json.message,
           });
           toast({ title: "Cooldown active", description: json.message, variant: "destructive" });
+          // Refresh run log to show the rejection
+          queryClient.invalidateQueries({ queryKey: ["digest-runs", workspaceId] });
           return;
         }
 
         if (!res.ok) throw new Error(json.error || "Request failed");
 
         setLastResult(json);
-
-        // Set cooldown after successful run
-        if (mode === "run") {
-          setCooldownEnd(Date.now() + COOLDOWN_SECONDS * 1000);
-        }
+        if (mode === "run") setCooldownEnd(Date.now() + COOLDOWN_SECONDS * 1000);
 
         toast({
           title: mode === "run" ? "Digest executed" : "Preview generated",
           description: `Overdue invoices: ${json.digest?.overdue_invoices ?? 0}, Follow-ups: ${json.digest?.overdue_followups ?? 0}, Renewals: ${json.digest?.upcoming_renewals ?? 0}`,
         });
 
+        // Refresh inspector data + run log
+        queryClient.invalidateQueries({ queryKey: ["digest-runs", workspaceId] });
         if (mode === "run") {
           queryClient.invalidateQueries({ queryKey: ["digest-notifications", workspaceId] });
           queryClient.invalidateQueries({ queryKey: ["all-system-alerts", workspaceId] });
         }
       } catch (err: any) {
         setLastResult({
-          success: false,
-          mode,
-          executed_at: new Date().toISOString(),
+          success: false, mode, executed_at: new Date().toISOString(),
           digest: { overdue_invoices: 0, overdue_followups: 0, upcoming_renewals: 0 },
           error: err.message,
         });
@@ -142,30 +132,13 @@ function DigestControls({ workspaceId }: { workspaceId: string }) {
                 {Math.floor(cooldownLeft / 60)}:{String(cooldownLeft % 60).padStart(2, "0")}
               </span>
             )}
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={running !== null}
-              onClick={() => triggerDigest("preview")}
-            >
-              {running === "preview" ? (
-                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-              ) : (
-                <Eye className="h-3.5 w-3.5 mr-1.5" />
-              )}
+            <Button size="sm" variant="outline" disabled={running !== null} onClick={() => triggerDigest("preview")}>
+              {running === "preview" ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Eye className="h-3.5 w-3.5 mr-1.5" />}
               Preview
             </Button>
-            <Button
-              size="sm"
-              disabled={runDisabled}
-              onClick={() => triggerDigest("run")}
-              title={cooldownLeft > 0 ? "Cooldown active — please wait" : undefined}
-            >
-              {running === "run" ? (
-                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-              ) : (
-                <Play className="h-3.5 w-3.5 mr-1.5" />
-              )}
+            <Button size="sm" disabled={runDisabled} onClick={() => triggerDigest("run")}
+              title={cooldownLeft > 0 ? "Cooldown active — please wait" : undefined}>
+              {running === "run" ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Play className="h-3.5 w-3.5 mr-1.5" />}
               Run Now
             </Button>
           </div>
@@ -174,21 +147,11 @@ function DigestControls({ workspaceId }: { workspaceId: string }) {
         {lastResult && (
           <div className="rounded-md border px-3 py-2 text-xs space-y-1 bg-muted/30">
             <div className="flex items-center gap-1.5">
-              {lastResult.success ? (
-                <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
-              ) : (
-                <XCircle className="h-3.5 w-3.5 text-destructive" />
-              )}
+              {lastResult.success ? <CheckCircle2 className="h-3.5 w-3.5 text-green-600" /> : <XCircle className="h-3.5 w-3.5 text-destructive" />}
               <span className="font-medium text-foreground">
-                {lastResult.success
-                  ? lastResult.mode === "run"
-                    ? "Executed"
-                    : "Preview"
-                  : "Failed"}
+                {lastResult.success ? (lastResult.mode === "run" ? "Executed" : "Preview") : "Failed"}
               </span>
-              <span className="text-muted-foreground ml-auto">
-                {format(new Date(lastResult.executed_at), "HH:mm:ss")}
-              </span>
+              <span className="text-muted-foreground ml-auto">{format(new Date(lastResult.executed_at), "HH:mm:ss")}</span>
             </div>
             {lastResult.success && (
               <div className="flex gap-3 text-muted-foreground">
@@ -197,13 +160,88 @@ function DigestControls({ workspaceId }: { workspaceId: string }) {
                 <span>Renewals: {lastResult.digest.upcoming_renewals}</span>
               </div>
             )}
-            {lastResult.error && (
-              <p className="text-destructive">{lastResult.error}</p>
-            )}
+            {lastResult.error && <p className="text-destructive">{lastResult.error}</p>}
           </div>
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Digest Run History                                                   */
+/* ------------------------------------------------------------------ */
+
+function DigestRunHistory({ workspaceId }: { workspaceId: string }) {
+  const { data: runs = [], isLoading } = useQuery({
+    queryKey: ["digest-runs", workspaceId],
+    enabled: !!workspaceId,
+    staleTime: 15000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("digest_runs")
+        .select("*")
+        .eq("workspace_id", workspaceId)
+        .order("executed_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const statusBadge = (status: string) => {
+    if (status === "success") return <Badge variant="secondary" className="text-green-700 bg-green-100">success</Badge>;
+    if (status === "cooldown_rejected") return <Badge variant="secondary">cooldown</Badge>;
+    return <Badge variant="destructive">{status}</Badge>;
+  };
+
+  return (
+    <section>
+      <h2 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+        <History className="h-4 w-4" /> Digest Run Log
+        {!isLoading && <Badge variant="secondary">{runs.length}</Badge>}
+      </h2>
+      {isLoading ? (
+        <SectionSkeleton rows={3} />
+      ) : runs.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No manual digest runs recorded yet.</p>
+      ) : (
+        <div className="rounded-lg border bg-card overflow-x-auto">
+          <table className="w-full text-sm min-w-[600px]">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Time</th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Mode</th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Status</th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Invoices</th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Follow-ups</th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Renewals</th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Error</th>
+              </tr>
+            </thead>
+            <tbody>
+              {runs.map((r: any) => (
+                <tr key={r.id} className="border-b last:border-0">
+                  <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                    {format(new Date(r.executed_at), "dd MMM HH:mm:ss")}
+                  </td>
+                  <td className="px-3 py-2">
+                    <Badge variant="outline" className="text-xs">{r.mode}</Badge>
+                  </td>
+                  <td className="px-3 py-2">{statusBadge(r.status)}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{r.overdue_invoices_count}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{r.overdue_followups_count}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{r.upcoming_renewals_count}</td>
+                  <td className="px-3 py-2 text-xs text-destructive max-w-[200px] truncate" title={r.error_message || ""}>
+                    {r.error_message || "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -282,7 +320,10 @@ export default function DigestInspector() {
     queryClient.invalidateQueries({ queryKey: ["digest-notifications", currentWorkspace?.id] });
     queryClient.invalidateQueries({ queryKey: ["all-system-alerts", currentWorkspace?.id] });
     queryClient.invalidateQueries({ queryKey: ["short-links", currentWorkspace?.id] });
+    queryClient.invalidateQueries({ queryKey: ["digest-runs", currentWorkspace?.id] });
   }, [queryClient, currentWorkspace?.id]);
+
+  const isAdmin = currentRole === "admin";
 
   return (
     <div>
@@ -297,8 +338,13 @@ export default function DigestInspector() {
       </div>
 
       <div className="space-y-8">
-        {currentRole === "admin" && currentWorkspace?.id && (
+        {isAdmin && currentWorkspace?.id && (
           <DigestControls workspaceId={currentWorkspace.id} />
+        )}
+
+        {/* Digest Run Log — admin only */}
+        {isAdmin && currentWorkspace?.id && (
+          <DigestRunHistory workspaceId={currentWorkspace.id} />
         )}
 
         {/* Digest Notifications */}
