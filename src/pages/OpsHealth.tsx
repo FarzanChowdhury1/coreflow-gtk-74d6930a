@@ -375,6 +375,7 @@ export default function OpsHealth() {
       </p>
 
       <div className="space-y-8">
+        <CleanupControls />
         <LatestCleanupSummary />
         <WorkerRunsSection />
 

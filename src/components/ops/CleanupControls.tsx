@@ -79,7 +79,7 @@ export default function CleanupControls() {
           // Refresh worker runs table
           queryClient.invalidateQueries({ queryKey: ["worker-runs"] });
         }
-      } catch (err) {
+      } catch {
         toast.error("Network error");
       } finally {
         setLoading(null);
