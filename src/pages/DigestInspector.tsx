@@ -450,6 +450,9 @@ export default function DigestInspector() {
           <DigestRunHistory workspaceId={currentWorkspace.id} />
         )}
 
+        {/* Scheduled Worker Runs — admin only */}
+        {isAdmin && <WorkerRunHistory />}
+
         {/* Digest Notifications */}
         <section>
           <h2 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
