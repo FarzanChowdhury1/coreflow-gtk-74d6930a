@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { Navigate } from "react-router-dom";
+import CleanupControls from "@/components/ops/CleanupControls";
 
 /* ------------------------------------------------------------------ */
 /* Shared                                                               */
@@ -374,6 +375,7 @@ export default function OpsHealth() {
       </p>
 
       <div className="space-y-8">
+        <CleanupControls />
         <LatestCleanupSummary />
         <WorkerRunsSection />
 
