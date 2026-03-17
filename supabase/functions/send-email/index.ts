@@ -13,6 +13,53 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   });
 }
 
+// --------------- URL trust boundary ---------------
+
+/**
+ * Resolve the trusted application base URL.
+ * Priority: APP_BASE_URL env var > validated Origin header.
+ * Rejects untrusted origins to prevent phishing links in emails.
+ */
+function resolveBaseUrl(req: Request): string | null {
+  // 1. Explicit server-side config (highest trust)
+  const configured = Deno.env.get("APP_BASE_URL");
+  if (configured) {
+    return configured.replace(/\/+$/, "");
+  }
+
+  // 2. Derive from request Origin header with strict validation
+  const origin = req.headers.get("origin");
+  if (origin && isAllowedOrigin(origin)) {
+    return origin.replace(/\/+$/, "");
+  }
+
+  return null;
+}
+
+const ALLOWED_ORIGIN_PATTERNS = [
+  // Lovable preview/published domains
+  /^https:\/\/[a-z0-9-]+\.lovable\.app$/,
+  // Custom domains (must be HTTPS)
+  /^https:\/\/[a-z0-9][a-z0-9.-]+\.[a-z]{2,}$/,
+  // Local development
+  /^http:\/\/localhost(:\d+)?$/,
+  /^http:\/\/127\.0\.0\.1(:\d+)?$/,
+];
+
+function isAllowedOrigin(origin: string): boolean {
+  try {
+    const url = new URL(origin);
+    // Must be http or https
+    if (!["http:", "https:"].includes(url.protocol)) return false;
+    // Must match at least one pattern
+    return ALLOWED_ORIGIN_PATTERNS.some((p) => p.test(origin));
+  } catch {
+    return false;
+  }
+}
+
+// --------------- Main handler ---------------
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -55,6 +102,20 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ---- Resolve trusted base URL ----
+    const baseUrl = resolveBaseUrl(req);
+    if (!baseUrl) {
+      return jsonResponse(
+        {
+          success: false,
+          status: "rejected",
+          error:
+            "Cannot determine a trusted application URL. Set the APP_BASE_URL secret to enable email sending.",
+        },
+        400
+      );
+    }
+
     // ---- Verify admin access ----
     const { data: membership } = await adminClient
       .from("workspace_memberships")
@@ -93,10 +154,10 @@ Deno.serve(async (req) => {
     let entityId: string;
 
     if (type === "invite") {
-      const { invite_id, app_base_url } = body;
-      if (!invite_id || !app_base_url) {
+      const { invite_id } = body;
+      if (!invite_id) {
         return jsonResponse(
-          { success: false, error: "Missing invite_id or app_base_url" },
+          { success: false, error: "Missing invite_id" },
           400
         );
       }
@@ -122,7 +183,8 @@ Deno.serve(async (req) => {
       }
 
       recipientEmail = invite.email;
-      const inviteUrl = `${app_base_url}/invite?token=${invite.token}`;
+      // URL constructed server-side from trusted base + DB token
+      const inviteUrl = `${baseUrl}/invite?token=${encodeURIComponent(invite.token)}`;
       const roleName = invite.role === "admin" ? "Admin" : "Team Member";
 
       subject = `You're invited to join ${workspaceName} on CoreFlow`;
@@ -136,11 +198,28 @@ Deno.serve(async (req) => {
       entityType = "workspace_invite";
       entityId = invite_id;
     } else if (type === "portal") {
-      const { contact_id, portal_url } = body;
-      if (!contact_id || !portal_url) {
+      const { contact_id, portal_token } = body;
+      if (!contact_id || !portal_token) {
         return jsonResponse(
-          { success: false, error: "Missing contact_id or portal_url" },
+          { success: false, error: "Missing contact_id or portal_token" },
           400
+        );
+      }
+
+      // Validate portal_token exists in DB for this workspace + contact
+      const { data: tokenRow } = await adminClient
+        .from("portal_tokens")
+        .select("id, token, company_id, contact_id")
+        .eq("workspace_id", workspace_id)
+        .eq("contact_id", contact_id)
+        .eq("token", portal_token)
+        .is("revoked_at", null)
+        .single();
+
+      if (!tokenRow) {
+        return jsonResponse(
+          { success: false, error: "Portal token not found or revoked" },
+          404
         );
       }
 
@@ -175,11 +254,14 @@ Deno.serve(async (req) => {
       }
 
       recipientEmail = contact.email;
+      // URL constructed server-side from trusted base + validated DB token
+      const portalUrl = `${baseUrl}/portal?token=${encodeURIComponent(tokenRow.token)}`;
+
       subject = `Your client portal access${companyName ? ` — ${companyName}` : ""}`;
       htmlBody = renderPortalEmail({
         contactName: contact.full_name,
         companyName,
-        portalUrl: portal_url,
+        portalUrl,
         workspaceName,
       });
       entityType = "portal_token";
