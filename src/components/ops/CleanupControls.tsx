@@ -34,17 +34,6 @@ export default function CleanupControls() {
       setRunResult(null);
 
       try {
-        const { data, error } = await supabase.functions.invoke(
-          "admin-cleanup-trigger",
-          {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-            body: undefined,
-          }
-        );
-
-        // supabase.functions.invoke doesn't support query params easily,
-        // so we use POST with body instead
         const res = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-cleanup-trigger?mode=${mode}`,
           {
