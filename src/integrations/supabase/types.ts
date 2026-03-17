@@ -1762,6 +1762,10 @@ export type Database = {
       accept_invite_by_token: { Args: { _token: string }; Returns: Json }
       accept_workspace_invite: { Args: { _invite_id: string }; Returns: Json }
       aggregate_daily_digest: { Args: never; Returns: Json }
+      aggregate_daily_digest_for_workspace: {
+        Args: { _workspace_id: string }
+        Returns: Json
+      }
       bootstrap_workspace: {
         Args: { _name?: string; _user_id: string }
         Returns: Json
