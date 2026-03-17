@@ -12,11 +12,11 @@ const corsHeaders = {
 /**
  * Admin-triggered digest for a SINGLE workspace.
  *
- * Key safety properties:
- *  - NO global sweep RPCs (those are cross-workspace and reserved for scheduled worker)
- *  - Reads digest data via aggregate_daily_digest, filtered to the target workspace
- *  - Writes (notifications) only to the target workspace
- *  - 5-minute cooldown between "run" executions per workspace
+ * Safety:
+ *  - NO global sweep RPCs (reserved for scheduled worker)
+ *  - Reads via aggregate_daily_digest, filtered to target workspace
+ *  - Writes only to target workspace (notifications + digest_runs log)
+ *  - 5-minute cooldown between "run" executions per workspace (checked via digest_runs)
  */
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
       return json({ error: "workspace_id required" }, 400);
     }
 
-    // --- Admin check (service client, bypasses auth.uid() guard) ---
+    // --- Admin check ---
     const sc = createClient(supabaseUrl, serviceKey);
     const { data: membership } = await sc
       .from("workspace_memberships")
@@ -73,27 +73,35 @@ Deno.serve(async (req) => {
       return json({ error: "Admin access required" }, 403);
     }
 
-    // --- Cooldown check (run mode only) ---
-    let lastRunAt: string | null = null;
+    // --- Cooldown check via digest_runs (run mode only) ---
     if (mode === "run") {
-      const { data: recent } = await sc
-        .from("notifications")
-        .select("created_at")
+      const { data: lastRun } = await sc
+        .from("digest_runs")
+        .select("executed_at")
         .eq("workspace_id", workspaceId)
-        .eq("title", "Daily Digest")
-        .order("created_at", { ascending: false })
+        .eq("mode", "run")
+        .eq("status", "success")
+        .order("executed_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (recent?.created_at) {
-        lastRunAt = recent.created_at;
-        const elapsed = Date.now() - new Date(recent.created_at).getTime();
+      if (lastRun?.executed_at) {
+        const elapsed = Date.now() - new Date(lastRun.executed_at).getTime();
         if (elapsed < COOLDOWN_MINUTES * 60 * 1000) {
+          // Log the rejection
+          await sc.from("digest_runs").insert({
+            workspace_id: workspaceId,
+            triggered_by: user.id,
+            mode: "run",
+            status: "cooldown_rejected",
+            error_message: `Cooldown active — ${Math.ceil((COOLDOWN_MINUTES * 60 * 1000 - elapsed) / 1000)}s remaining`,
+          });
+
           return json({
             success: false,
             error: "cooldown",
             message: `Please wait ${COOLDOWN_MINUTES} minutes between digest runs.`,
-            last_run_at: recent.created_at,
+            last_run_at: lastRun.executed_at,
             cooldown_remaining_seconds: Math.ceil(
               (COOLDOWN_MINUTES * 60 * 1000 - elapsed) / 1000
             ),
@@ -102,10 +110,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // --- Aggregate digest (read-only, all workspaces) then filter ---
-    // NOTE: We intentionally do NOT call sweep_overdue_invoices / sweep_lead_followups /
-    // sweep_renewal_reminders here. Those are global cross-workspace RPCs and must only
-    // run from the scheduled worker. The aggregate RPC reads existing data only.
+    // --- Aggregate digest (read-only) then filter to workspace ---
     const { data: allDigest, error: digestErr } = await sc.rpc(
       "aggregate_daily_digest"
     );
@@ -125,25 +130,30 @@ Deno.serve(async (req) => {
       ? wsDigest.upcoming_renewals
       : [];
 
-    // --- Run mode: create workspace-scoped notifications only ---
+    const counts = {
+      overdue_invoices: overdueInvoices.length,
+      overdue_followups: overdueFollowups.length,
+      upcoming_renewals: upcomingRenewals.length,
+    };
+
+    // --- Run mode: create workspace-scoped notifications ---
     if (mode === "run") {
       const summary = [
-        overdueInvoices.length > 0
-          ? `${overdueInvoices.length} overdue invoice(s)`
+        counts.overdue_invoices > 0
+          ? `${counts.overdue_invoices} overdue invoice(s)`
           : null,
-        overdueFollowups.length > 0
-          ? `${overdueFollowups.length} lead follow-up(s) due`
+        counts.overdue_followups > 0
+          ? `${counts.overdue_followups} lead follow-up(s) due`
           : null,
-        upcomingRenewals.length > 0
-          ? `${upcomingRenewals.length} renewal(s) approaching`
+        counts.upcoming_renewals > 0
+          ? `${counts.upcoming_renewals} renewal(s) approaching`
           : null,
       ]
         .filter(Boolean)
         .join(", ");
 
-      const body = summary || "No actionable items found.";
+      const notifBody = summary || "No actionable items found.";
 
-      // Only notify admins in THIS workspace
       const { data: admins } = await sc
         .from("workspace_memberships")
         .select("user_id")
@@ -156,25 +166,33 @@ Deno.serve(async (req) => {
             workspace_id: workspaceId,
             user_id: a.user_id,
             title: "Daily Digest",
-            body,
+            body: notifBody,
             link: "/dashboard",
           }))
         );
       }
     }
 
-    // --- Response ---
+    // --- Log the run ---
     const executedAt = new Date().toISOString();
+    await sc.from("digest_runs").insert({
+      workspace_id: workspaceId,
+      triggered_by: user.id,
+      mode,
+      status: "success",
+      overdue_invoices_count: counts.overdue_invoices,
+      overdue_followups_count: counts.overdue_followups,
+      upcoming_renewals_count: counts.upcoming_renewals,
+      executed_at: executedAt,
+    });
+
     return json({
       success: true,
       mode,
       workspace_id: workspaceId,
       executed_at: executedAt,
-      last_run_at: mode === "run" ? executedAt : lastRunAt,
       digest: {
-        overdue_invoices: overdueInvoices.length,
-        overdue_followups: overdueFollowups.length,
-        upcoming_renewals: upcomingRenewals.length,
+        ...counts,
         details: wsDigest,
       },
     });
