@@ -7,7 +7,6 @@ Deno.serve(async (req) => {
     return new Response(null, { status: 204 });
   }
 
-  // Authenticate via X-Worker-Secret header (avoids Supabase gateway Authorization interception)
   const workerAuth = req.headers.get("X-Worker-Secret");
   if (!WORKER_SECRET || workerAuth !== WORKER_SECRET) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -16,11 +15,12 @@ Deno.serve(async (req) => {
     });
   }
 
-  try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, serviceKey);
+  const startTime = Date.now();
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, serviceKey);
 
+  try {
     // 1. Run all DB-heavy sweeps via RPC
     const [overdueRes, followupRes, renewalRes] = await Promise.all([
       supabase.rpc("sweep_overdue_invoices"),
@@ -123,6 +123,30 @@ Deno.serve(async (req) => {
       }
     }
 
+    const durationMs = Date.now() - startTime;
+
+    // Best-effort worker run log
+    try {
+      await supabase.from("worker_runs").insert({
+        worker_name: "daily_digest",
+        status: "success",
+        started_at: new Date(startTime).toISOString(),
+        finished_at: new Date().toISOString(),
+        duration_ms: durationMs,
+        summary: {
+          sweeps: {
+            overdue: overdueRes.data,
+            followups: followupRes.data,
+            renewals: renewalRes.data,
+          },
+          workspaces_with_items: dispatchPayloads.length,
+          total_workspaces: workspaces.length,
+        },
+      });
+    } catch (_logErr) {
+      console.warn("Failed to log worker run:", _logErr);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -136,6 +160,22 @@ Deno.serve(async (req) => {
       { headers: { "Content-Type": "application/json" } }
     );
   } catch (_err) {
+    const durationMs = Date.now() - startTime;
+
+    // Best-effort failure log
+    try {
+      await supabase.from("worker_runs").insert({
+        worker_name: "daily_digest",
+        status: "failed",
+        started_at: new Date(startTime).toISOString(),
+        finished_at: new Date().toISOString(),
+        duration_ms: durationMs,
+        error_message: String(_err),
+      });
+    } catch (_logErr) {
+      console.warn("Failed to log worker failure:", _logErr);
+    }
+
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       {
