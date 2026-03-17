@@ -161,6 +161,7 @@ Deno.serve(async (req) => {
     );
   } catch (_err) {
     const durationMs = Date.now() - startTime;
+    const errMsg = String(_err).slice(0, 500);
 
     // Best-effort failure log
     try {
@@ -170,10 +171,20 @@ Deno.serve(async (req) => {
         started_at: new Date(startTime).toISOString(),
         finished_at: new Date().toISOString(),
         duration_ms: durationMs,
-        error_message: String(_err),
+        error_message: errMsg,
       });
     } catch (_logErr) {
       console.warn("Failed to log worker failure:", _logErr);
+    }
+
+    // Best-effort failure alert to admins
+    try {
+      await supabase.rpc("create_worker_failure_alert", {
+        _worker_name: "daily_digest",
+        _error_summary: errMsg,
+      });
+    } catch (_alertErr) {
+      console.warn("Failed to create failure alert:", _alertErr);
     }
 
     return new Response(
