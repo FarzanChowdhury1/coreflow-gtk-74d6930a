@@ -133,6 +133,7 @@ Deno.serve(async (req) => {
         started_at: new Date(startTime).toISOString(),
         finished_at: new Date().toISOString(),
         duration_ms: durationMs,
+        trigger_source: "scheduled",
         summary: {
           sweeps: {
             overdue: overdueRes.data,
@@ -171,6 +172,7 @@ Deno.serve(async (req) => {
         started_at: new Date(startTime).toISOString(),
         finished_at: new Date().toISOString(),
         duration_ms: durationMs,
+        trigger_source: "scheduled",
         error_message: errMsg,
       });
     } catch (_logErr) {

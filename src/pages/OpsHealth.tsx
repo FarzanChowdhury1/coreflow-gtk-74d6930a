@@ -55,6 +55,34 @@ function WorkerRunsSection() {
     },
   });
 
+  // Resolve profile names for manual runs
+  const manualUserIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const r of runs) {
+      if ((r as any).triggered_by) ids.add((r as any).triggered_by);
+    }
+    return Array.from(ids);
+  }, [runs]);
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["worker-run-profiles", manualUserIds],
+    enabled: manualUserIds.length > 0,
+    staleTime: 60000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", manualUserIds);
+      return data || [];
+    },
+  });
+
+  const profileMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const p of profiles) map[p.user_id] = p.full_name || "Admin";
+    return map;
+  }, [profiles]);
+
   const workerLabel = (name: string) => {
     if (name === "daily_digest") return "Daily Digest";
     if (name === "asset_cleanup") return "Asset Cleanup";
@@ -99,10 +127,11 @@ function WorkerRunsSection() {
         <p className="text-sm text-muted-foreground">No automated worker runs recorded yet.</p>
       ) : (
         <div className="rounded-lg border bg-card overflow-x-auto">
-          <table className="w-full text-sm min-w-[680px]">
+          <table className="w-full text-sm min-w-[780px]">
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="px-3 py-2 text-left font-medium text-muted-foreground">Worker</th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Source</th>
                 <th className="px-3 py-2 text-left font-medium text-muted-foreground">Status</th>
                 <th className="px-3 py-2 text-left font-medium text-muted-foreground">Started</th>
                 <th className="px-3 py-2 text-left font-medium text-muted-foreground">Duration</th>
@@ -111,24 +140,36 @@ function WorkerRunsSection() {
               </tr>
             </thead>
             <tbody>
-              {runs.map((r: any) => (
-                <tr key={r.id} className="border-b last:border-0">
-                  <td className="px-3 py-2 text-foreground font-medium text-xs">{workerLabel(r.worker_name)}</td>
-                  <td className="px-3 py-2"><StatusBadge status={r.status} /></td>
-                  <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
-                    {format(new Date(r.started_at), "dd MMM HH:mm:ss")}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-muted-foreground">
-                    {r.duration_ms != null ? `${(r.duration_ms / 1000).toFixed(1)}s` : "—"}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-muted-foreground max-w-[200px] truncate" title={summarize(r.summary)}>
-                    {summarize(r.summary)}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-destructive max-w-[200px] truncate" title={r.error_message || ""}>
-                    {r.error_message || "—"}
-                  </td>
-                </tr>
-              ))}
+              {runs.map((r: any) => {
+                const source = r.trigger_source || "scheduled";
+                const actorName = r.triggered_by ? profileMap[r.triggered_by] || "Admin" : null;
+                return (
+                  <tr key={r.id} className="border-b last:border-0">
+                    <td className="px-3 py-2 text-foreground font-medium text-xs">{workerLabel(r.worker_name)}</td>
+                    <td className="px-3 py-2 text-xs">
+                      <Badge variant={source === "manual" ? "default" : "outline"} className="text-[10px]">
+                        {source}
+                      </Badge>
+                      {actorName && (
+                        <span className="ml-1 text-muted-foreground text-[10px]">{actorName}</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2"><StatusBadge status={r.status} /></td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                      {format(new Date(r.started_at), "dd MMM HH:mm:ss")}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground">
+                      {r.duration_ms != null ? `${(r.duration_ms / 1000).toFixed(1)}s` : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground max-w-[200px] truncate" title={summarize(r.summary)}>
+                      {summarize(r.summary)}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-destructive max-w-[200px] truncate" title={r.error_message || ""}>
+                      {r.error_message || "—"}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

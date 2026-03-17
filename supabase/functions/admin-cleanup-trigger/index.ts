@@ -121,7 +121,9 @@ Deno.serve(async (req) => {
             started_at: new Date().toISOString(),
             finished_at: new Date().toISOString(),
             duration_ms: 0,
-            summary: { triggered_by: "manual", cooldown_remaining_sec: retryAfter },
+            trigger_source: "manual",
+            triggered_by: user.id,
+            summary: { cooldown_remaining_sec: retryAfter },
           });
         } catch (_) { /* best-effort */ }
 
@@ -176,7 +178,6 @@ Deno.serve(async (req) => {
           expired_tokens: (candidates?.expired_portal_tokens || []).length,
           expired_short_links: (candidates?.expired_short_links || []).length,
         },
-        triggered_by: "manual",
       };
 
       // Log success
@@ -187,6 +188,8 @@ Deno.serve(async (req) => {
           started_at: new Date(startTime).toISOString(),
           finished_at: new Date().toISOString(),
           duration_ms: durationMs,
+          trigger_source: "manual",
+          triggered_by: user.id,
           summary: resultSummary,
         });
       } catch (_) { /* best-effort */ }
@@ -206,9 +209,11 @@ Deno.serve(async (req) => {
           started_at: new Date(startTime).toISOString(),
           finished_at: new Date().toISOString(),
           duration_ms: durationMs,
+          trigger_source: "manual",
+          triggered_by: user.id,
           error_message: errMsg,
         });
-      } catch (_) { /* best-effort */ }
+      } catch (_e) { /* best-effort */ }
 
       return new Response(
         JSON.stringify({ error: "Cleanup failed", detail: errMsg }),
