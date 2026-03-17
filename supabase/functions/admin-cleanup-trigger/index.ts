@@ -189,6 +189,8 @@ Deno.serve(async (req) => {
           started_at: new Date(startTime).toISOString(),
           finished_at: new Date().toISOString(),
           duration_ms: durationMs,
+          trigger_source: "manual",
+          triggered_by: user.id,
           summary: resultSummary,
         });
       } catch (_) { /* best-effort */ }
