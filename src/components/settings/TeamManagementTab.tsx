@@ -205,7 +205,6 @@ export function TeamManagementTab() {
           type: "invite",
           workspace_id: currentWorkspace.id,
           invite_id: inviteId,
-          app_base_url: window.location.origin,
         },
       });
 
@@ -222,9 +221,9 @@ export function TeamManagementTab() {
         setEmailError(data?.error || "Failed to send email");
         toast.error(data?.error || "Failed to send invite email");
       }
-    } catch (err: any) {
+    } catch {
       setEmailStatus("failed");
-      setEmailError(err.message || "Failed to send email");
+      setEmailError("Failed to send email");
       toast.error("Failed to send invite email");
     } finally {
       setSendingEmail(false);
