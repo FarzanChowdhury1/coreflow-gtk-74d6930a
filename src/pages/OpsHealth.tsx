@@ -73,6 +73,16 @@ function WorkerRunsSection() {
       parts.push(`${summary.portal_tokens_purged} tokens`);
     if (summary.short_links_purged)
       parts.push(`${summary.short_links_purged} links`);
+    if (summary.notifications_purged && typeof summary.notifications_purged === "object") {
+      const np = summary.notifications_purged;
+      const total = (np.purged_info || 0) + (np.purged_warning || 0) + (np.purged_critical || 0);
+      if (total > 0) parts.push(`${total} notifs`);
+    }
+    if (summary.ops_logs_purged && typeof summary.ops_logs_purged === "object") {
+      const ol = summary.ops_logs_purged;
+      const total = (ol.purged_digest_runs || 0) + (ol.purged_worker_runs || 0) + (ol.purged_email_logs || 0);
+      if (total > 0) parts.push(`${total} ops logs`);
+    }
     return parts.length > 0 ? parts.join(", ") : "—";
   };
 
