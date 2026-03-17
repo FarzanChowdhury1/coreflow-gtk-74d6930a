@@ -37,7 +37,7 @@ const FILTER_OPTIONS: { value: string; label: string }[] = [
 
 export default function Notifications() {
   const { user } = useAuth();
-  const { currentWorkspace } = useWorkspace();
+  
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

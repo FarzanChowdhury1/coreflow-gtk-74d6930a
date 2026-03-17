@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Bell, Menu, Search, AlertTriangle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
