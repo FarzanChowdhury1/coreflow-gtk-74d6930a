@@ -24,6 +24,7 @@ interface Renewal {
   notes: string | null;
   created_at: string;
   companies?: { legal_name: string } | null;
+  invoices?: { invoice_number: string; status: string } | null;
 }
 
 function urgencyBucket(nextDate: string): "overdue" | "within_7" | "within_30" | "future" {
