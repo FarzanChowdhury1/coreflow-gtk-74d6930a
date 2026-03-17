@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.send-email]
 verify_jwt = false
+
+[functions.admin-digest-trigger]
+verify_jwt = false
