@@ -1,0 +1,1 @@
+DROP POLICY "service_role_insert_email_logs" ON public.email_logs;
