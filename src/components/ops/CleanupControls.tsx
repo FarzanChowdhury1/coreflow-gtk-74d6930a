@@ -159,7 +159,7 @@ export default function CleanupControls() {
         {/* Run result */}
         {runResult && (
           <div className="space-y-1.5">
-            <p className="text-xs font-medium text-green-700">
+            <p className="text-xs font-medium text-primary">
               Cleanup completed:
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
