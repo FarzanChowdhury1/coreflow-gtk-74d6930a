@@ -112,7 +112,7 @@ export function AppTopBar({ onMenuClick }: Props) {
               <div className="px-3 py-6 text-center text-xs text-muted-foreground">No notifications</div>
             ) : (
               <div className="max-h-72 overflow-y-auto divide-y">
-                {notifications.map((n) => {
+                {sorted.map((n) => {
                   const severity = (n.severity || "info") as Severity;
                   return (
                     <button
