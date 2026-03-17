@@ -47,6 +47,7 @@ const navItems: NavItem[] = [
   { label: "Renewals", icon: RefreshCw, path: "/renewals", section: "Finance" },
   { label: "Notifications", icon: Bell, path: "/notifications", section: "System" },
   { label: "Digest Inspector", icon: FileSearch, path: "/digest-inspector", section: "System", adminOnly: true },
+  { label: "Ops / Health", icon: Activity, path: "/ops", section: "System", adminOnly: true },
   { label: "Beta Feedback", icon: MessageSquarePlus, path: "/beta-feedback", section: "System", adminOnly: true },
   { label: "Audit Log", icon: Shield, path: "/audit", section: "System", adminOnly: true },
   { label: "Team", icon: Users, path: "/team", section: "System", adminOnly: true },
