@@ -117,6 +117,7 @@ export function PortalLinkDialog({ open, onOpenChange, contacts, companies }: Pr
   const handleClose = (val: boolean) => {
     if (!val) {
       setGeneratedLink("");
+      setPortalToken("");
       setContactId("");
       setCompanyId("");
       setEmailStatus("idle");
