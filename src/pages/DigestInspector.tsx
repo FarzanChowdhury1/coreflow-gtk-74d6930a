@@ -1,14 +1,160 @@
-import { FileSearch, Bell } from "lucide-react";
+import { useState, useCallback } from "react";
+import { FileSearch, Bell, Play, Eye, RefreshCw, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
+/* ------------------------------------------------------------------ */
+/* Digest Control Panel                                                */
+/* ------------------------------------------------------------------ */
+
+interface DigestResult {
+  success: boolean;
+  mode: string;
+  executed_at: string;
+  digest: {
+    overdue_invoices: number;
+    overdue_followups: number;
+    upcoming_renewals: number;
+  };
+  sweeps?: Record<string, unknown> | null;
+  error?: string;
+}
+
+function DigestControls({ workspaceId }: { workspaceId: string }) {
+  const queryClient = useQueryClient();
+  const [running, setRunning] = useState<"run" | "preview" | null>(null);
+  const [lastResult, setLastResult] = useState<DigestResult | null>(null);
+
+  const triggerDigest = useCallback(
+    async (mode: "run" | "preview") => {
+      setRunning(mode);
+      setLastResult(null);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("Not authenticated");
+
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-digest-trigger`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ workspace_id: workspaceId, mode }),
+          }
+        );
+
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Request failed");
+
+        setLastResult(json);
+        toast({
+          title: mode === "run" ? "Digest executed" : "Preview generated",
+          description: `Overdue invoices: ${json.digest?.overdue_invoices ?? 0}, Follow-ups: ${json.digest?.overdue_followups ?? 0}, Renewals: ${json.digest?.upcoming_renewals ?? 0}`,
+        });
+
+        // Refresh inspector data after run
+        if (mode === "run") {
+          queryClient.invalidateQueries({ queryKey: ["digest-notifications", workspaceId] });
+          queryClient.invalidateQueries({ queryKey: ["all-system-alerts", workspaceId] });
+        }
+      } catch (err: any) {
+        setLastResult({ success: false, mode, executed_at: new Date().toISOString(), digest: { overdue_invoices: 0, overdue_followups: 0, upcoming_renewals: 0 }, error: err.message });
+        toast({ title: "Digest failed", description: err.message, variant: "destructive" });
+      } finally {
+        setRunning(null);
+      }
+    },
+    [workspaceId, queryClient]
+  );
+
+  return (
+    <Card className="border-primary/20">
+      <CardContent className="py-4 space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <span className="text-sm font-medium text-foreground">Digest Controls</span>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={running !== null}
+              onClick={() => triggerDigest("preview")}
+            >
+              {running === "preview" ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Eye className="h-3.5 w-3.5 mr-1.5" />}
+              Preview
+            </Button>
+            <Button
+              size="sm"
+              disabled={running !== null}
+              onClick={() => triggerDigest("run")}
+            >
+              {running === "run" ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Play className="h-3.5 w-3.5 mr-1.5" />}
+              Run Now
+            </Button>
+          </div>
+        </div>
+
+        {lastResult && (
+          <div className="rounded-md border px-3 py-2 text-xs space-y-1 bg-muted/30">
+            <div className="flex items-center gap-1.5">
+              {lastResult.success ? (
+                <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+              ) : (
+                <XCircle className="h-3.5 w-3.5 text-destructive" />
+              )}
+              <span className="font-medium text-foreground">
+                {lastResult.success ? (lastResult.mode === "run" ? "Executed" : "Preview") : "Failed"}
+              </span>
+              <span className="text-muted-foreground ml-auto">
+                {format(new Date(lastResult.executed_at), "HH:mm:ss")}
+              </span>
+            </div>
+            {lastResult.success && (
+              <div className="flex gap-3 text-muted-foreground">
+                <span>Overdue invoices: {lastResult.digest.overdue_invoices}</span>
+                <span>Follow-ups: {lastResult.digest.overdue_followups}</span>
+                <span>Renewals: {lastResult.digest.upcoming_renewals}</span>
+              </div>
+            )}
+            {lastResult.error && (
+              <p className="text-destructive">{lastResult.error}</p>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Shared Skeleton                                                     */
+/* ------------------------------------------------------------------ */
+
+function SectionSkeleton({ rows = 3, height = "h-12" }: { rows?: number; height?: string }) {
+  return (
+    <div className="space-y-2" style={{ minHeight: `${rows * 56}px` }}>
+      {Array.from({ length: rows }, (_, i) => (
+        <Skeleton key={i} className={`${height} w-full`} />
+      ))}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Main Page                                                           */
+/* ------------------------------------------------------------------ */
+
 export default function DigestInspector() {
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, currentRole } = useWorkspace();
+  const queryClient = useQueryClient();
 
   const { data: notifications = [], isLoading: loadingNotifs } = useQuery({
     queryKey: ["digest-notifications", currentWorkspace?.id],
@@ -59,23 +205,30 @@ export default function DigestInspector() {
     },
   });
 
-  function SectionSkeleton({ rows = 3, height = "h-12" }: { rows?: number; height?: string }) {
-    return (
-      <div className="space-y-2" style={{ minHeight: `${rows * 56}px` }}>
-        {Array.from({ length: rows }, (_, i) => <Skeleton key={i} className={`${height} w-full`} />)}
-      </div>
-    );
-  }
+  const refreshAll = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["digest-notifications", currentWorkspace?.id] });
+    queryClient.invalidateQueries({ queryKey: ["all-system-alerts", currentWorkspace?.id] });
+    queryClient.invalidateQueries({ queryKey: ["short-links", currentWorkspace?.id] });
+  }, [queryClient, currentWorkspace?.id]);
 
   return (
     <div>
-      {/* Shell renders immediately */}
-      <div className="mb-6 flex items-center gap-3">
-        <FileSearch className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-semibold text-foreground">Digest & Alerts Inspector</h1>
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <FileSearch className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-semibold text-foreground">Digest & Alerts Inspector</h1>
+        </div>
+        <Button size="sm" variant="ghost" onClick={refreshAll}>
+          <RefreshCw className="h-4 w-4 mr-1.5" /> Refresh
+        </Button>
       </div>
 
       <div className="space-y-8">
+        {/* Admin Digest Controls */}
+        {currentRole === "admin" && currentWorkspace?.id && (
+          <DigestControls workspaceId={currentWorkspace.id} />
+        )}
+
         {/* Digest Notifications */}
         <section>
           <h2 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
