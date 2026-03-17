@@ -1,6 +1,6 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import {
-  Activity, Server, History, Mail, RefreshCw,
+  Activity, Server, History, Mail, RefreshCw, Trash2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
