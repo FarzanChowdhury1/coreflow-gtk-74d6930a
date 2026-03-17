@@ -313,6 +313,7 @@ export default function OpsHealth() {
       </p>
 
       <div className="space-y-8">
+        <LatestCleanupSummary />
         <WorkerRunsSection />
 
         {currentWorkspace?.id && (
