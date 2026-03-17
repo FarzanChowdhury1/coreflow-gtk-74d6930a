@@ -1,12 +1,14 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Bell, CheckCheck, AlertTriangle, AlertCircle, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { sortByPriority } from "@/lib/notification-utils";
 
 type Severity = "info" | "warning" | "critical";
 
@@ -35,9 +37,33 @@ const FILTER_OPTIONS: { value: string; label: string }[] = [
   { value: "info", label: "Info" },
 ];
 
+function NotificationCard({ n, onClick }: { n: any; onClick: () => void }) {
+  const severity = (n.severity || "info") as Severity;
+  const config = SEVERITY_CONFIG[severity] || SEVERITY_CONFIG.info;
+  return (
+    <Card
+      className={`cursor-pointer transition-colors hover:bg-muted/50 ${!n.is_read ? "border-primary/30 bg-primary/5" : ""}`}
+      onClick={onClick}
+    >
+      <CardContent className="flex items-center justify-between py-3">
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-2">
+            {!n.is_read && <span className={`h-2 w-2 rounded-full shrink-0 ${config.dotClass}`} />}
+            <span className="text-sm font-medium text-foreground">{n.title}</span>
+            <SeverityBadge severity={severity} />
+          </div>
+          {n.body && <p className="text-xs text-muted-foreground">{n.body}</p>}
+        </div>
+        <span className="text-xs text-muted-foreground whitespace-nowrap ml-4">
+          {format(new Date(n.created_at), "dd MMM HH:mm")}
+        </span>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Notifications() {
   const { user } = useAuth();
-  
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,37 +88,24 @@ export default function Notifications() {
     if (!user) return;
     const channel = supabase
       .channel("notifications-" + user.id)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          setNotifications((prev) => [payload.new as any, ...prev]);
-        }
-      )
+      .on("postgres_changes", {
+        event: "INSERT", schema: "public", table: "notifications",
+        filter: `user_id=eq.${user.id}`,
+      }, (payload) => {
+        setNotifications((prev) => [payload.new as any, ...prev]);
+      })
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   const markRead = async (id: string) => {
     await supabase.from("notifications").update({ is_read: true }).eq("id", id);
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
-    );
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
   };
 
   const markAllRead = async () => {
     if (!user) return;
-    await supabase
-      .from("notifications")
-      .update({ is_read: true })
-      .eq("user_id", user.id)
-      .eq("is_read", false);
+    await supabase.from("notifications").update({ is_read: true }).eq("user_id", user.id).eq("is_read", false);
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
   };
 
@@ -101,11 +114,17 @@ export default function Notifications() {
     if (notification.link) navigate(notification.link);
   };
 
-  const filtered = severityFilter === "all"
-    ? notifications
-    : notifications.filter((n) => (n.severity || "info") === severityFilter);
+  const sorted = useMemo(() => sortByPriority(notifications), [notifications]);
+
+  const filtered = useMemo(() =>
+    severityFilter === "all" ? sorted : sorted.filter((n) => (n.severity || "info") === severityFilter),
+    [sorted, severityFilter]
+  );
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const unreadItems = filtered.filter((n) => !n.is_read);
+  const readItems = filtered.filter((n) => n.is_read);
+  const showSections = unreadItems.length > 0 && readItems.length > 0;
 
   return (
     <div>
@@ -126,7 +145,6 @@ export default function Notifications() {
         </div>
       </div>
 
-      {/* Severity filter */}
       <div className="mb-4 flex items-center gap-1.5">
         {FILTER_OPTIONS.map((opt) => (
           <Button
@@ -157,37 +175,22 @@ export default function Notifications() {
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((n) => {
-            const severity = (n.severity || "info") as Severity;
-            const config = SEVERITY_CONFIG[severity] || SEVERITY_CONFIG.info;
-            return (
-              <Card
-                key={n.id}
-                className={`cursor-pointer transition-colors hover:bg-muted/50 ${
-                  !n.is_read ? "border-primary/30 bg-primary/5" : ""
-                }`}
-                onClick={() => handleClick(n)}
-              >
-                <CardContent className="flex items-center justify-between py-3">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      {!n.is_read && (
-                        <span className={`h-2 w-2 rounded-full shrink-0 ${config.dotClass}`} />
-                      )}
-                      <span className="text-sm font-medium text-foreground">{n.title}</span>
-                      <SeverityBadge severity={severity} />
-                    </div>
-                    {n.body && (
-                      <p className="text-xs text-muted-foreground">{n.body}</p>
-                    )}
-                  </div>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap ml-4">
-                    {format(new Date(n.created_at), "dd MMM HH:mm")}
-                  </span>
-                </CardContent>
-              </Card>
-            );
-          })}
+          {unreadItems.length > 0 && showSections && (
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide pt-1 pb-0.5">Unread</p>
+          )}
+          {unreadItems.map((n) => (
+            <NotificationCard key={n.id} n={n} onClick={() => handleClick(n)} />
+          ))}
+          {showSections && (
+            <div className="flex items-center gap-3 py-2">
+              <Separator className="flex-1" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Earlier</span>
+              <Separator className="flex-1" />
+            </div>
+          )}
+          {readItems.map((n) => (
+            <NotificationCard key={n.id} n={n} onClick={() => handleClick(n)} />
+          ))}
         </div>
       )}
     </div>

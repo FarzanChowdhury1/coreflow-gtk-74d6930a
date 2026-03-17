@@ -1,13 +1,13 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Bell, Menu, Search, AlertTriangle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { sortByPriority } from "@/lib/notification-utils";
 
 interface Props {
   onMenuClick: () => void;
