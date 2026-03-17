@@ -1616,6 +1616,8 @@ export type Database = {
           started_at: string
           status: string
           summary: Json | null
+          trigger_source: string
+          triggered_by: string | null
           worker_name: string
         }
         Insert: {
@@ -1627,6 +1629,8 @@ export type Database = {
           started_at?: string
           status?: string
           summary?: Json | null
+          trigger_source?: string
+          triggered_by?: string | null
           worker_name: string
         }
         Update: {
@@ -1638,6 +1642,8 @@ export type Database = {
           started_at?: string
           status?: string
           summary?: Json | null
+          trigger_source?: string
+          triggered_by?: string | null
           worker_name?: string
         }
         Relationships: []
