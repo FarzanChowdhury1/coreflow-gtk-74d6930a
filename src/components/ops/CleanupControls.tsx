@@ -10,6 +10,8 @@ interface CandidateSummary {
   stale_files: number;
   expired_portal_tokens: number;
   expired_short_links: number;
+  notifications: { info: number; warning: number; critical: number };
+  ops_logs: { digest_runs: number; worker_runs: number; email_logs: number };
 }
 
 interface RunResult {

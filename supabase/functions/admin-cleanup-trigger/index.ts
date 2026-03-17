@@ -62,12 +62,25 @@ Deno.serve(async (req) => {
   // ======================== PREVIEW ========================
   if (mode === "preview") {
     try {
-      const { data, error } = await serviceClient.rpc(
-        "select_retention_candidates"
-      );
-      if (error) throw error;
+      const [
+        { data: candidates, error: candErr },
+        { data: notifCounts, error: notifErr },
+        { data: opsCounts, error: opsErr },
+      ] = await Promise.all([
+        serviceClient.rpc("select_retention_candidates"),
+        serviceClient.rpc("count_retention_candidates_notifications"),
+        serviceClient.rpc("count_retention_candidates_ops_logs"),
+      ]);
+      if (candErr) throw candErr;
+      if (notifErr) throw notifErr;
+      if (opsErr) throw opsErr;
       return new Response(
-        JSON.stringify({ mode: "preview", candidates: data }),
+        JSON.stringify({
+          mode: "preview",
+          candidates,
+          notification_candidates: notifCounts,
+          ops_log_candidates: opsCounts,
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     } catch (err) {
