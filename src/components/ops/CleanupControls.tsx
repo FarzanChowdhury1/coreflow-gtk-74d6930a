@@ -62,10 +62,22 @@ export default function CleanupControls() {
 
         if (mode === "preview") {
           const c = json.candidates || {};
+          const nc = json.notification_candidates || {};
+          const oc = json.ops_log_candidates || {};
           setPreviewData({
             stale_files: (c.stale_files || []).length,
             expired_portal_tokens: (c.expired_portal_tokens || []).length,
             expired_short_links: (c.expired_short_links || []).length,
+            notifications: {
+              info: nc.info ?? 0,
+              warning: nc.warning ?? 0,
+              critical: nc.critical ?? 0,
+            },
+            ops_logs: {
+              digest_runs: oc.digest_runs ?? 0,
+              worker_runs: oc.worker_runs ?? 0,
+              email_logs: oc.email_logs ?? 0,
+            },
           });
           toast.success("Preview loaded");
         } else {
