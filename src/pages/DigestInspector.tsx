@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import {
   FileSearch, Bell, Play, Eye, RefreshCw,
-  CheckCircle2, XCircle, Loader2, Clock, History, Server,
+  CheckCircle2, XCircle, Loader2, Clock, History,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
