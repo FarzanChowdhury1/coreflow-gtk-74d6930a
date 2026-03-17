@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Copy, Link2 } from "lucide-react";
+import { Copy, Link2, Mail, Loader2, Check } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 interface Props {
@@ -28,15 +28,23 @@ export function PortalLinkDialog({ open, onOpenChange, contacts, companies }: Pr
   const [expiryDays, setExpiryDays] = useState("30");
   const [generatedLink, setGeneratedLink] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<"idle" | "sent" | "failed" | "skipped">("idle");
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   // Filter contacts by selected company
   const filteredContacts = companyId
     ? contacts.filter((c) => c.company_id === companyId)
     : contacts;
 
+  const selectedContact = contacts.find((c) => c.id === contactId);
+  const contactHasEmail = !!selectedContact?.email;
+
   const handleGenerate = async () => {
     if (!currentWorkspace || !contactId || !companyId) return;
     setGenerating(true);
+    setEmailStatus("idle");
+    setEmailError(null);
     try {
       const { data, error } = await supabase.rpc("generate_portal_token", {
         _workspace_id: currentWorkspace.id,
@@ -67,11 +75,51 @@ export function PortalLinkDialog({ open, onOpenChange, contacts, companies }: Pr
     toast.success("Link copied to clipboard");
   };
 
+  const handleSendPortalEmail = async () => {
+    if (!currentWorkspace || !contactId || !generatedLink || sendingEmail) return;
+    setSendingEmail(true);
+    setEmailStatus("idle");
+    setEmailError(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("send-email", {
+        body: {
+          type: "portal",
+          workspace_id: currentWorkspace.id,
+          contact_id: contactId,
+          portal_url: generatedLink,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        setEmailStatus("sent");
+        toast.success(`Portal link sent to ${selectedContact?.email}`);
+      } else if (data?.status === "skipped") {
+        setEmailStatus("skipped");
+        setEmailError(data.error);
+      } else {
+        setEmailStatus("failed");
+        setEmailError(data?.error || "Failed to send email");
+        toast.error(data?.error || "Failed to send portal email");
+      }
+    } catch (err: any) {
+      setEmailStatus("failed");
+      setEmailError(err.message || "Failed to send email");
+      toast.error("Failed to send portal email");
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   const handleClose = (val: boolean) => {
     if (!val) {
       setGeneratedLink("");
       setContactId("");
       setCompanyId("");
+      setEmailStatus("idle");
+      setEmailError(null);
     }
     onOpenChange(val);
   };
@@ -150,7 +198,7 @@ export function PortalLinkDialog({ open, onOpenChange, contacts, companies }: Pr
               <Label>Portal Link</Label>
               <div className="flex gap-2 mt-1">
                 <Input value={generatedLink} readOnly className="font-mono text-xs" />
-                <Button size="icon" variant="outline" onClick={copyLink}>
+                <Button size="icon" variant="outline" onClick={copyLink} aria-label="Copy portal link">
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
@@ -158,8 +206,46 @@ export function PortalLinkDialog({ open, onOpenChange, contacts, companies }: Pr
                 Share this link with your client. It expires in {expiryDays} days.
               </p>
             </div>
+
+            {/* Email send action */}
+            {contactHasEmail && emailStatus === "idle" && (
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={handleSendPortalEmail}
+                disabled={sendingEmail}
+              >
+                {sendingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                Send to {selectedContact?.email}
+              </Button>
+            )}
+
+            {!contactHasEmail && (
+              <p className="text-xs text-muted-foreground rounded-md border bg-muted/50 p-3">
+                This contact has no email address on file. Use the link above to share manually, or add an email to the contact record first.
+              </p>
+            )}
+
+            {emailStatus === "sent" && (
+              <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-950/30 dark:text-green-300">
+                <Check className="inline h-4 w-4 mr-1" /> Portal link emailed to {selectedContact?.email}.
+              </div>
+            )}
+
+            {emailStatus === "skipped" && (
+              <div className="rounded-md border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-300">
+                <Mail className="inline h-4 w-4 mr-1" /> {emailError || "Email sending is not configured yet. Share the link manually."}
+              </div>
+            )}
+
+            {emailStatus === "failed" && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                Email failed: {emailError || "Unknown error"}. You can still share the link manually.
+              </div>
+            )}
+
             <DialogFooter>
-              <Button variant="outline" onClick={() => setGeneratedLink("")}>
+              <Button variant="outline" onClick={() => { setGeneratedLink(""); setEmailStatus("idle"); setEmailError(null); }}>
                 Generate Another
               </Button>
               <Button onClick={() => handleClose(false)}>Done</Button>
