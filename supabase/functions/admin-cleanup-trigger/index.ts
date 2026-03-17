@@ -203,6 +203,7 @@ Deno.serve(async (req) => {
       const durationMs = Date.now() - startTime;
       const errMsg = String(err).slice(0, 500);
 
+      try {
         await serviceClient.from("worker_runs").insert({
           worker_name: "asset_cleanup",
           status: "failed",
@@ -213,6 +214,7 @@ Deno.serve(async (req) => {
           triggered_by: user.id,
           error_message: errMsg,
         });
+      } catch (_e) { /* best-effort */ }
 
       return new Response(
         JSON.stringify({ error: "Cleanup failed", detail: errMsg }),
