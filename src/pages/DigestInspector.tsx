@@ -347,8 +347,8 @@ export default function DigestInspector() {
           <DigestRunHistory workspaceId={currentWorkspace.id} />
         )}
 
-        {/* Scheduled Worker Runs — admin only */}
-        {isAdmin && <WorkerRunHistory />}
+
+
 
         {/* Digest Notifications */}
         <section>
