@@ -1774,6 +1774,8 @@ export type Database = {
         Returns: Json
       }
       count_portal_tokens: { Args: { _workspace_id: string }; Returns: number }
+      count_retention_candidates_notifications: { Args: never; Returns: Json }
+      count_retention_candidates_ops_logs: { Args: never; Returns: Json }
       create_project_from_approved_version: {
         Args: {
           _created_by: string

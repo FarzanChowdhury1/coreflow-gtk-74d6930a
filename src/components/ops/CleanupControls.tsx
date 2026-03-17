@@ -10,6 +10,8 @@ interface CandidateSummary {
   stale_files: number;
   expired_portal_tokens: number;
   expired_short_links: number;
+  notifications: { info: number; warning: number; critical: number };
+  ops_logs: { digest_runs: number; worker_runs: number; email_logs: number };
 }
 
 interface RunResult {
@@ -60,10 +62,22 @@ export default function CleanupControls() {
 
         if (mode === "preview") {
           const c = json.candidates || {};
+          const nc = json.notification_candidates || {};
+          const oc = json.ops_log_candidates || {};
           setPreviewData({
             stale_files: (c.stale_files || []).length,
             expired_portal_tokens: (c.expired_portal_tokens || []).length,
             expired_short_links: (c.expired_short_links || []).length,
+            notifications: {
+              info: nc.info ?? 0,
+              warning: nc.warning ?? 0,
+              critical: nc.critical ?? 0,
+            },
+            ops_logs: {
+              digest_runs: oc.digest_runs ?? 0,
+              worker_runs: oc.worker_runs ?? 0,
+              email_logs: oc.email_logs ?? 0,
+            },
           });
           toast.success("Preview loaded");
         } else {
@@ -141,15 +155,28 @@ export default function CleanupControls() {
             <p className="text-xs font-medium text-muted-foreground">
               Candidates (read-only preview — nothing deleted):
             </p>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
               {[
                 { label: "Stale files", value: previewData.stale_files },
                 { label: "Expired portal tokens", value: previewData.expired_portal_tokens },
                 { label: "Expired short links", value: previewData.expired_short_links },
+                {
+                  label: "Old notifications",
+                  value: previewData.notifications.info + previewData.notifications.warning + previewData.notifications.critical,
+                  detail: `info ${previewData.notifications.info} · warn ${previewData.notifications.warning} · crit ${previewData.notifications.critical}`,
+                },
+                {
+                  label: "Old ops logs",
+                  value: previewData.ops_logs.digest_runs + previewData.ops_logs.worker_runs + previewData.ops_logs.email_logs,
+                  detail: `digest ${previewData.ops_logs.digest_runs} · worker ${previewData.ops_logs.worker_runs} · email ${previewData.ops_logs.email_logs}`,
+                },
               ].map((item) => (
                 <div key={item.label} className="rounded-md border bg-muted/30 px-3 py-2">
                   <p className="text-[11px] text-muted-foreground">{item.label}</p>
                   <p className="text-base font-semibold text-foreground">{item.value}</p>
+                  {"detail" in item && item.detail && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{item.detail}</p>
+                  )}
                 </div>
               ))}
             </div>
