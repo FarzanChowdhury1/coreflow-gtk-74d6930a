@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { RefreshCw, Plus, Pause, Play, Receipt } from "lucide-react";
+import { RefreshCw, Plus, Pause, Play, Receipt, FileText, CheckCircle2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { RenewalFormDialog } from "@/components/renewals/RenewalFormDialog";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface Renewal {
   id: string;
