@@ -21,6 +21,19 @@ const METHOD_LABELS: Record<string, string> = {
   other: "Other",
 };
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  BDT: "৳",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  INR: "₹",
+};
+
+function formatCurrency(amount: number, currency: string): string {
+  const symbol = CURRENCY_SYMBOLS[currency] || currency + " ";
+  return `${symbol}${amount.toLocaleString()}`;
+}
+
 export function PortalPayments({ session: _session }: Props) {
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +64,7 @@ export function PortalPayments({ session: _session }: Props) {
   }
 
   const totalPaid = payments.reduce((s, p) => s + Number(p.amount), 0);
+  const primaryCurrency = payments[0]?.currency || "BDT";
 
   return (
     <div className="mt-4 space-y-4">
@@ -59,7 +73,7 @@ export function PortalPayments({ session: _session }: Props) {
           {payments.length} payment{payments.length !== 1 ? "s" : ""}
         </Badge>
         <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 text-xs font-mono">
-          Total Paid: ৳{totalPaid.toLocaleString("en-BD")}
+          Total Paid: {formatCurrency(totalPaid, primaryCurrency)}
         </Badge>
       </div>
 
@@ -79,7 +93,7 @@ export function PortalPayments({ session: _session }: Props) {
               <TableRow key={p.id}>
                 <TableCell className="font-medium text-foreground">{p.invoice_number}</TableCell>
                 <TableCell className="text-right font-medium font-mono text-emerald-600">
-                  ৳{Number(p.amount).toLocaleString("en-BD")}
+                  {formatCurrency(Number(p.amount), p.currency || primaryCurrency)}
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline" className="text-xs">
