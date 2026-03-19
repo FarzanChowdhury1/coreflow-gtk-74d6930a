@@ -110,10 +110,10 @@ export function MeetingFormDialog({ open, onOpenChange, onSaved, editMeeting, de
         setLocation(editMeeting.location || "");
         setAttendees(editMeeting.attendees || "");
         setDescription(editMeeting.description || "");
-        setCompanyId(editMeeting.company_id || "");
-        setContactId(editMeeting.contact_id || "");
-        setLeadId(editMeeting.lead_id || "");
-        setProjectId(editMeeting.project_id || "");
+        setCompanyId(editMeeting.company_id || "__none__");
+        setContactId(editMeeting.contact_id || "__none__");
+        setLeadId(editMeeting.lead_id || "__none__");
+        setProjectId(editMeeting.project_id || "__none__");
       } else {
         setTitle("");
         setMeetingType("client");
@@ -123,10 +123,10 @@ export function MeetingFormDialog({ open, onOpenChange, onSaved, editMeeting, de
         setLocation("");
         setAttendees("");
         setDescription("");
-        setCompanyId(defaultContext?.company_id || "");
-        setContactId(defaultContext?.contact_id || "");
-        setLeadId(defaultContext?.lead_id || "");
-        setProjectId(defaultContext?.project_id || "");
+        setCompanyId(defaultContext?.company_id || "__none__");
+        setContactId(defaultContext?.contact_id || "__none__");
+        setLeadId(defaultContext?.lead_id || "__none__");
+        setProjectId(defaultContext?.project_id || "__none__");
       }
     }
   }, [open, editMeeting, defaultContext]);
