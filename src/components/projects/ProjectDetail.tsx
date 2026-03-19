@@ -28,6 +28,7 @@ export function ProjectDetail({ projectId, onBack }: Props) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [membersOpen, setMembersOpen] = useState(false);
+  const [meetingOpen, setMeetingOpen] = useState(false);
 
   const { data: project } = useQuery({
     queryKey: ["project", projectId],
