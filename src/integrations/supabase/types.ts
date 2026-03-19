@@ -951,6 +951,105 @@ export type Database = {
           },
         ]
       }
+      meetings: {
+        Row: {
+          attendees: string | null
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          ends_at: string | null
+          id: string
+          lead_id: string | null
+          location: string | null
+          meeting_type: Database["public"]["Enums"]["meeting_type"]
+          minutes: string | null
+          project_id: string | null
+          starts_at: string
+          status: Database["public"]["Enums"]["meeting_status"]
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          attendees?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          lead_id?: string | null
+          location?: string | null
+          meeting_type?: Database["public"]["Enums"]["meeting_type"]
+          minutes?: string | null
+          project_id?: string | null
+          starts_at: string
+          status?: Database["public"]["Enums"]["meeting_status"]
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          attendees?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          lead_id?: string | null
+          location?: string | null
+          meeting_type?: Database["public"]["Enums"]["meeting_type"]
+          minutes?: string | null
+          project_id?: string | null
+          starts_at?: string
+          status?: Database["public"]["Enums"]["meeting_status"]
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string | null
@@ -2019,6 +2118,8 @@ export type Database = {
         | "unqualified"
         | "converted"
       lead_task_status: "todo" | "in_progress" | "done" | "blocked"
+      meeting_status: "scheduled" | "completed" | "cancelled"
+      meeting_type: "internal" | "client"
       payment_method:
         | "bank_transfer"
         | "cash"
@@ -2181,6 +2282,8 @@ export const Constants = {
         "converted",
       ],
       lead_task_status: ["todo", "in_progress", "done", "blocked"],
+      meeting_status: ["scheduled", "completed", "cancelled"],
+      meeting_type: ["internal", "client"],
       payment_method: [
         "bank_transfer",
         "cash",
