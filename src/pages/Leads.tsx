@@ -117,6 +117,9 @@ export default function Leads() {
           <Plus className="h-4 w-4 mr-1" /> New Lead
         </Button>
       </div>
+      <p className="mb-5 text-sm text-muted-foreground max-w-2xl">
+        Track new business opportunities from first contact to conversion. When a lead is ready, convert it into a proposal.
+      </p>
 
       <div className="mb-4">
         <div className="relative max-w-sm">

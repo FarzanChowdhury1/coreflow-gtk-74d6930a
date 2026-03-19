@@ -81,6 +81,9 @@ export default function Invoices() {
           <Plus className="mr-1 h-4 w-4" /> New Invoice
         </Button>
       </div>
+      <p className="mb-5 text-sm text-muted-foreground max-w-2xl">
+        Create and track invoices for your clients. Record payments and export PDFs when ready.
+      </p>
 
       {loading ? (
         <div className="text-center py-8 text-muted-foreground">Loading…</div>

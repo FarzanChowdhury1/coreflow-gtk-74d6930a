@@ -377,34 +377,37 @@ export type Database = {
       companies: {
         Row: {
           address: string | null
-          bin: string
+          bin: string | null
           created_at: string
           deleted_at: string | null
           id: string
           legal_name: string
           notes: string | null
+          phone: string | null
           updated_at: string
           workspace_id: string
         }
         Insert: {
           address?: string | null
-          bin: string
+          bin?: string | null
           created_at?: string
           deleted_at?: string | null
           id?: string
           legal_name: string
           notes?: string | null
+          phone?: string | null
           updated_at?: string
           workspace_id: string
         }
         Update: {
           address?: string | null
-          bin?: string
+          bin?: string | null
           created_at?: string
           deleted_at?: string | null
           id?: string
           legal_name?: string
           notes?: string | null
+          phone?: string | null
           updated_at?: string
           workspace_id?: string
         }
@@ -420,6 +423,7 @@ export type Database = {
       }
       contacts: {
         Row: {
+          alt_phone: string | null
           company_id: string | null
           created_at: string
           deleted_at: string | null
@@ -433,6 +437,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          alt_phone?: string | null
           company_id?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -446,6 +451,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          alt_phone?: string | null
           company_id?: string | null
           created_at?: string
           deleted_at?: string | null
