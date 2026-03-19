@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { ArrowLeft, Plus, Send, Copy } from "lucide-react";
+import { ArrowLeft, Plus, Send, Copy, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { exportProposalPdf } from "@/lib/proposal-pdf";
 import { Badge } from "@/components/ui/badge";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +28,7 @@ export function ProposalDetail({ proposalId, onBack }: Props) {
   const { toast } = useToast();
   const workspaceId = currentWorkspace?.id;
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const { data: proposal } = useQuery({
     queryKey: ["proposal", proposalId],
@@ -138,6 +140,24 @@ export function ProposalDetail({ proposalId, onBack }: Props) {
     }
   };
 
+  const handleExportPdf = async () => {
+    if (!activeVersion || !currentWorkspace) return;
+    setExporting(true);
+    try {
+      await exportProposalPdf({
+        proposalId,
+        versionId: activeVersion.id,
+        workspaceName: currentWorkspace.name,
+        workspaceCurrency: currentWorkspace.currency,
+      });
+      toast({ title: "PDF downloaded" });
+    } catch (err: any) {
+      toast({ title: "Export failed", description: err.message, variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (!proposal) return <div className="text-center py-8 text-muted-foreground">Loading...</div>;
 
   return (
@@ -158,6 +178,11 @@ export function ProposalDetail({ proposalId, onBack }: Props) {
             </p>
           </div>
           <div className="flex gap-2">
+            {activeVersion && (
+              <Button size="sm" variant="outline" onClick={handleExportPdf} disabled={exporting}>
+                <Download className="h-4 w-4 mr-1" /> {exporting ? "Exporting…" : "Download PDF"}
+              </Button>
+            )}
             {isDraft && (
               <Button size="sm" onClick={handleMarkSent}>
                 <Send className="h-4 w-4 mr-1" /> Mark as Sent
