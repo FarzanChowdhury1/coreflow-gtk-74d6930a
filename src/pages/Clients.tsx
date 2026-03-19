@@ -85,6 +85,9 @@ export default function Clients() {
           <Link2 className="mr-1 h-4 w-4" /> Portal Link
         </Button>
       </div>
+      <p className="mb-5 text-sm text-muted-foreground max-w-2xl">
+        Manage your client companies and contacts. Link them to proposals, invoices, and projects.
+      </p>
 
       <div className="mb-4 flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
