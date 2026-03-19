@@ -220,6 +220,25 @@ export default function Leads() {
         companies={companies}
         contacts={contacts}
       />
+
+      <ProposalFormDialog
+        open={!!proposalPrefill}
+        onOpenChange={(open) => { if (!open) setProposalPrefill(null); }}
+        prefill={proposalPrefill || undefined}
+        onCreated={async () => {
+          // Mark lead as converted
+          if (proposalPrefill?.lead_id) {
+            await supabase
+              .from("leads")
+              .update({ status: "converted" as any })
+              .eq("id", proposalPrefill.lead_id);
+            queryClient.invalidateQueries({ queryKey: ["leads"] });
+            toast.success("Lead converted to proposal");
+          }
+          setProposalPrefill(null);
+          navigate("/proposals");
+        }}
+      />
     </div>
   );
 }
