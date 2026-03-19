@@ -168,7 +168,7 @@ async function handleResource(
     case "payments": {
       const { data: invoices } = await supabase
         .from("invoices")
-        .select("id, invoice_number")
+        .select("id, invoice_number, currency")
         .eq("company_id", session.company_id)
         .eq("workspace_id", session.workspace_id)
         .is("deleted_at", null);
@@ -179,7 +179,10 @@ async function handleResource(
 
       const invoiceIds = invoices.map((i: { id: string }) => i.id);
       const invoiceMap = Object.fromEntries(
-        invoices.map((i: { id: string; invoice_number: string }) => [i.id, i.invoice_number])
+        invoices.map((i: { id: string; invoice_number: string; currency: string }) => [
+          i.id,
+          { invoice_number: i.invoice_number, currency: i.currency },
+        ])
       );
 
       const { data: payments } = await supabase
@@ -189,10 +192,14 @@ async function handleResource(
         .eq("workspace_id", session.workspace_id)
         .order("paid_at", { ascending: false });
 
-      const enriched = (payments || []).map((p: Record<string, unknown>) => ({
-        ...p,
-        invoice_number: invoiceMap[p.invoice_id as string] || "—",
-      }));
+      const enriched = (payments || []).map((p: Record<string, unknown>) => {
+        const inv = invoiceMap[p.invoice_id as string] || { invoice_number: "—", currency: "BDT" };
+        return {
+          ...p,
+          invoice_number: inv.invoice_number,
+          currency: inv.currency,
+        };
+      });
 
       return jsonResponse({ data: enriched }, 200, hdrs);
     }
@@ -383,34 +390,24 @@ async function handleAction(
         return jsonResponse({ error: "Invalid decision" }, 400, hdrs);
       }
 
-      const { data: version } = await supabase
-        .from("proposal_versions")
-        .select("id, proposal_id, status")
-        .eq("id", versionId)
-        .single();
+      // Delegate to the database RPC which enforces all business logic
+      const { data: rpcResult, error: rpcErr } = await supabase.rpc(
+        "portal_respond_proposal_internal",
+        {
+          _company_id: session.company_id,
+          _workspace_id: session.workspace_id,
+          _version_id: versionId,
+          _action: decision,
+        }
+      );
 
-      if (!version) return jsonResponse({ error: "Version not found" }, 404, hdrs);
-      if (version.status !== "sent") {
-        return jsonResponse({ error: "Proposal is not awaiting response" }, 400, hdrs);
+      if (rpcErr) {
+        return jsonResponse({ error: rpcErr.message || "Update failed" }, 500, hdrs);
       }
 
-      const { data: proposal } = await supabase
-        .from("proposals")
-        .select("company_id")
-        .eq("id", version.proposal_id)
-        .single();
-
-      if (!proposal || proposal.company_id !== session.company_id) {
-        return jsonResponse({ error: "Access denied" }, 403, hdrs);
-      }
-
-      const { error: updateErr } = await supabase
-        .from("proposal_versions")
-        .update({ status: decision })
-        .eq("id", versionId);
-
-      if (updateErr) {
-        return jsonResponse({ error: updateErr.message || "Update failed" }, 500, hdrs);
+      const result = typeof rpcResult === "string" ? JSON.parse(rpcResult) : rpcResult;
+      if (!result.success) {
+        return jsonResponse({ error: result.error }, 400, hdrs);
       }
 
       return jsonResponse({ success: true, new_status: decision }, 200, hdrs);
