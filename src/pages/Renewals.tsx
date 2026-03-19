@@ -155,9 +155,8 @@ export default function Renewals() {
     return new Date(r.last_generated_billing_date) < billingDate;
   };
 
-  const cycleAlreadyInvoiced = (r: Renewal) => {
-    if (r.last_generated_billing_date == null) return false;
-    return new Date(r.last_generated_billing_date) >= new Date(r.next_billing_date);
+  const hasGeneratedInvoice = (r: Renewal) => {
+    return r.last_generated_billing_date != null && r.invoice_id != null;
   };
 
   return (
