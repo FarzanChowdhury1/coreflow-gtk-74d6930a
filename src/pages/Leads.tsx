@@ -265,6 +265,13 @@ export default function Leads() {
           navigate("/proposals");
         }}
       />
+
+      <MeetingFormDialog
+        open={!!meetingContext}
+        onOpenChange={(open) => { if (!open) setMeetingContext(null); }}
+        onSaved={() => setMeetingContext(null)}
+        defaultContext={meetingContext || undefined}
+      />
     </div>
   );
 }

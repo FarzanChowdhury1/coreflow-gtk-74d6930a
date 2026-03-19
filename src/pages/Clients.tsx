@@ -245,6 +245,12 @@ export default function Clients() {
         contacts={contacts}
         companies={companies}
       />
+      <MeetingFormDialog
+        open={!!meetingCompanyId}
+        onOpenChange={(open) => { if (!open) setMeetingCompanyId(null); }}
+        onSaved={() => setMeetingCompanyId(null)}
+        defaultContext={meetingCompanyId ? { company_id: meetingCompanyId } : undefined}
+      />
     </div>
   );
 }

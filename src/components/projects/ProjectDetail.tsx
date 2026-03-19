@@ -128,6 +128,16 @@ export function ProjectDetail({ projectId, onBack }: Props) {
         projectId={projectId}
         members={members}
       />
+
+      <MeetingFormDialog
+        open={meetingOpen}
+        onOpenChange={setMeetingOpen}
+        onSaved={() => setMeetingOpen(false)}
+        defaultContext={{
+          project_id: projectId,
+          company_id: project.company_id,
+        }}
+      />
     </div>
   );
 }
