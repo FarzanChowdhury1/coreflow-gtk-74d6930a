@@ -383,34 +383,24 @@ async function handleAction(
         return jsonResponse({ error: "Invalid decision" }, 400, hdrs);
       }
 
-      const { data: version } = await supabase
-        .from("proposal_versions")
-        .select("id, proposal_id, status")
-        .eq("id", versionId)
-        .single();
+      // Delegate to the database RPC which enforces all business logic
+      const { data: rpcResult, error: rpcErr } = await supabase.rpc(
+        "portal_respond_proposal_internal",
+        {
+          _company_id: session.company_id,
+          _workspace_id: session.workspace_id,
+          _version_id: versionId,
+          _action: decision,
+        }
+      );
 
-      if (!version) return jsonResponse({ error: "Version not found" }, 404, hdrs);
-      if (version.status !== "sent") {
-        return jsonResponse({ error: "Proposal is not awaiting response" }, 400, hdrs);
+      if (rpcErr) {
+        return jsonResponse({ error: rpcErr.message || "Update failed" }, 500, hdrs);
       }
 
-      const { data: proposal } = await supabase
-        .from("proposals")
-        .select("company_id")
-        .eq("id", version.proposal_id)
-        .single();
-
-      if (!proposal || proposal.company_id !== session.company_id) {
-        return jsonResponse({ error: "Access denied" }, 403, hdrs);
-      }
-
-      const { error: updateErr } = await supabase
-        .from("proposal_versions")
-        .update({ status: decision })
-        .eq("id", versionId);
-
-      if (updateErr) {
-        return jsonResponse({ error: updateErr.message || "Update failed" }, 500, hdrs);
+      const result = typeof rpcResult === "string" ? JSON.parse(rpcResult) : rpcResult;
+      if (!result.success) {
+        return jsonResponse({ error: result.error }, 400, hdrs);
       }
 
       return jsonResponse({ success: true, new_status: decision }, 200, hdrs);
