@@ -140,6 +140,24 @@ export function ProposalDetail({ proposalId, onBack }: Props) {
     }
   };
 
+  const handleExportPdf = async () => {
+    if (!activeVersion || !currentWorkspace) return;
+    setExporting(true);
+    try {
+      await exportProposalPdf({
+        proposalId,
+        versionId: activeVersion.id,
+        workspaceName: currentWorkspace.name,
+        workspaceCurrency: currentWorkspace.currency,
+      });
+      toast({ title: "PDF downloaded" });
+    } catch (err: any) {
+      toast({ title: "Export failed", description: err.message, variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (!proposal) return <div className="text-center py-8 text-muted-foreground">Loading...</div>;
 
   return (
