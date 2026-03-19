@@ -1327,6 +1327,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           id: string
+          lead_id: string | null
           notes: string | null
           title: string
           updated_at: string
@@ -1337,6 +1338,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          lead_id?: string | null
           notes?: string | null
           title: string
           updated_at?: string
@@ -1347,6 +1349,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          lead_id?: string | null
           notes?: string | null
           title?: string
           updated_at?: string
@@ -1358,6 +1361,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
           {
