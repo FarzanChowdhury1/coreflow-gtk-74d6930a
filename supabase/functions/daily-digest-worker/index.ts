@@ -138,6 +138,7 @@ Deno.serve(async (req) => {
         duration_ms: durationMs,
         trigger_source: "scheduled",
         summary: {
+          renewal_invoices: renewalInvResult,
           sweeps: {
             overdue: overdueRes.data,
             followups: followupRes.data,
