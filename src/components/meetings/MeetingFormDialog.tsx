@@ -155,10 +155,10 @@ export function MeetingFormDialog({ open, onOpenChange, onSaved, editMeeting, de
         location: location.trim() || null,
         attendees: attendees.trim() || null,
         description: description.trim() || null,
-        company_id: companyId || null,
-        contact_id: contactId || null,
-        lead_id: leadId || null,
-        project_id: projectId || null,
+        company_id: companyId !== "__none__" ? companyId : null,
+        contact_id: contactId !== "__none__" ? contactId : null,
+        lead_id: leadId !== "__none__" ? leadId : null,
+        project_id: projectId !== "__none__" ? projectId : null,
         workspace_id: wsId,
       };
 
