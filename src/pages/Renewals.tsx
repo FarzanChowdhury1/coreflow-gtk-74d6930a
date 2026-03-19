@@ -16,6 +16,7 @@ interface Renewal {
   company_id: string;
   project_id: string | null;
   invoice_id: string | null;
+  last_generated_billing_date: string | null;
   label: string;
   amount: number;
   currency: string;
