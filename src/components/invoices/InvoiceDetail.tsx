@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Download, Plus, Trash2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
+import { exportInvoicePdf } from "@/lib/invoice-pdf";
 
 interface Props {
   invoice: Tables<"invoices">;
@@ -161,6 +162,23 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
           <Badge className={STATUS_COLORS[invoice.status]}>{invoice.status}</Badge>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={async () => {
+              try {
+                await exportInvoicePdf({
+                  invoiceId: invoice.id,
+                  workspaceName: currentWorkspace?.name || "CoreFlow",
+                  workspaceCurrency: currentWorkspace?.currency,
+                });
+                toast.success("PDF downloaded");
+              } catch (err: any) {
+                toast.error(err.message || "PDF export failed");
+              }
+            }}
+          >
+            <Download className="mr-1 h-4 w-4" /> Download PDF
+          </Button>
           {isDraft && (
             <>
               <Button variant="outline" onClick={saveLineItems} disabled={saving}>
