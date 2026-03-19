@@ -178,6 +178,11 @@ export function ProposalDetail({ proposalId, onBack }: Props) {
             </p>
           </div>
           <div className="flex gap-2">
+            {activeVersion && (
+              <Button size="sm" variant="outline" onClick={handleExportPdf} disabled={exporting}>
+                <Download className="h-4 w-4 mr-1" /> {exporting ? "Exporting…" : "Download PDF"}
+              </Button>
+            )}
             {isDraft && (
               <Button size="sm" onClick={handleMarkSent}>
                 <Send className="h-4 w-4 mr-1" /> Mark as Sent
