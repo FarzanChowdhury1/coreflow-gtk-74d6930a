@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Building2, Plus, Search, Link2, User } from "lucide-react";
+import { Building2, Plus, Search, Link2, User, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CompanyFormDialog } from "@/components/clients/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/clients/ContactFormDialog";
 import { PortalLinkDialog } from "@/components/clients/PortalLinkDialog";
+import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Tables } from "@/integrations/supabase/types";
