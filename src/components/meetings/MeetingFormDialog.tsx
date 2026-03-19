@@ -46,10 +46,10 @@ export function MeetingFormDialog({ open, onOpenChange, onSaved, editMeeting, de
   const [location, setLocation] = useState("");
   const [attendees, setAttendees] = useState("");
   const [description, setDescription] = useState("");
-  const [companyId, setCompanyId] = useState("");
-  const [contactId, setContactId] = useState("");
-  const [leadId, setLeadId] = useState("");
-  const [projectId, setProjectId] = useState("");
+  const [companyId, setCompanyId] = useState("__none__");
+  const [contactId, setContactId] = useState("__none__");
+  const [leadId, setLeadId] = useState("__none__");
+  const [projectId, setProjectId] = useState("__none__");
   const [saving, setSaving] = useState(false);
 
   // Load companies for linking
