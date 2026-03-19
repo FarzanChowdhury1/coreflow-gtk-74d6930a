@@ -215,6 +215,118 @@ async function handleResource(
       return jsonResponse({ data: enriched }, 200, hdrs);
     }
 
+    case "documents": {
+      // Return files owned by the company or by the company's projects/invoices
+      // owner_type = 'company' with owner_id = company_id
+      const { data: companyFiles } = await supabase
+        .from("files")
+        .select("id, file_name, mime_type, file_size, created_at, owner_type, description")
+        .eq("workspace_id", session.workspace_id)
+        .eq("owner_type", "company")
+        .eq("owner_id", session.company_id)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      // Also get files attached to this company's invoices
+      const { data: invoices } = await supabase
+        .from("invoices")
+        .select("id")
+        .eq("company_id", session.company_id)
+        .eq("workspace_id", session.workspace_id)
+        .is("deleted_at", null);
+
+      let invoiceFiles: any[] = [];
+      if (invoices && invoices.length > 0) {
+        const invoiceIds = invoices.map((i: { id: string }) => i.id);
+        const { data } = await supabase
+          .from("files")
+          .select("id, file_name, mime_type, file_size, created_at, owner_type, description")
+          .eq("workspace_id", session.workspace_id)
+          .eq("owner_type", "invoice")
+          .in("owner_id", invoiceIds)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        invoiceFiles = data || [];
+      }
+
+      // Merge and sort
+      const allFiles = [...(companyFiles || []), ...invoiceFiles]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 50);
+
+      return jsonResponse({ data: allFiles }, 200, hdrs);
+    }
+
+    case "summary": {
+      // Aggregate counts for the overview dashboard
+      const [proposalsRes, invoicesRes, updatesRes] = await Promise.all([
+        supabase
+          .from("proposals")
+          .select("id, proposal_versions(id, status, grand_total)")
+          .eq("company_id", session.company_id)
+          .eq("workspace_id", session.workspace_id)
+          .is("deleted_at", null),
+        supabase
+          .from("invoices")
+          .select("id, status, grand_total, amount_paid, due_date, currency")
+          .eq("company_id", session.company_id)
+          .eq("workspace_id", session.workspace_id)
+          .is("deleted_at", null)
+          .neq("status", "draft"),
+        supabase
+          .from("client_updates")
+          .select("id, published_at")
+          .eq("company_id", session.company_id)
+          .eq("workspace_id", session.workspace_id)
+          .eq("is_published", true)
+          .is("deleted_at", null)
+          .order("published_at", { ascending: false })
+          .limit(5),
+      ]);
+
+      const proposals = proposalsRes.data || [];
+      const invoices = invoicesRes.data || [];
+      const updates = updatesRes.data || [];
+
+      // Count proposals awaiting client decision (status = 'sent')
+      let proposals_awaiting = 0;
+      for (const p of proposals) {
+        const versions = (p as any).proposal_versions || [];
+        if (versions.some((v: any) => v.status === "sent")) {
+          proposals_awaiting++;
+        }
+      }
+
+      // Invoice stats
+      const unpaidInvoices = invoices.filter(
+        (i: any) => i.status !== "paid" && i.status !== "void"
+      );
+      const overdueInvoices = unpaidInvoices.filter(
+        (i: any) => i.due_date && new Date(i.due_date) < new Date()
+      );
+      const totalOutstanding = unpaidInvoices.reduce(
+        (sum: number, i: any) => sum + (Number(i.grand_total) - Number(i.amount_paid)),
+        0
+      );
+      const currency = invoices.length > 0 ? (invoices[0] as any).currency || "BDT" : "BDT";
+
+      const recentUpdateDate = updates.length > 0 ? (updates[0] as any).published_at : null;
+
+      return jsonResponse({
+        data: {
+          proposals_awaiting,
+          unpaid_invoices: unpaidInvoices.length,
+          overdue_invoices: overdueInvoices.length,
+          total_outstanding: totalOutstanding,
+          currency,
+          recent_updates: updates.length,
+          recent_update_date: recentUpdateDate,
+        },
+      }, 200, hdrs);
+    }
+
     default:
       return jsonResponse({ error: "Unknown resource" }, 400, hdrs);
   }
@@ -302,6 +414,51 @@ async function handleAction(
       }
 
       return jsonResponse({ success: true, new_status: decision }, 200, hdrs);
+    }
+
+    case "get_document_url": {
+      const fileId = body.file_id as string;
+      if (!fileId) return jsonResponse({ error: "file_id required" }, 400, hdrs);
+
+      // Verify the file belongs to this company's scope
+      const { data: file } = await supabase
+        .from("files")
+        .select("id, storage_path, owner_type, owner_id, workspace_id")
+        .eq("id", fileId)
+        .eq("workspace_id", session.workspace_id)
+        .is("deleted_at", null)
+        .single();
+
+      if (!file) return jsonResponse({ error: "File not found" }, 404, hdrs);
+
+      // Verify ownership: company files or invoice files for this company
+      let authorized = false;
+      if (file.owner_type === "company" && file.owner_id === session.company_id) {
+        authorized = true;
+      } else if (file.owner_type === "invoice") {
+        const { data: invoice } = await supabase
+          .from("invoices")
+          .select("company_id")
+          .eq("id", file.owner_id)
+          .eq("company_id", session.company_id)
+          .single();
+        authorized = !!invoice;
+      }
+
+      if (!authorized) {
+        return jsonResponse({ error: "Access denied" }, 403, hdrs);
+      }
+
+      // Generate a signed URL (valid for 1 hour)
+      const { data: signedUrl, error: signErr } = await supabase.storage
+        .from("workspace-files")
+        .createSignedUrl(file.storage_path, 3600);
+
+      if (signErr || !signedUrl) {
+        return jsonResponse({ error: "Could not generate download link" }, 500, hdrs);
+      }
+
+      return jsonResponse({ url: signedUrl.signedUrl }, 200, hdrs);
     }
 
     default:
