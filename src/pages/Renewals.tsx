@@ -223,7 +223,7 @@ export default function Renewals() {
                       </div>
                       {isAdmin && (
                         <div className="flex items-center gap-1">
-                          {!hasCycleInvoice(r) && (
+                          {canGenerateInvoice(r) && (
                             <Button
                               variant="ghost"
                               size="sm"
