@@ -145,8 +145,19 @@ export default function Renewals() {
     }
   };
 
-  const hasCycleInvoice = (r: Renewal) => {
-    return r.last_generated_billing_date != null;
+  const canGenerateInvoice = (r: Renewal) => {
+    if (!r.is_active || r.amount <= 0) return false;
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const billingDate = new Date(r.next_billing_date);
+    if (billingDate > now) return false;
+    if (r.last_generated_billing_date == null) return true;
+    return new Date(r.last_generated_billing_date) < billingDate;
+  };
+
+  const cycleAlreadyInvoiced = (r: Renewal) => {
+    if (r.last_generated_billing_date == null) return false;
+    return new Date(r.last_generated_billing_date) >= new Date(r.next_billing_date);
   };
 
   return (
