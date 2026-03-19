@@ -192,6 +192,20 @@ export default function Leads() {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{formatFollowUp(lead.next_follow_up)}</td>
                   <td className="px-4 py-3 text-right space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMeetingContext({
+                          lead_id: lead.id,
+                          company_id: lead.company_id || undefined,
+                          contact_id: lead.contact_id || undefined,
+                        });
+                      }}
+                    >
+                      <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
+                    </Button>
                     {lead.status !== "converted" && lead.status !== "unqualified" && lead.company_id && (
                       <Button
                         variant="ghost"
