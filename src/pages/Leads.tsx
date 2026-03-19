@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Inbox, Plus, Search, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LeadTasksPanel } from "@/components/leads/LeadTasksPanel";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
