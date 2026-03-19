@@ -179,7 +179,10 @@ async function handleResource(
 
       const invoiceIds = invoices.map((i: { id: string }) => i.id);
       const invoiceMap = Object.fromEntries(
-        invoices.map((i: { id: string; invoice_number: string }) => [i.id, i.invoice_number])
+        invoices.map((i: { id: string; invoice_number: string; currency: string }) => [
+          i.id,
+          { invoice_number: i.invoice_number, currency: i.currency },
+        ])
       );
 
       const { data: payments } = await supabase
@@ -189,10 +192,14 @@ async function handleResource(
         .eq("workspace_id", session.workspace_id)
         .order("paid_at", { ascending: false });
 
-      const enriched = (payments || []).map((p: Record<string, unknown>) => ({
-        ...p,
-        invoice_number: invoiceMap[p.invoice_id as string] || "—",
-      }));
+      const enriched = (payments || []).map((p: Record<string, unknown>) => {
+        const inv = invoiceMap[p.invoice_id as string] || { invoice_number: "—", currency: "BDT" };
+        return {
+          ...p,
+          invoice_number: inv.invoice_number,
+          currency: inv.currency,
+        };
+      });
 
       return jsonResponse({ data: enriched }, 200, hdrs);
     }
