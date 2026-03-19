@@ -20,6 +20,7 @@ import {
   Users,
   Activity,
   X,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
