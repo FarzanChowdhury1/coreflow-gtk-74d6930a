@@ -97,6 +97,7 @@ export function ProposalFormDialog({ open, onOpenChange, prefill, onCreated }: P
       toast({ title: "Proposal created with draft v1" });
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       queryClient.invalidateQueries({ queryKey: ["proposal_versions_latest"] });
+      onCreated?.();
       onOpenChange(false);
     }
 
