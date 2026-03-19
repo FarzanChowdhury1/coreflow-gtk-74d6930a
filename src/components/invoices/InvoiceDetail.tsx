@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Download, Plus, Trash2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { exportInvoicePdf } from "@/lib/invoice-pdf";
-import { toast } from "sonner";
 
 interface Props {
   invoice: Tables<"invoices">;
