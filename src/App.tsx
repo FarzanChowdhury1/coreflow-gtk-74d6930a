@@ -33,6 +33,7 @@ const OpsHealth = lazy(() => import("@/pages/OpsHealth"));
 const InviteAccept = lazy(() => import("@/pages/InviteAccept"));
 const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 const BetaFeedback = lazy(() => import("@/pages/BetaFeedback"));
+const Meetings = lazy(() => import("@/pages/Meetings"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const PageFallback = () => (
