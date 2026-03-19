@@ -168,7 +168,7 @@ async function handleResource(
     case "payments": {
       const { data: invoices } = await supabase
         .from("invoices")
-        .select("id, invoice_number")
+        .select("id, invoice_number, currency")
         .eq("company_id", session.company_id)
         .eq("workspace_id", session.workspace_id)
         .is("deleted_at", null);
