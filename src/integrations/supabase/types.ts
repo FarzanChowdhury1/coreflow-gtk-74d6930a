@@ -809,6 +809,63 @@ export type Database = {
           },
         ]
       }
+      lead_tasks: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          id: string
+          lead_id: string
+          status: Database["public"]["Enums"]["lead_task_status"]
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          lead_id: string
+          status?: Database["public"]["Enums"]["lead_task_status"]
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          lead_id?: string
+          status?: Database["public"]["Enums"]["lead_task_status"]
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           company_id: string | null
@@ -1946,6 +2003,7 @@ export type Database = {
         | "qualified"
         | "unqualified"
         | "converted"
+      lead_task_status: "todo" | "in_progress" | "done" | "blocked"
       payment_method:
         | "bank_transfer"
         | "cash"
@@ -2107,6 +2165,7 @@ export const Constants = {
         "unqualified",
         "converted",
       ],
+      lead_task_status: ["todo", "in_progress", "done", "blocked"],
       payment_method: [
         "bank_transfer",
         "cash",

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Inbox, Plus, Search, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LeadTasksPanel } from "@/components/leads/LeadTasksPanel";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -168,7 +169,12 @@ export default function Leads() {
             <tbody>
               {filteredLeads.map((lead) => (
                 <tr key={lead.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-medium text-foreground">{lead.title}</td>
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-foreground">{lead.title}</div>
+                    {workspaceId && (
+                      <LeadTasksPanel leadId={lead.id} workspaceId={workspaceId} />
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <Badge variant="secondary" className={statusColors[lead.status] || ""}>
                       {lead.status}
