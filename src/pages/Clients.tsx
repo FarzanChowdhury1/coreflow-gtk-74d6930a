@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Building2, Plus, Search, Link2, User } from "lucide-react";
+import { Building2, Plus, Search, Link2, User, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CompanyFormDialog } from "@/components/clients/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/clients/ContactFormDialog";
 import { PortalLinkDialog } from "@/components/clients/PortalLinkDialog";
+import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Tables } from "@/integrations/supabase/types";
@@ -24,6 +25,7 @@ export default function Clients() {
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [portalLinkOpen, setPortalLinkOpen] = useState(false);
+  const [meetingCompanyId, setMeetingCompanyId] = useState<string | null>(null);
 
   const workspaceId = currentWorkspace?.id;
 
@@ -146,7 +148,14 @@ export default function Clients() {
                       <td className="px-4 py-3 font-medium text-foreground">{company.legal_name}</td>
                       <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{company.bin}</td>
                       <td className="px-4 py-3 text-muted-foreground">{company.address || "—"}</td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setMeetingCompanyId(company.id)}
+                        >
+                          <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -235,6 +244,12 @@ export default function Clients() {
         onOpenChange={setPortalLinkOpen}
         contacts={contacts}
         companies={companies}
+      />
+      <MeetingFormDialog
+        open={!!meetingCompanyId}
+        onOpenChange={(open) => { if (!open) setMeetingCompanyId(null); }}
+        onSaved={() => setMeetingCompanyId(null)}
+        defaultContext={meetingCompanyId ? { company_id: meetingCompanyId } : undefined}
       />
     </div>
   );

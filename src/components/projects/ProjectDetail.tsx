@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Plus, Users } from "lucide-react";
+import { ArrowLeft, Plus, Users, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { TaskBoard } from "./TaskBoard";
 import { ProjectMembersDialog } from "./ProjectMembersDialog";
+import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
 
 interface Props {
   projectId: string;
@@ -27,6 +28,7 @@ export function ProjectDetail({ projectId, onBack }: Props) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [membersOpen, setMembersOpen] = useState(false);
+  const [meetingOpen, setMeetingOpen] = useState(false);
 
   const { data: project } = useQuery({
     queryKey: ["project", projectId],
@@ -93,6 +95,9 @@ export function ProjectDetail({ projectId, onBack }: Props) {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setMeetingOpen(true)}>
+            <Calendar className="h-4 w-4 mr-1" /> Schedule Meeting
+          </Button>
           <Button size="sm" variant="outline" onClick={() => setMembersOpen(true)}>
             <Users className="h-4 w-4 mr-1" /> Members ({members.length})
           </Button>
@@ -122,6 +127,16 @@ export function ProjectDetail({ projectId, onBack }: Props) {
         onOpenChange={setMembersOpen}
         projectId={projectId}
         members={members}
+      />
+
+      <MeetingFormDialog
+        open={meetingOpen}
+        onOpenChange={setMeetingOpen}
+        onSaved={() => setMeetingOpen(false)}
+        defaultContext={{
+          project_id: projectId,
+          company_id: project.company_id,
+        }}
       />
     </div>
   );

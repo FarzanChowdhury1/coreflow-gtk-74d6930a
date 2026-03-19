@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Inbox, Plus, Search, FileText } from "lucide-react";
+import { Inbox, Plus, Search, FileText, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LeadTasksPanel } from "@/components/leads/LeadTasksPanel";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LeadFormDialog } from "@/components/leads/LeadFormDialog";
 import { ProposalFormDialog } from "@/components/proposals/ProposalFormDialog";
 import type { ProposalFormPrefill } from "@/components/proposals/ProposalFormDialog";
+import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Tables } from "@/integrations/supabase/types";
@@ -30,6 +31,7 @@ export default function Leads() {
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [proposalPrefill, setProposalPrefill] = useState<ProposalFormPrefill | null>(null);
+  const [meetingContext, setMeetingContext] = useState<{ lead_id?: string; company_id?: string; contact_id?: string } | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -190,6 +192,20 @@ export default function Leads() {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{formatFollowUp(lead.next_follow_up)}</td>
                   <td className="px-4 py-3 text-right space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMeetingContext({
+                          lead_id: lead.id,
+                          company_id: lead.company_id || undefined,
+                          contact_id: lead.contact_id || undefined,
+                        });
+                      }}
+                    >
+                      <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
+                    </Button>
                     {lead.status !== "converted" && lead.status !== "unqualified" && lead.company_id && (
                       <Button
                         variant="ghost"
@@ -248,6 +264,13 @@ export default function Leads() {
           setProposalPrefill(null);
           navigate("/proposals");
         }}
+      />
+
+      <MeetingFormDialog
+        open={!!meetingContext}
+        onOpenChange={(open) => { if (!open) setMeetingContext(null); }}
+        onSaved={() => setMeetingContext(null)}
+        defaultContext={meetingContext || undefined}
       />
     </div>
   );
