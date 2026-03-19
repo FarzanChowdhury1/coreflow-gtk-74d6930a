@@ -46,10 +46,10 @@ export function MeetingFormDialog({ open, onOpenChange, onSaved, editMeeting, de
   const [location, setLocation] = useState("");
   const [attendees, setAttendees] = useState("");
   const [description, setDescription] = useState("");
-  const [companyId, setCompanyId] = useState("");
-  const [contactId, setContactId] = useState("");
-  const [leadId, setLeadId] = useState("");
-  const [projectId, setProjectId] = useState("");
+  const [companyId, setCompanyId] = useState("__none__");
+  const [contactId, setContactId] = useState("__none__");
+  const [leadId, setLeadId] = useState("__none__");
+  const [projectId, setProjectId] = useState("__none__");
   const [saving, setSaving] = useState(false);
 
   // Load companies for linking
@@ -110,10 +110,10 @@ export function MeetingFormDialog({ open, onOpenChange, onSaved, editMeeting, de
         setLocation(editMeeting.location || "");
         setAttendees(editMeeting.attendees || "");
         setDescription(editMeeting.description || "");
-        setCompanyId(editMeeting.company_id || "");
-        setContactId(editMeeting.contact_id || "");
-        setLeadId(editMeeting.lead_id || "");
-        setProjectId(editMeeting.project_id || "");
+        setCompanyId(editMeeting.company_id || "__none__");
+        setContactId(editMeeting.contact_id || "__none__");
+        setLeadId(editMeeting.lead_id || "__none__");
+        setProjectId(editMeeting.project_id || "__none__");
       } else {
         setTitle("");
         setMeetingType("client");
@@ -123,10 +123,10 @@ export function MeetingFormDialog({ open, onOpenChange, onSaved, editMeeting, de
         setLocation("");
         setAttendees("");
         setDescription("");
-        setCompanyId(defaultContext?.company_id || "");
-        setContactId(defaultContext?.contact_id || "");
-        setLeadId(defaultContext?.lead_id || "");
-        setProjectId(defaultContext?.project_id || "");
+        setCompanyId(defaultContext?.company_id || "__none__");
+        setContactId(defaultContext?.contact_id || "__none__");
+        setLeadId(defaultContext?.lead_id || "__none__");
+        setProjectId(defaultContext?.project_id || "__none__");
       }
     }
   }, [open, editMeeting, defaultContext]);
@@ -155,10 +155,10 @@ export function MeetingFormDialog({ open, onOpenChange, onSaved, editMeeting, de
         location: location.trim() || null,
         attendees: attendees.trim() || null,
         description: description.trim() || null,
-        company_id: companyId || null,
-        contact_id: contactId || null,
-        lead_id: leadId || null,
-        project_id: projectId || null,
+        company_id: companyId !== "__none__" ? companyId : null,
+        contact_id: contactId !== "__none__" ? contactId : null,
+        lead_id: leadId !== "__none__" ? leadId : null,
+        project_id: projectId !== "__none__" ? projectId : null,
         workspace_id: wsId,
       };
 
@@ -249,7 +249,7 @@ export function MeetingFormDialog({ open, onOpenChange, onSaved, editMeeting, de
               <Select value={companyId} onValueChange={setCompanyId}>
                 <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {companies.map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.legal_name}</SelectItem>
                   ))}
@@ -261,7 +261,7 @@ export function MeetingFormDialog({ open, onOpenChange, onSaved, editMeeting, de
               <Select value={contactId} onValueChange={setContactId}>
                 <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {contacts.map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
                   ))}
@@ -276,7 +276,7 @@ export function MeetingFormDialog({ open, onOpenChange, onSaved, editMeeting, de
               <Select value={leadId} onValueChange={setLeadId}>
                 <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {leads.map((l) => (
                     <SelectItem key={l.id} value={l.id}>{l.title}</SelectItem>
                   ))}
@@ -288,7 +288,7 @@ export function MeetingFormDialog({ open, onOpenChange, onSaved, editMeeting, de
               <Select value={projectId} onValueChange={setProjectId}>
                 <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {projects.map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
