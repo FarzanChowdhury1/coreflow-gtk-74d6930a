@@ -95,6 +95,9 @@ export function ProjectDetail({ projectId, onBack }: Props) {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setMeetingOpen(true)}>
+            <Calendar className="h-4 w-4 mr-1" /> Schedule Meeting
+          </Button>
           <Button size="sm" variant="outline" onClick={() => setMembersOpen(true)}>
             <Users className="h-4 w-4 mr-1" /> Members ({members.length})
           </Button>
