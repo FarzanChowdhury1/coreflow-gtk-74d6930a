@@ -124,6 +124,31 @@ export default function Renewals() {
     queryClient.invalidateQueries({ queryKey: ["renewals"] });
   };
 
+  const generateInvoice = async (r: Renewal) => {
+    if (!currentWorkspace) return;
+    setGeneratingId(r.id);
+    try {
+      const { data, error } = await supabase.rpc("generate_renewal_invoice" as any, {
+        _workspace_id: currentWorkspace.id,
+        _renewal_id: r.id,
+      });
+      const result = data as any;
+      if (error || !result?.success) {
+        toast.error(result?.error || error?.message || "Failed to generate invoice");
+        return;
+      }
+      toast.success(`Invoice ${result.invoice_number} generated`);
+      queryClient.invalidateQueries({ queryKey: ["renewals"] });
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+    } finally {
+      setGeneratingId(null);
+    }
+  };
+
+  const hasCycleInvoice = (r: Renewal) => {
+    return r.last_generated_billing_date != null;
+  };
+
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
