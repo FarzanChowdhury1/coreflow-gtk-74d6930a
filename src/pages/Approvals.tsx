@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { CheckSquare, Plus, Settings2, Clock, CheckCircle2, Info, AlertTriangle } from "lucide-react";
+import { CheckSquare, Plus, Settings2, Clock, CheckCircle2, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";

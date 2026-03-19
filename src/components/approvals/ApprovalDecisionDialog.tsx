@@ -7,7 +7,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, XCircle, RotateCcw, Info } from "lucide-react";
+import { CheckCircle2, XCircle, Info } from "lucide-react";
 
 interface Props {
   open: boolean;
