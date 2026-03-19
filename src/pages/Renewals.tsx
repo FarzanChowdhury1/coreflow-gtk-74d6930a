@@ -188,11 +188,16 @@ export default function Renewals() {
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-sm">{r.label}</span>
                           <span className="text-xs opacity-70">{r.companies?.legal_name}</span>
+                          {hasCycleInvoice(r) && (
+                            <span className="inline-flex items-center gap-0.5 text-xs text-green-700 dark:text-green-400">
+                              <CheckCircle2 className="h-3 w-3" /> Invoiced
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs opacity-80">
                           {r.currency} {Number(r.amount).toLocaleString()} · every {r.interval_months}mo · next {format(new Date(r.next_billing_date), "dd MMM yyyy")}
                           {r.invoice_id && r.invoices && (
-                            <span className="inline-flex items-center gap-1 ml-2 opacity-90">
+                            <span className="inline-flex items-center gap-1 ml-2 opacity-90 cursor-pointer hover:underline" onClick={() => navigate("/invoices")}>
                               <Receipt className="h-3 w-3 inline" />
                               {r.invoices.invoice_number}
                               {r.invoices.status === "paid" && " ✓"}
@@ -202,6 +207,22 @@ export default function Renewals() {
                       </div>
                       {isAdmin && (
                         <div className="flex items-center gap-1">
+                          {!hasCycleInvoice(r) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => generateInvoice(r)}
+                              disabled={generatingId === r.id}
+                              title="Generate invoice for current cycle"
+                            >
+                              {generatingId === r.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <FileText className="h-3 w-3 mr-1" />
+                              )}
+                              {generatingId !== r.id && "Invoice"}
+                            </Button>
+                          )}
                           <Button variant="ghost" size="sm" onClick={() => toggleActive(r)} title="Pause">
                             <Pause className="h-3 w-3" />
                           </Button>
