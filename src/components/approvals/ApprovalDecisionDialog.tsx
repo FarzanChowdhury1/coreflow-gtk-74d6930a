@@ -7,6 +7,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { CheckCircle2, XCircle, RotateCcw, Info } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -30,7 +31,11 @@ export function ApprovalDecisionDialog({ open, onOpenChange, requestId, onDecide
       if (error) throw error;
       const result = data as any;
       if (!result.success) throw new Error(result.error);
-      toast.success(decision === "approved" ? "Approved" : "Rejected");
+      toast.success(
+        decision === "approved"
+          ? "Approved — moving to next step"
+          : "Declined — submitter will be notified"
+      );
       setComment("");
       onOpenChange(false);
       onDecided();
@@ -45,28 +50,45 @@ export function ApprovalDecisionDialog({ open, onOpenChange, requestId, onDecide
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Approval Decision</DialogTitle>
-          <DialogDescription>Review and provide your decision for this approval request.</DialogDescription>
+          <DialogTitle>Review This Item</DialogTitle>
+          <DialogDescription>
+            Approve to move it forward, or decline to send it back. Add a note so everyone knows why.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <Label>Comment (optional)</Label>
+            <Label>Note for the team (recommended)</Label>
             <Textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="Add a note for the audit trail…"
+              placeholder="e.g. Looks good, approved. / Needs changes to pricing section."
               rows={3}
             />
+            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+              <Info className="h-3 w-3" />
+              Your note is recorded permanently for reference.
+            </p>
           </div>
         </div>
-        <DialogFooter className="gap-2">
+        <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={processing}>
             Cancel
           </Button>
-          <Button variant="destructive" onClick={() => handleDecision("rejected")} disabled={processing}>
-            Reject
+          <Button
+            variant="destructive"
+            onClick={() => handleDecision("rejected")}
+            disabled={processing}
+            className="gap-1.5"
+          >
+            <XCircle className="h-4 w-4" />
+            Decline
           </Button>
-          <Button onClick={() => handleDecision("approved")} disabled={processing}>
+          <Button
+            onClick={() => handleDecision("approved")}
+            disabled={processing}
+            className="gap-1.5"
+          >
+            <CheckCircle2 className="h-4 w-4" />
             Approve
           </Button>
         </DialogFooter>

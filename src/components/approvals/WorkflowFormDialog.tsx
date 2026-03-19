@@ -16,7 +16,7 @@ import {
 import {
   Form, FormField, FormItem, FormLabel, FormControl, FormMessage,
 } from "@/components/ui/form";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Info } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -26,9 +26,9 @@ interface Props {
 }
 
 const ENTITY_TYPES = [
-  { value: "proposal_version", label: "Proposal Version" },
-  { value: "invoice", label: "Invoice" },
-  { value: "project", label: "Project" },
+  { value: "proposal_version", label: "Proposal", description: "Review proposals before sending to clients" },
+  { value: "invoice", label: "Invoice", description: "Review invoices before issuing" },
+  { value: "project", label: "Project", description: "Review new projects before starting" },
 ];
 
 const workflowSchema = z.object({
@@ -58,7 +58,7 @@ export function WorkflowFormDialog({ open, onOpenChange, onCreated, members }: P
     if (!currentWorkspace) return;
     const validSteps = steps.filter((s) => s.approver_id);
     if (validSteps.length === 0) {
-      toast.error("Add at least one approver");
+      toast.error("Add at least one reviewer");
       return;
     }
     setSaving(true);
@@ -101,9 +101,9 @@ export function WorkflowFormDialog({ open, onOpenChange, onCreated, members }: P
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Create Approval Workflow</DialogTitle>
+          <DialogTitle>Create Review Workflow</DialogTitle>
           <DialogDescription>
-            Define a multi-step approval chain. Approvers will be notified in sequence.
+            Set up a review chain for your team. Each reviewer will be asked to approve in order — the item moves forward only after all reviewers sign off.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -115,7 +115,7 @@ export function WorkflowFormDialog({ open, onOpenChange, onCreated, members }: P
                 <FormItem>
                   <FormLabel>Workflow Name *</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Proposal Review Chain" {...field} />
+                    <Input placeholder="e.g. Proposal Sign-off" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -127,7 +127,7 @@ export function WorkflowFormDialog({ open, onOpenChange, onCreated, members }: P
               name="entity_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Entity Type *</FormLabel>
+                  <FormLabel>What does this workflow review? *</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -140,6 +140,9 @@ export function WorkflowFormDialog({ open, onOpenChange, onCreated, members }: P
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {ENTITY_TYPES.find((t) => t.value === field.value)?.description}
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
@@ -147,17 +150,21 @@ export function WorkflowFormDialog({ open, onOpenChange, onCreated, members }: P
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Approval Steps</span>
+                <span className="text-sm font-medium">Reviewers (in order)</span>
                 <Button type="button" size="sm" variant="outline" onClick={addStep}>
-                  <Plus className="mr-1 h-3 w-3" /> Add Step
+                  <Plus className="mr-1 h-3 w-3" /> Add Reviewer
                 </Button>
               </div>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Info className="h-3 w-3" />
+                Reviewer #1 is asked first. Once they approve, reviewer #2 is notified, and so on.
+              </p>
               {steps.map((step, idx) => (
                 <div key={idx} className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground w-6">#{idx + 1}</span>
+                  <span className="text-xs text-muted-foreground w-6 shrink-0">#{idx + 1}</span>
                   <Select onValueChange={(v) => updateStep(idx, v)} value={step.approver_id}>
                     <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select approver" />
+                      <SelectValue placeholder="Select team member" />
                     </SelectTrigger>
                     <SelectContent>
                       {members.map((m) => (
