@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Plus, Users } from "lucide-react";
+import { ArrowLeft, Plus, Users, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { TaskBoard } from "./TaskBoard";
 import { ProjectMembersDialog } from "./ProjectMembersDialog";
+import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
 
 interface Props {
   projectId: string;
