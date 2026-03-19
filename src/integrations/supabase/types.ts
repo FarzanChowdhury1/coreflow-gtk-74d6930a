@@ -1957,6 +1957,15 @@ export type Database = {
         Args: { _action: string; _token: string; _version_id: string }
         Returns: Json
       }
+      portal_respond_proposal_internal: {
+        Args: {
+          _action: string
+          _company_id: string
+          _version_id: string
+          _workspace_id: string
+        }
+        Returns: Json
+      }
       process_approval_decision: {
         Args: { _comment?: string; _decision: string; _request_id: string }
         Returns: Json
