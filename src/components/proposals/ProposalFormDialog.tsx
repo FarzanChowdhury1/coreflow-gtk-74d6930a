@@ -11,9 +11,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
+export interface ProposalFormPrefill {
+  title?: string;
+  company_id?: string;
+  notes?: string;
+  lead_id?: string;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  prefill?: ProposalFormPrefill;
+  onCreated?: () => void;
 }
 
 export function ProposalFormDialog({ open, onOpenChange }: Props) {
