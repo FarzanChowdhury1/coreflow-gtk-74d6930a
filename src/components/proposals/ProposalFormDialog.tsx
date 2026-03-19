@@ -25,7 +25,7 @@ interface Props {
   onCreated?: () => void;
 }
 
-export function ProposalFormDialog({ open, onOpenChange }: Props) {
+export function ProposalFormDialog({ open, onOpenChange, prefill, onCreated }: Props) {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
   const { toast } = useToast();
