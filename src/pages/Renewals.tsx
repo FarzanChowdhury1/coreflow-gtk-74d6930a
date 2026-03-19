@@ -50,8 +50,10 @@ const BUCKET_CONFIG = {
 export default function Renewals() {
   const { currentWorkspace, currentRole } = useWorkspace();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Renewal | null>(null);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
   const isAdmin = currentRole === "admin";
 
   const { data: renewals = [], isLoading } = useQuery({
