@@ -155,6 +155,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
+        renewal_invoices: renewalInvResult,
         sweeps: {
           overdue: overdueRes.data,
           followups: followupRes.data,
