@@ -47,8 +47,14 @@ export function ProposalFormDialog({ open, onOpenChange, prefill, onCreated }: P
   });
 
   useEffect(() => {
-    if (open) setForm({ title: "", company_id: "", notes: "" });
-  }, [open]);
+    if (open) {
+      setForm({
+        title: prefill?.title || "",
+        company_id: prefill?.company_id || "",
+        notes: prefill?.notes || "",
+      });
+    }
+  }, [open, prefill]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
