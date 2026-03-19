@@ -249,7 +249,7 @@ export function MeetingFormDialog({ open, onOpenChange, onSaved, editMeeting, de
               <Select value={companyId} onValueChange={setCompanyId}>
                 <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {companies.map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.legal_name}</SelectItem>
                   ))}
