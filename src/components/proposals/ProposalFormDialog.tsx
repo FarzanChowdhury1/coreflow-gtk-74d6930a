@@ -11,12 +11,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
+export interface ProposalFormPrefill {
+  title?: string;
+  company_id?: string;
+  notes?: string;
+  lead_id?: string;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  prefill?: ProposalFormPrefill;
+  onCreated?: () => void;
 }
 
-export function ProposalFormDialog({ open, onOpenChange }: Props) {
+export function ProposalFormDialog({ open, onOpenChange, prefill, onCreated }: Props) {
   const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -38,8 +47,14 @@ export function ProposalFormDialog({ open, onOpenChange }: Props) {
   });
 
   useEffect(() => {
-    if (open) setForm({ title: "", company_id: "", notes: "" });
-  }, [open]);
+    if (open) {
+      setForm({
+        title: prefill?.title || "",
+        company_id: prefill?.company_id || "",
+        notes: prefill?.notes || "",
+      });
+    }
+  }, [open, prefill]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +69,8 @@ export function ProposalFormDialog({ open, onOpenChange }: Props) {
         company_id: form.company_id,
         title: form.title.trim(),
         notes: form.notes || null,
-      })
+        lead_id: prefill?.lead_id || null,
+      } as any)
       .select()
       .single();
 
@@ -81,6 +97,7 @@ export function ProposalFormDialog({ open, onOpenChange }: Props) {
       toast({ title: "Proposal created with draft v1" });
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       queryClient.invalidateQueries({ queryKey: ["proposal_versions_latest"] });
+      onCreated?.();
       onOpenChange(false);
     }
 

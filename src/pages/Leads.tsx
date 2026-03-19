@@ -1,13 +1,17 @@
 import { useState } from "react";
-import { Inbox, Plus, Search } from "lucide-react";
+import { Inbox, Plus, Search, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LeadFormDialog } from "@/components/leads/LeadFormDialog";
+import { ProposalFormDialog } from "@/components/proposals/ProposalFormDialog";
+import type { ProposalFormPrefill } from "@/components/proposals/ProposalFormDialog";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Tables } from "@/integrations/supabase/types";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 type Lead = Tables<"leads">;
 
@@ -24,6 +28,9 @@ export default function Leads() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [proposalPrefill, setProposalPrefill] = useState<ProposalFormPrefill | null>(null);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const workspaceId = currentWorkspace?.id;
 
@@ -35,6 +42,7 @@ export default function Leads() {
         .from("leads")
         .select("*")
         .eq("workspace_id", workspaceId)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -172,7 +180,25 @@ export default function Leads() {
                     {lead.estimated_value ? `${lead.currency} ${Number(lead.estimated_value).toLocaleString()}` : "—"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{formatFollowUp(lead.next_follow_up)}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right space-x-1">
+                    {lead.status !== "converted" && lead.status !== "unqualified" && lead.company_id && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-primary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setProposalPrefill({
+                            title: lead.title,
+                            company_id: lead.company_id!,
+                            notes: lead.notes || undefined,
+                            lead_id: lead.id,
+                          });
+                        }}
+                      >
+                        <FileText className="h-3.5 w-3.5 mr-1" /> Convert
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -194,6 +220,25 @@ export default function Leads() {
         lead={editingLead}
         companies={companies}
         contacts={contacts}
+      />
+
+      <ProposalFormDialog
+        open={!!proposalPrefill}
+        onOpenChange={(open) => { if (!open) setProposalPrefill(null); }}
+        prefill={proposalPrefill || undefined}
+        onCreated={async () => {
+          // Mark lead as converted
+          if (proposalPrefill?.lead_id) {
+            await supabase
+              .from("leads")
+              .update({ status: "converted" as any })
+              .eq("id", proposalPrefill.lead_id);
+            queryClient.invalidateQueries({ queryKey: ["leads"] });
+            toast.success("Lead converted to proposal");
+          }
+          setProposalPrefill(null);
+          navigate("/proposals");
+        }}
       />
     </div>
   );
