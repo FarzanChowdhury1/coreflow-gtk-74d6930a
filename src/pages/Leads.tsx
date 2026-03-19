@@ -1,13 +1,17 @@
 import { useState } from "react";
-import { Inbox, Plus, Search } from "lucide-react";
+import { Inbox, Plus, Search, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LeadFormDialog } from "@/components/leads/LeadFormDialog";
+import { ProposalFormDialog } from "@/components/proposals/ProposalFormDialog";
+import type { ProposalFormPrefill } from "@/components/proposals/ProposalFormDialog";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Tables } from "@/integrations/supabase/types";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 type Lead = Tables<"leads">;
 
