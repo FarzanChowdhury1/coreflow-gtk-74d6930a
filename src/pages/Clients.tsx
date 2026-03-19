@@ -60,7 +60,7 @@ export default function Clients() {
   const filteredCompanies = companies.filter(
     (c) =>
       c.legal_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.bin.toLowerCase().includes(searchTerm.toLowerCase())
+      (c.bin || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const filteredContacts = contacts.filter(
