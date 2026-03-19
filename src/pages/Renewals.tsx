@@ -145,8 +145,19 @@ export default function Renewals() {
     }
   };
 
-  const hasCycleInvoice = (r: Renewal) => {
-    return r.last_generated_billing_date != null;
+  const canGenerateInvoice = (r: Renewal) => {
+    if (!r.is_active || r.amount <= 0) return false;
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const billingDate = new Date(r.next_billing_date);
+    if (billingDate > now) return false;
+    if (r.last_generated_billing_date == null) return true;
+    return new Date(r.last_generated_billing_date) < billingDate;
+  };
+
+  const cycleAlreadyInvoiced = (r: Renewal) => {
+    if (r.last_generated_billing_date == null) return false;
+    return new Date(r.last_generated_billing_date) >= new Date(r.next_billing_date);
   };
 
   return (
@@ -188,9 +199,14 @@ export default function Renewals() {
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-sm">{r.label}</span>
                           <span className="text-xs opacity-70">{r.companies?.legal_name}</span>
-                          {hasCycleInvoice(r) && (
+                          {cycleAlreadyInvoiced(r) && (
                             <span className="inline-flex items-center gap-0.5 text-xs text-green-700 dark:text-green-400">
-                              <CheckCircle2 className="h-3 w-3" /> Invoiced
+                              <CheckCircle2 className="h-3 w-3" /> Cycle invoiced
+                            </span>
+                          )}
+                          {canGenerateInvoice(r) && (
+                            <span className="inline-flex items-center gap-0.5 text-xs text-amber-600 dark:text-amber-400">
+                              Ready to invoice
                             </span>
                           )}
                         </div>
@@ -207,7 +223,7 @@ export default function Renewals() {
                       </div>
                       {isAdmin && (
                         <div className="flex items-center gap-1">
-                          {!hasCycleInvoice(r) && (
+                          {canGenerateInvoice(r) && (
                             <Button
                               variant="ghost"
                               size="sm"

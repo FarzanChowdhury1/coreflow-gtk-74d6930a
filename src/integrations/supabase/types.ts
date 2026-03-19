@@ -1943,6 +1943,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _generate_renewal_invoice_internal: {
+        Args: { _actor_id?: string; _renewal_id: string }
+        Returns: Json
+      }
       accept_invite_by_token: { Args: { _token: string }; Returns: Json }
       accept_workspace_invite: { Args: { _invite_id: string }; Returns: Json }
       aggregate_daily_digest: { Args: never; Returns: Json }
