@@ -21,6 +21,9 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceKey);
 
   try {
+    // 0. Generate invoices for due renewals
+    const { data: renewalInvResult } = await supabase.rpc("generate_due_renewal_invoices");
+
     // 1. Run all DB-heavy sweeps via RPC
     const [overdueRes, followupRes, renewalRes] = await Promise.all([
       supabase.rpc("sweep_overdue_invoices"),
