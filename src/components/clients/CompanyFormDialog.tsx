@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -32,6 +33,7 @@ export function CompanyFormDialog({ open, onOpenChange, company }: Props) {
     legal_name: "",
     bin: "",
     address: "",
+    phone: "",
     notes: "",
   });
 
@@ -39,12 +41,13 @@ export function CompanyFormDialog({ open, onOpenChange, company }: Props) {
     if (company) {
       setForm({
         legal_name: company.legal_name,
-        bin: company.bin,
+        bin: company.bin || "",
         address: company.address || "",
+        phone: (company as any).phone || "",
         notes: company.notes || "",
       });
     } else {
-      setForm({ legal_name: "", bin: "", address: "", notes: "" });
+      setForm({ legal_name: "", bin: "", address: "", phone: "", notes: "" });
     }
     setErrors({});
   }, [company, open]);
@@ -69,11 +72,12 @@ export function CompanyFormDialog({ open, onOpenChange, company }: Props) {
 
     const payload = {
       legal_name: result.data.legal_name,
-      bin: result.data.bin,
+      bin: result.data.bin || "",
       address: result.data.address || null,
+      phone: result.data.phone || null,
       notes: result.data.notes || null,
       workspace_id: currentWorkspace.id,
-    };
+    } as any;
 
     if (company) {
       const { error } = await supabase
@@ -112,6 +116,11 @@ export function CompanyFormDialog({ open, onOpenChange, company }: Props) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{company ? "Edit Company" : "Add Company"}</DialogTitle>
+          <DialogDescription>
+            {company
+              ? "Update this company's details."
+              : "Add a client company. You can link contacts, proposals, and invoices to it."}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -125,22 +134,34 @@ export function CompanyFormDialog({ open, onOpenChange, company }: Props) {
             />
             {errors.legal_name && <p className="mt-1 text-xs text-destructive">{errors.legal_name}</p>}
           </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">
-              BIN (13-digit) *
-            </label>
-            <input
-              type="text"
-              value={form.bin}
-              onChange={(e) => setForm((f) => ({ ...f, bin: e.target.value.slice(0, 13) }))}
-              className="h-10 w-full rounded-md border bg-background px-3 text-sm font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="1234567890123"
-              maxLength={13}
-            />
-            {errors.bin && <p className="mt-1 text-xs text-destructive">{errors.bin}</p>}
-            <p className="mt-1 text-xs text-muted-foreground">
-              Bangladesh Business Identification Number — exactly 13 alphanumeric characters
-            </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                BIN
+              </label>
+              <input
+                type="text"
+                value={form.bin}
+                onChange={(e) => setForm((f) => ({ ...f, bin: e.target.value.replace(/[^0-9A-Za-z]/g, "").slice(0, 13) }))}
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder="Optional"
+                maxLength={13}
+              />
+              {errors.bin && <p className="mt-1 text-xs text-destructive">{errors.bin}</p>}
+              <p className="mt-1 text-xs text-muted-foreground">
+                13-character Business ID Number (optional)
+              </p>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Phone</label>
+              <input
+                type="tel"
+                value={form.phone}
+                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder="e.g. +88028901234"
+              />
+            </div>
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">Address</label>
@@ -158,7 +179,7 @@ export function CompanyFormDialog({ open, onOpenChange, company }: Props) {
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
               className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              rows={3}
+              rows={2}
               placeholder="Internal notes..."
             />
           </div>

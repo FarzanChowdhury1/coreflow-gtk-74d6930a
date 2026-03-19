@@ -4,12 +4,14 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { Search } from "lucide-react";
 
 export interface ProposalFormPrefill {
   title?: string;
@@ -31,6 +33,8 @@ export function ProposalFormDialog({ open, onOpenChange, prefill, onCreated }: P
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ title: "", company_id: "", notes: "" });
+  const [companySearch, setCompanySearch] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
   const workspaceId = currentWorkspace?.id;
 
   const { data: companies = [] } = useQuery({
@@ -48,20 +52,45 @@ export function ProposalFormDialog({ open, onOpenChange, prefill, onCreated }: P
 
   useEffect(() => {
     if (open) {
+      const prefillCompany = prefill?.company_id
+        ? companies.find((c) => c.id === prefill.company_id)
+        : null;
       setForm({
         title: prefill?.title || "",
         company_id: prefill?.company_id || "",
         notes: prefill?.notes || "",
       });
+      setCompanySearch(prefillCompany?.legal_name || "");
+      setShowDropdown(false);
     }
-  }, [open, prefill]);
+  }, [open, prefill, companies]);
+
+  const filteredCompanies = companies.filter((c) =>
+    c.legal_name.toLowerCase().includes(companySearch.toLowerCase())
+  );
+
+  const selectedCompanyName = companies.find((c) => c.id === form.company_id)?.legal_name;
+
+  const handleCompanySelect = (id: string, name: string) => {
+    setForm((f) => ({ ...f, company_id: id }));
+    setCompanySearch(name);
+    setShowDropdown(false);
+  };
+
+  const handleCompanySearchChange = (value: string) => {
+    setCompanySearch(value);
+    setShowDropdown(true);
+    // Clear selection if user edits the text away from the selected company
+    if (selectedCompanyName && value !== selectedCompanyName) {
+      setForm((f) => ({ ...f, company_id: "" }));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title.trim() || !form.company_id || !workspaceId) return;
     setLoading(true);
 
-    // Create proposal
     const { data: proposal, error: pError } = await supabase
       .from("proposals")
       .insert({
@@ -80,7 +109,6 @@ export function ProposalFormDialog({ open, onOpenChange, prefill, onCreated }: P
       return;
     }
 
-    // Auto-create first version (v1, draft)
     const { error: vError } = await supabase
       .from("proposal_versions")
       .insert({
@@ -109,6 +137,9 @@ export function ProposalFormDialog({ open, onOpenChange, prefill, onCreated }: P
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>New Proposal</DialogTitle>
+          <DialogDescription>
+            Create a proposal for a client company. You can add line items and pricing after creation.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -118,26 +149,53 @@ export function ProposalFormDialog({ open, onOpenChange, prefill, onCreated }: P
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
               className="h-10 w-full rounded-md border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="Proposal title"
+              placeholder="e.g. Website Redesign Q2 2026"
               required
             />
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">Company *</label>
-            <select
-              value={form.company_id}
-              onChange={(e) => setForm((f) => ({ ...f, company_id: e.target.value }))}
-              className="h-10 w-full rounded-md border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              required
-            >
-              <option value="">Select company</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>{c.legal_name}</option>
-              ))}
-            </select>
-            {companies.length === 0 && (
-              <p className="mt-1 text-xs text-destructive">
-                You need to add a company first in Client Directory.
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                value={companySearch}
+                onChange={(e) => handleCompanySearchChange(e.target.value)}
+                onFocus={() => setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder="Search companies..."
+              />
+              {showDropdown && (
+                <div className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-md border bg-popover shadow-md">
+                  {filteredCompanies.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                      No companies found. Add one in Client Directory first.
+                    </div>
+                  ) : (
+                    filteredCompanies.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className={`w-full px-3 py-2 text-left text-sm hover:bg-accent transition-colors ${
+                          form.company_id === c.id ? "bg-accent font-medium" : ""
+                        }`}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => handleCompanySelect(c.id, c.legal_name)}
+                      >
+                        <span className="text-foreground">{c.legal_name}</span>
+                        {c.bin && (
+                          <span className="ml-2 text-xs text-muted-foreground font-mono">{c.bin}</span>
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+            {form.company_id && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Selected: {selectedCompanyName}
               </p>
             )}
           </div>
@@ -148,6 +206,7 @@ export function ProposalFormDialog({ open, onOpenChange, prefill, onCreated }: P
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
               className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               rows={3}
+              placeholder="Scope summary, context..."
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">
