@@ -148,7 +148,14 @@ export default function Clients() {
                       <td className="px-4 py-3 font-medium text-foreground">{company.legal_name}</td>
                       <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{company.bin}</td>
                       <td className="px-4 py-3 text-muted-foreground">{company.address || "—"}</td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setMeetingCompanyId(company.id)}
+                        >
+                          <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
