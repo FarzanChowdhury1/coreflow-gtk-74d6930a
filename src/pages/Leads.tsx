@@ -28,6 +28,9 @@ export default function Leads() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [proposalPrefill, setProposalPrefill] = useState<ProposalFormPrefill | null>(null);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const workspaceId = currentWorkspace?.id;
 
