@@ -179,7 +179,25 @@ export default function Leads() {
                     {lead.estimated_value ? `${lead.currency} ${Number(lead.estimated_value).toLocaleString()}` : "—"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{formatFollowUp(lead.next_follow_up)}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right space-x-1">
+                    {lead.status !== "converted" && lead.status !== "unqualified" && lead.company_id && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-primary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setProposalPrefill({
+                            title: lead.title,
+                            company_id: lead.company_id!,
+                            notes: lead.notes || undefined,
+                            lead_id: lead.id,
+                          });
+                        }}
+                      >
+                        <FileText className="h-3.5 w-3.5 mr-1" /> Convert
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
