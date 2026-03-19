@@ -28,6 +28,7 @@ export function ProposalDetail({ proposalId, onBack }: Props) {
   const { toast } = useToast();
   const workspaceId = currentWorkspace?.id;
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const { data: proposal } = useQuery({
     queryKey: ["proposal", proposalId],
