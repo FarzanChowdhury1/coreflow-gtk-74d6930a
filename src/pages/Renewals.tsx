@@ -198,9 +198,9 @@ export default function Renewals() {
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-sm">{r.label}</span>
                           <span className="text-xs opacity-70">{r.companies?.legal_name}</span>
-                          {cycleAlreadyInvoiced(r) && (
+                          {!canGenerateInvoice(r) && hasGeneratedInvoice(r) && (
                             <span className="inline-flex items-center gap-0.5 text-xs text-green-700 dark:text-green-400">
-                              <CheckCircle2 className="h-3 w-3" /> Cycle invoiced
+                              <CheckCircle2 className="h-3 w-3" /> Latest cycle invoiced
                             </span>
                           )}
                           {canGenerateInvoice(r) && (
