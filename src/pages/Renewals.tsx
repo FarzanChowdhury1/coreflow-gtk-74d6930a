@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { RefreshCw, Plus, Pause, Play, Receipt } from "lucide-react";
+import { RefreshCw, Plus, Pause, Play, Receipt, FileText, CheckCircle2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { RenewalFormDialog } from "@/components/renewals/RenewalFormDialog";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface Renewal {
   id: string;
@@ -15,6 +16,7 @@ interface Renewal {
   company_id: string;
   project_id: string | null;
   invoice_id: string | null;
+  last_generated_billing_date: string | null;
   label: string;
   amount: number;
   currency: string;
@@ -48,8 +50,10 @@ const BUCKET_CONFIG = {
 export default function Renewals() {
   const { currentWorkspace, currentRole } = useWorkspace();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Renewal | null>(null);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
   const isAdmin = currentRole === "admin";
 
   const { data: renewals = [], isLoading } = useQuery({
@@ -120,6 +124,31 @@ export default function Renewals() {
     queryClient.invalidateQueries({ queryKey: ["renewals"] });
   };
 
+  const generateInvoice = async (r: Renewal) => {
+    if (!currentWorkspace) return;
+    setGeneratingId(r.id);
+    try {
+      const { data, error } = await supabase.rpc("generate_renewal_invoice" as any, {
+        _workspace_id: currentWorkspace.id,
+        _renewal_id: r.id,
+      });
+      const result = data as any;
+      if (error || !result?.success) {
+        toast.error(result?.error || error?.message || "Failed to generate invoice");
+        return;
+      }
+      toast.success(`Invoice ${result.invoice_number} generated`);
+      queryClient.invalidateQueries({ queryKey: ["renewals"] });
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+    } finally {
+      setGeneratingId(null);
+    }
+  };
+
+  const hasCycleInvoice = (r: Renewal) => {
+    return r.last_generated_billing_date != null;
+  };
+
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -159,11 +188,16 @@ export default function Renewals() {
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-sm">{r.label}</span>
                           <span className="text-xs opacity-70">{r.companies?.legal_name}</span>
+                          {hasCycleInvoice(r) && (
+                            <span className="inline-flex items-center gap-0.5 text-xs text-green-700 dark:text-green-400">
+                              <CheckCircle2 className="h-3 w-3" /> Invoiced
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs opacity-80">
                           {r.currency} {Number(r.amount).toLocaleString()} · every {r.interval_months}mo · next {format(new Date(r.next_billing_date), "dd MMM yyyy")}
                           {r.invoice_id && r.invoices && (
-                            <span className="inline-flex items-center gap-1 ml-2 opacity-90">
+                            <span className="inline-flex items-center gap-1 ml-2 opacity-90 cursor-pointer hover:underline" onClick={() => navigate("/invoices")}>
                               <Receipt className="h-3 w-3 inline" />
                               {r.invoices.invoice_number}
                               {r.invoices.status === "paid" && " ✓"}
@@ -173,6 +207,22 @@ export default function Renewals() {
                       </div>
                       {isAdmin && (
                         <div className="flex items-center gap-1">
+                          {!hasCycleInvoice(r) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => generateInvoice(r)}
+                              disabled={generatingId === r.id}
+                              title="Generate invoice for current cycle"
+                            >
+                              {generatingId === r.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <FileText className="h-3 w-3 mr-1" />
+                              )}
+                              {generatingId !== r.id && "Invoice"}
+                            </Button>
+                          )}
                           <Button variant="ghost" size="sm" onClick={() => toggleActive(r)} title="Pause">
                             <Pause className="h-3 w-3" />
                           </Button>

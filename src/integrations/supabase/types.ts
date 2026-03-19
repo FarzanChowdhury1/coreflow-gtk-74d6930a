@@ -1552,6 +1552,7 @@ export type Database = {
           invoice_id: string | null
           is_active: boolean
           label: string
+          last_generated_billing_date: string | null
           next_billing_date: string
           notes: string | null
           project_id: string | null
@@ -1568,6 +1569,7 @@ export type Database = {
           invoice_id?: string | null
           is_active?: boolean
           label: string
+          last_generated_billing_date?: string | null
           next_billing_date: string
           notes?: string | null
           project_id?: string | null
@@ -1584,6 +1586,7 @@ export type Database = {
           invoice_id?: string | null
           is_active?: boolean
           label?: string
+          last_generated_billing_date?: string | null
           next_billing_date?: string
           notes?: string | null
           project_id?: string | null
@@ -2006,6 +2009,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      generate_due_renewal_invoices: { Args: never; Returns: Json }
       generate_portal_token: {
         Args: {
           _company_id: string
@@ -2013,6 +2017,10 @@ export type Database = {
           _expires_in_days?: number
           _workspace_id: string
         }
+        Returns: Json
+      }
+      generate_renewal_invoice: {
+        Args: { _renewal_id: string; _workspace_id: string }
         Returns: Json
       }
       get_dashboard_metrics: { Args: { _workspace_id: string }; Returns: Json }
