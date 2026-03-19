@@ -1,0 +1,225 @@
+import { useState, useCallback } from "react";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { format, isPast, isToday } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import { Plus, Calendar, Search, Video, Building2, FolderKanban, Clock, FileText } from "lucide-react";
+import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
+import { MeetingDetail } from "@/components/meetings/MeetingDetail";
+
+const STATUS_STYLES: Record<string, string> = {
+  scheduled: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  completed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  cancelled: "bg-muted text-muted-foreground",
+};
+
+const TYPE_ICONS: Record<string, React.ElementType> = {
+  client: Building2,
+  internal: Video,
+};
+
+export default function Meetings() {
+  const { currentWorkspace } = useWorkspace();
+  const wsId = currentWorkspace?.id;
+  const queryClient = useQueryClient();
+
+  const [showForm, setShowForm] = useState(false);
+  const [editMeeting, setEditMeeting] = useState<any>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const { data: meetings = [], isLoading } = useQuery({
+    queryKey: ["meetings", wsId, statusFilter],
+    queryFn: async () => {
+      if (!wsId) return [];
+      let q = supabase
+        .from("meetings" as any)
+        .select("*, companies(legal_name), projects(name)")
+        .eq("workspace_id", wsId)
+        .order("starts_at", { ascending: false })
+        .limit(200);
+      if (statusFilter !== "all") {
+        q = q.eq("status", statusFilter);
+      }
+      const { data } = await q;
+      return (data || []) as any[];
+    },
+    enabled: !!wsId,
+  });
+
+  const filtered = meetings.filter((m: any) =>
+    m.title.toLowerCase().includes(search.toLowerCase()) ||
+    (m.companies?.legal_name || "").toLowerCase().includes(search.toLowerCase())
+  );
+
+  const invalidate = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["meetings"] });
+  }, [queryClient]);
+
+  const openDetail = (id: string) => {
+    setDetailId(id);
+    setDetailOpen(true);
+  };
+
+  // Separate upcoming/today vs past
+  const upcoming = filtered.filter((m: any) => !isPast(new Date(m.starts_at)) || isToday(new Date(m.starts_at)));
+  const past = filtered.filter((m: any) => isPast(new Date(m.starts_at)) && !isToday(new Date(m.starts_at)));
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Meetings</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Schedule meetings, record minutes, and attach recordings or transcripts.
+          </p>
+        </div>
+        <Button onClick={() => { setEditMeeting(null); setShowForm(true); }} className="gap-1.5">
+          <Plus className="h-4 w-4" /> Schedule Meeting
+        </Button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search meetings…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="scheduled">Scheduled</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {isLoading ? (
+        <p className="text-center py-8 text-muted-foreground">Loading meetings…</p>
+      ) : filtered.length === 0 ? (
+        <Card>
+          <CardContent className="py-10 text-center">
+            <Calendar className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
+            <h3 className="text-sm font-medium text-foreground mb-1">No meetings yet</h3>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              Schedule your first meeting to start tracking discussions, decisions, and follow-ups with your team and clients.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-6">
+          {upcoming.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" /> Upcoming & Today
+              </h3>
+              <MeetingTable meetings={upcoming} onOpen={openDetail} onEdit={(m) => { setEditMeeting(m); setShowForm(true); }} />
+            </div>
+          )}
+          {past.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">Past Meetings</h3>
+              <MeetingTable meetings={past} onOpen={openDetail} onEdit={(m) => { setEditMeeting(m); setShowForm(true); }} />
+            </div>
+          )}
+        </div>
+      )}
+
+      <MeetingFormDialog
+        open={showForm}
+        onOpenChange={setShowForm}
+        onSaved={invalidate}
+        editMeeting={editMeeting}
+      />
+
+      <MeetingDetail
+        meetingId={detailId}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        onUpdated={invalidate}
+      />
+    </div>
+  );
+}
+
+function MeetingTable({ meetings, onOpen, onEdit }: { meetings: any[]; onOpen: (id: string) => void; onEdit: (m: any) => void }) {
+  return (
+    <div className="rounded-lg border bg-card overflow-x-auto">
+      <Table className="min-w-[600px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Meeting</TableHead>
+            <TableHead>Date & Time</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Context</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-center">Minutes</TableHead>
+            <TableHead></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {meetings.map((m: any) => {
+            const TypeIcon = TYPE_ICONS[m.meeting_type] || Calendar;
+            const hasMinutes = !!m.minutes;
+            return (
+              <TableRow key={m.id} className="cursor-pointer hover:bg-muted/50" onClick={() => onOpen(m.id)}>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <TypeIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="font-medium text-foreground">{m.title}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-sm">
+                  <div>{format(new Date(m.starts_at), "dd MMM yyyy")}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {format(new Date(m.starts_at), "h:mm a")}
+                    {m.ends_at && ` – ${format(new Date(m.ends_at), "h:mm a")}`}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="text-xs capitalize">{m.meeting_type}</Badge>
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {m.companies?.legal_name || m.projects?.name || "—"}
+                </TableCell>
+                <TableCell>
+                  <Badge className={STATUS_STYLES[m.status] || ""}>{m.status}</Badge>
+                </TableCell>
+                <TableCell className="text-center">
+                  {hasMinutes && <FileText className="h-4 w-4 text-primary mx-auto" />}
+                </TableCell>
+                <TableCell>
+                  <Button
+                    size="sm" variant="ghost"
+                    onClick={(e) => { e.stopPropagation(); onEdit(m); }}
+                  >
+                    Edit
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
