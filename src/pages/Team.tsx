@@ -1,4 +1,5 @@
 import { Users, Building, Users2 } from "lucide-react";
+import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { TeamManagementTab } from "@/components/settings/TeamManagementTab";
 import { DepartmentManager } from "@/components/team/DepartmentManager";
 import { TeamPodManager } from "@/components/team/TeamPodManager";
