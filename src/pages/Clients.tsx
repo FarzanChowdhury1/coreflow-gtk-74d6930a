@@ -157,22 +157,26 @@ export default function Clients() {
                       <td className="px-4 py-3 font-medium text-foreground">{company.legal_name}</td>
                       <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{company.bin}</td>
                       <td className="px-4 py-3 text-muted-foreground">{company.address || "—"}</td>
-                      <td className="px-4 py-3 text-right space-x-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setMeetingCompanyId(company.id)}
-                        >
-                          <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => { setEditingCompany(company); setCompanyDialogOpen(true); }}
-                        >
-                          Edit
-                        </Button>
-                      </td>
+                       <td className="px-4 py-3 text-right space-x-1">
+                        {isAdmin && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setMeetingCompanyId(company.id)}
+                            >
+                              <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => { setEditingCompany(company); setCompanyDialogOpen(true); }}
+                            >
+                              Edit
+                            </Button>
+                          </>
+                        )}
+                       </td>
                     </tr>
                   ))}
                 </tbody>
