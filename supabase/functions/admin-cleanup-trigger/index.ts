@@ -84,8 +84,9 @@ Deno.serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     } catch (err) {
+      console.error("Cleanup preview error:", err);
       return new Response(
-        JSON.stringify({ error: String(err).slice(0, 500) }),
+        JSON.stringify({ error: "Failed to load preview. Please try again." }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -216,7 +217,7 @@ Deno.serve(async (req) => {
       } catch (_e) { /* best-effort */ }
 
       return new Response(
-        JSON.stringify({ error: "Cleanup failed", detail: errMsg }),
+        JSON.stringify({ error: "Cleanup failed. Please try again." }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -358,7 +358,8 @@ Deno.serve(async (req) => {
           .single();
 
         if (insertErr) {
-          return jsonResponse({ error: "Failed to register file: " + insertErr.message }, 500, hdrs);
+          console.error("File registration error:", insertErr);
+          return jsonResponse({ error: "Failed to register file. Please try again." }, 500, hdrs);
         }
 
         return jsonResponse({
@@ -614,7 +615,8 @@ Deno.serve(async (req) => {
           .single();
 
         if (insertErr) {
-          return jsonResponse({ error: "Failed to create update: " + insertErr.message }, 500, hdrs);
+          console.error("Client update creation error:", insertErr);
+          return jsonResponse({ error: "Failed to create update. Please try again." }, 500, hdrs);
         }
 
         return jsonResponse({ update: record }, 200, hdrs);

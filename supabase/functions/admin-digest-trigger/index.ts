@@ -194,6 +194,7 @@ Deno.serve(async (req) => {
       },
     });
   } catch (err) {
-    return json({ error: "Internal server error", message: String(err) }, 500);
+    console.error("Admin digest trigger error:", err);
+    return json({ error: "Internal server error" }, 500);
   }
 });
