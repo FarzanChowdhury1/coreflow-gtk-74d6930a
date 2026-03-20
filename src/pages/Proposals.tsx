@@ -10,11 +10,16 @@ import { ProposalFormDialog } from "@/components/proposals/ProposalFormDialog";
 import { ProposalDetail } from "@/components/proposals/ProposalDetail";
 
 export default function Proposals() {
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, currentRole } = useWorkspace();
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedProposalId, setSelectedProposalId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const workspaceId = currentWorkspace?.id;
+
+  // Sales-side: admin-only access
+  if (currentRole !== "admin") {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const { data: proposals = [], isLoading } = useQuery({
     queryKey: ["proposals", workspaceId],
