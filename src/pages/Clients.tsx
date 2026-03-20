@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { Building2, Plus, Search, Link2, User, Calendar } from "lucide-react";
+import { Building2, Plus, Search, Link2, User, Calendar, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { CompanyFormDialog } from "@/components/clients/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/clients/ContactFormDialog";
 import { PortalLinkDialog } from "@/components/clients/PortalLinkDialog";
+import { CompanyAccessDialog } from "@/components/clients/CompanyAccessDialog";
 import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
-import { useToast } from "@/hooks/use-toast";
+// useToast available if needed for future actions
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -17,8 +18,7 @@ type Contact = Tables<"contacts">;
 
 export default function Clients() {
   const { currentWorkspace, currentRole } = useWorkspace();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
@@ -26,6 +26,7 @@ export default function Clients() {
   const [searchTerm, setSearchTerm] = useState("");
   const [portalLinkOpen, setPortalLinkOpen] = useState(false);
   const [meetingCompanyId, setMeetingCompanyId] = useState<string | null>(null);
+  const [accessCompany, setAccessCompany] = useState<Company | null>(null);
 
   const workspaceId = currentWorkspace?.id;
   const isAdmin = currentRole === "admin";
@@ -77,8 +78,6 @@ export default function Clients() {
     return companies.find((c) => c.id === companyId)?.legal_name ?? "—";
   };
 
-  // Companies/contacts visible to all workspace members as reference data
-
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -88,14 +87,14 @@ export default function Clients() {
         </div>
         {isAdmin && (
           <Button variant="outline" onClick={() => setPortalLinkOpen(true)}>
-            <Link2 className="mr-1 h-4 w-4" /> Client Portal Link
+            <Link2 className="mr-1 h-4 w-4" /> Client Portal Access
           </Button>
         )}
       </div>
       <p className="mb-5 text-sm text-muted-foreground max-w-2xl">
         {isAdmin
-          ? "Your external client companies and contacts. Contacts can exist independently or be linked to a company. Use Client Portal Links to give clients secure access to their proposals, invoices, and documents."
-          : "Client companies and contacts in your workspace. Contact an admin to manage portal access."}
+          ? "Your external client companies and contacts. Use Manage Access to control which team members can see each client relationship."
+          : "Client companies and contacts you have access to. You can see clients you own, collaborate on, or are linked to through your projects."}
       </p>
 
       <div className="mb-4 flex items-center gap-3">
@@ -132,13 +131,19 @@ export default function Clients() {
           ) : filteredCompanies.length === 0 ? (
             <div className="rounded-lg border bg-card p-10 text-center">
               <Building2 className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
-              <h2 className="text-sm font-medium text-foreground mb-1">No companies yet</h2>
+              <h2 className="text-sm font-medium text-foreground mb-1">
+                {isAdmin ? "No companies yet" : "No client companies available"}
+              </h2>
               <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-                Companies are your client organizations. Add one to start linking contacts, proposals, invoices, and projects to them.
+                {isAdmin
+                  ? "Companies are your client organizations. Add one to start linking contacts, proposals, invoices, and projects."
+                  : "You don't have access to any client companies yet. An admin can assign you as a relationship owner or collaborator."}
               </p>
-              <Button size="sm" onClick={() => { setEditingCompany(null); setCompanyDialogOpen(true); }}>
-                <Plus className="h-4 w-4 mr-1" /> Add First Company
-              </Button>
+              {isAdmin && (
+                <Button size="sm" onClick={() => { setEditingCompany(null); setCompanyDialogOpen(true); }}>
+                  <Plus className="h-4 w-4 mr-1" /> Add First Company
+                </Button>
+              )}
             </div>
           ) : (
             <div className="rounded-lg border bg-card overflow-x-auto">
@@ -155,11 +160,19 @@ export default function Clients() {
                   {filteredCompanies.map((company) => (
                     <tr key={company.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 font-medium text-foreground">{company.legal_name}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{company.bin}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{company.bin || "—"}</td>
                       <td className="px-4 py-3 text-muted-foreground">{company.address || "—"}</td>
-                       <td className="px-4 py-3 text-right space-x-1">
+                      <td className="px-4 py-3 text-right space-x-1">
                         {isAdmin && (
                           <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setAccessCompany(company)}
+                              title="Manage who can access this client"
+                            >
+                              <Shield className="h-3.5 w-3.5 mr-1" /> Access
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -176,7 +189,7 @@ export default function Clients() {
                             </Button>
                           </>
                         )}
-                       </td>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -198,9 +211,13 @@ export default function Clients() {
           ) : filteredContacts.length === 0 ? (
             <div className="rounded-lg border bg-card p-10 text-center">
               <User className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
-              <h2 className="text-sm font-medium text-foreground mb-1">No contacts yet</h2>
+              <h2 className="text-sm font-medium text-foreground mb-1">
+                {isAdmin ? "No contacts yet" : "No contacts available"}
+              </h2>
               <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-                {isAdmin ? "Contacts are the people at your client companies. Add contacts to send portal links and track communication." : "No contacts found in your workspace."}
+                {isAdmin
+                  ? "Contacts are the people at your client companies. Add contacts to send portal links and track communication."
+                  : "You don't have access to any contacts yet. Contacts are visible based on your access to their linked company."}
               </p>
               {isAdmin && (
                 <Button size="sm" onClick={() => { setEditingContact(null); setContactDialogOpen(true); }}>
@@ -263,6 +280,11 @@ export default function Clients() {
         onOpenChange={setPortalLinkOpen}
         contacts={contacts}
         companies={companies}
+      />
+      <CompanyAccessDialog
+        open={!!accessCompany}
+        onOpenChange={(open) => { if (!open) setAccessCompany(null); }}
+        company={accessCompany}
       />
       <MeetingFormDialog
         open={!!meetingCompanyId}
