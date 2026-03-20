@@ -217,7 +217,7 @@ Deno.serve(async (req) => {
       } catch (_e) { /* best-effort */ }
 
       return new Response(
-        JSON.stringify({ error: "Cleanup failed", detail: errMsg }),
+        JSON.stringify({ error: "Cleanup failed. Please try again." }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
