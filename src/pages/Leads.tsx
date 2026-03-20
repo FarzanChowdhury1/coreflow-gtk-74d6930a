@@ -118,9 +118,11 @@ export default function Leads() {
           <Inbox className="h-6 w-6 text-primary" />
           <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Lead Inbox</h1>
         </div>
-        <Button size="sm" onClick={() => { setEditingLead(null); setDialogOpen(true); }}>
-          <Plus className="h-4 w-4 mr-1" /> New Lead
-        </Button>
+        {isAdmin && (
+          <Button size="sm" onClick={() => { setEditingLead(null); setDialogOpen(true); }}>
+            <Plus className="h-4 w-4 mr-1" /> New Lead
+          </Button>
+        )}
       </div>
       <p className="mb-5 text-sm text-muted-foreground max-w-2xl">
         Track new business opportunities from first contact to conversion. When a lead is ready, convert it into a proposal.
