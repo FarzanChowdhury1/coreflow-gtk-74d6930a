@@ -26,7 +26,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function Leads() {
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, currentRole } = useWorkspace();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -34,6 +34,11 @@ export default function Leads() {
   const [meetingContext, setMeetingContext] = useState<{ lead_id?: string; company_id?: string; contact_id?: string } | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+
+  // Sales-side: admin-only access
+  if (currentRole !== "admin") {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const workspaceId = currentWorkspace?.id;
 
