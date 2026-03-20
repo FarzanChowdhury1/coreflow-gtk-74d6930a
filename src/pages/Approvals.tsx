@@ -138,6 +138,12 @@ export default function ApprovalsPage() {
         <div className="flex items-center gap-3">
           <CheckSquare className="h-6 w-6 text-primary" />
           <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Approvals</h1>
+          <PageInfoButton
+            title="Approvals"
+            description="Multi-step approval workflows for proposals, invoices, and projects. Admins configure workflows; approvers act on pending requests."
+            actions={["Configure approval workflows with step-by-step approvers", "Submit items for approval", "Approve or reject pending requests", "View approval history and decision trails"]}
+            audience="Admins configure workflows. Designated approvers review pending items."
+          />
           {myPendingRequests.length > 0 && (
             <Badge className="bg-primary text-primary-foreground">
               {myPendingRequests.length} need{myPendingRequests.length === 1 ? "s" : ""} your review

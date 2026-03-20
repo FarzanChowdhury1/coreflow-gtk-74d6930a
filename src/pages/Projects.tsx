@@ -61,10 +61,44 @@ export default function Projects() {
         <div className="flex items-center gap-3">
           <FolderKanban className="h-6 w-6 text-primary" />
           <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Projects</h1>
+          <PageInfoButton
+            title="Projects"
+            description="Track both client delivery and internal initiatives. Client projects are linked to a company; internal projects have no company."
+            actions={["Create client or internal projects", "Manage tasks within each project", "Filter by client vs internal work", "Assign team members to projects"]}
+            audience="Project managers, team leads, and admins."
+            note="Team members see only projects they are assigned to."
+          />
         </div>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4 mr-1" /> New Project
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() =>
+              exportToCSV(
+                filtered.map((p: any) => ({
+                  name: p.name,
+                  company: p.companies?.legal_name || "Internal",
+                  status: p.status,
+                  start_date: p.start_date || "",
+                  target_end_date: p.target_end_date || "",
+                })),
+                [
+                  { key: "name", label: "Project Name" },
+                  { key: "company", label: "Company" },
+                  { key: "status", label: "Status" },
+                  { key: "start_date", label: "Start Date" },
+                  { key: "target_end_date", label: "Target End" },
+                ],
+                "projects-export"
+              )
+            }
+          >
+            <Download className="h-4 w-4 mr-1" /> Export
+          </Button>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> New Project
+          </Button>
+        </div>
       </div>
       <p className="mb-4 text-sm text-muted-foreground max-w-2xl">
         Track both client delivery and internal initiatives. Projects linked to a client company are client work; projects without a company are internal.

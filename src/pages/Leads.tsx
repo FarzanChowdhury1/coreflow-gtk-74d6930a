@@ -253,9 +253,32 @@ export default function Leads() {
           />
         </div>
         {isAdmin && (
-          <Button size="sm" onClick={() => { setEditingLead(null); setDialogOpen(true); }}>
-            <Plus className="h-4 w-4 mr-1" /> New Lead
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                exportToCSV(
+                  displayLeads,
+                  [
+                    { key: "title", label: "Title" },
+                    { key: "status", label: "Status" },
+                    { key: "source", label: "Source" },
+                    { key: "estimated_value", label: "Est. Value" },
+                    { key: "currency", label: "Currency" },
+                    { key: "next_follow_up", label: "Next Follow-Up", format: (v: any) => v ? new Date(v).toLocaleDateString() : "" },
+                    { key: "created_at", label: "Created", format: (v: any) => new Date(v).toLocaleDateString() },
+                  ],
+                  "leads-export"
+                )
+              }
+            >
+              <Download className="h-4 w-4 mr-1" /> Export
+            </Button>
+            <Button size="sm" onClick={() => { setEditingLead(null); setDialogOpen(true); }}>
+              <Plus className="h-4 w-4 mr-1" /> New Lead
+            </Button>
+          </div>
         )}
       </div>
       <p className="mb-5 text-sm text-muted-foreground max-w-2xl">

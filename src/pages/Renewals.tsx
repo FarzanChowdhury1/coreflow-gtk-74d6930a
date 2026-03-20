@@ -167,11 +167,51 @@ export default function Renewals() {
         <div className="flex items-center gap-3">
           <RefreshCw className="h-6 w-6 text-primary" />
           <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Renewals</h1>
+          <PageInfoButton
+            title="Renewals"
+            description="Manage recurring billing schedules for clients. When a renewal is due, generate the next invoice automatically or manually."
+            actions={["Create renewal schedules", "Generate invoices for due renewals", "Pause and reactivate renewals", "Track billing cycle status"]}
+            audience="Finance and admin teams."
+            note="Invoices are generated once per cycle. The schedule advances on generation, not on payment."
+          />
         </div>
         {isAdmin && (
-          <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
-            <Plus className="mr-1 h-4 w-4" /> New Renewal
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                exportToCSV(
+                  renewals.map((r) => ({
+                    label: r.label,
+                    company: r.companies?.legal_name || "",
+                    amount: r.amount,
+                    currency: r.currency,
+                    interval: `${r.interval_months} mo`,
+                    next_billing_date: r.next_billing_date,
+                    is_active: r.is_active ? "Active" : "Paused",
+                    latest_invoice: r.invoices?.invoice_number || "",
+                  })),
+                  [
+                    { key: "label", label: "Label" },
+                    { key: "company", label: "Company" },
+                    { key: "amount", label: "Amount" },
+                    { key: "currency", label: "Currency" },
+                    { key: "interval", label: "Interval" },
+                    { key: "next_billing_date", label: "Next Billing" },
+                    { key: "is_active", label: "Status" },
+                    { key: "latest_invoice", label: "Latest Invoice" },
+                  ],
+                  "renewals-export"
+                )
+              }
+            >
+              <Download className="h-4 w-4 mr-1" /> Export
+            </Button>
+            <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
+              <Plus className="mr-1 h-4 w-4" /> New Renewal
+            </Button>
+          </div>
         )}
       </div>
 
