@@ -59,20 +59,40 @@ export function TeamManagementTab() {
     if (!currentWorkspace) return;
     setLoading(true);
 
-    const [membershipsRes, invitesRes] = await Promise.all([
+    const [membershipsRes, invitesRes, deptRes, teamMembersRes, teamsRes] = await Promise.all([
       supabase
         .from("workspace_memberships")
-        .select("id, user_id, role, created_at")
+        .select("id, user_id, role, created_at, department_id")
         .eq("workspace_id", currentWorkspace.id),
       supabase
         .from("workspace_invites")
         .select("id, email, role, status, created_at, expires_at, token")
         .eq("workspace_id", currentWorkspace.id)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("departments")
+        .select("id, name")
+        .eq("workspace_id", currentWorkspace.id),
+      supabase
+        .from("team_members")
+        .select("user_id, team_id")
+        .eq("workspace_id", currentWorkspace.id),
+      supabase
+        .from("teams")
+        .select("id, name")
+        .eq("workspace_id", currentWorkspace.id),
     ]);
 
     const memberships = membershipsRes.data ?? [];
     const inviteData = (invitesRes.data ?? []) as unknown as InviteRow[];
+    const deptMap = new Map((deptRes.data ?? []).map((d: any) => [d.id, d.name]));
+    const teamMap = new Map((teamsRes.data ?? []).map((t: any) => [t.id, t.name]));
+    const userTeams: Record<string, string[]> = {};
+    (teamMembersRes.data ?? []).forEach((tm: any) => {
+      if (!userTeams[tm.user_id]) userTeams[tm.user_id] = [];
+      const tName = teamMap.get(tm.team_id);
+      if (tName) userTeams[tm.user_id].push(tName);
+    });
 
     if (memberships.length > 0) {
       const userIds = memberships.map((m) => m.user_id);
@@ -83,10 +103,13 @@ export function TeamManagementTab() {
 
       const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name]) ?? []);
 
-      const enriched: MemberRow[] = memberships.map((m) => ({
+      const enriched: MemberRow[] = memberships.map((m: any) => ({
         ...m,
         full_name: profileMap.get(m.user_id) || null,
         email: m.user_id === user?.id ? user.email ?? null : null,
+        department_id: m.department_id || null,
+        department_name: m.department_id ? deptMap.get(m.department_id) || null : null,
+        team_names: userTeams[m.user_id] || [],
       }));
       setMembers(enriched);
     } else {
