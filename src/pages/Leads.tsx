@@ -244,6 +244,13 @@ export default function Leads() {
         <div className="flex items-center gap-3">
           <Inbox className="h-6 w-6 text-primary" />
           <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Lead Inbox</h1>
+          <PageInfoButton
+            title="Lead Inbox"
+            description="Track new business opportunities from initial contact through qualification and conversion."
+            actions={["Create and manage leads", "Convert qualified leads into proposals", "Schedule meetings from lead context", "Archive inactive leads to keep views clean"]}
+            audience="Sales team and admins managing the pipeline."
+            note="Non-admin members see only leads they own or are linked to via company access."
+          />
         </div>
         {isAdmin && (
           <Button size="sm" onClick={() => { setEditingLead(null); setDialogOpen(true); }}>
