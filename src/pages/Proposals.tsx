@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { FileText, Plus, Search } from "lucide-react";
+import { FileText, Plus, Search, Download } from "lucide-react";
+import { PageInfoButton } from "@/components/layout/PageInfoButton";
+import { exportToCSV } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -82,11 +84,45 @@ export default function Proposals() {
         <div className="flex items-center gap-3">
           <FileText className="h-6 w-6 text-primary" />
           <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Proposal Builder</h1>
+          <PageInfoButton
+            title="Proposals"
+            description="Create, version, and track commercial proposals for clients. Each proposal can have multiple versions with line items and pricing."
+            actions={["Create proposals for client companies", "Track version status (draft, sent, approved, rejected)", "Export proposals as PDFs"]}
+            audience="Sales and admin teams preparing client bids."
+            note="Non-admin members see only proposals they own or are linked to."
+          />
         </div>
         {isAdmin && (
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" /> New Proposal
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                exportToCSV(
+                  proposals.map((p: any) => ({
+                    title: p.title,
+                    company: p.companies?.legal_name || "",
+                    status: getLatestVersion(p.id)?.status || "draft",
+                    grand_total: getLatestVersion(p.id)?.grand_total || 0,
+                    created: new Date(p.created_at).toLocaleDateString(),
+                  })),
+                  [
+                    { key: "title", label: "Proposal Title" },
+                    { key: "company", label: "Company" },
+                    { key: "status", label: "Latest Status" },
+                    { key: "grand_total", label: "Total" },
+                    { key: "created", label: "Created" },
+                  ],
+                  "proposals-export"
+                )
+              }
+            >
+              <Download className="h-4 w-4 mr-1" /> Export
+            </Button>
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" /> New Proposal
+            </Button>
+          </div>
         )}
       </div>
       <p className="mb-5 text-sm text-muted-foreground max-w-2xl">

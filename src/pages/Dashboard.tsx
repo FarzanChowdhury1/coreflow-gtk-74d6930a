@@ -1,5 +1,7 @@
 import { LayoutDashboard, TrendingUp, FileText, FolderKanban, Receipt, DollarSign, Users, AlertTriangle, X } from "lucide-react";
 import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
+import { DashboardBreakdowns } from "@/components/dashboard/DashboardBreakdowns";
+import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -83,6 +85,12 @@ export default function Dashboard() {
       <div className="mb-2 flex items-center gap-3">
         <LayoutDashboard className="h-6 w-6 text-primary" />
         <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
+        <PageInfoButton
+          title="Dashboard"
+          description="A live overview of your workspace activity — leads, proposals, projects, invoices, and revenue at a glance."
+          actions={["View key metrics and pipeline breakdowns", "Click any card to jump to that section", "Use the time-range filter for trend analysis"]}
+          audience="Admins and managers reviewing business health."
+        />
         {currentRole && (
           <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground/70">
             {currentRole === "admin" ? "Workspace Admin" : "Team Member"}
@@ -134,6 +142,11 @@ export default function Dashboard() {
               </button>
             ))}
       </div>
+
+      {/* Pipeline breakdowns */}
+      {currentWorkspace?.id && (
+        <DashboardBreakdowns workspaceId={currentWorkspace.id} currency={currency} />
+      )}
 
       {/* Onboarding checklist for new admins */}
       <OnboardingChecklist />

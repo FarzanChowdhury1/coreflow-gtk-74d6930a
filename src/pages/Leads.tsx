@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Inbox, Plus, Search, FileText, Calendar, Archive, RotateCcw } from "lucide-react";
+import { Inbox, Plus, Search, FileText, Calendar, Archive, RotateCcw, Download } from "lucide-react";
+import { PageInfoButton } from "@/components/layout/PageInfoButton";
+import { exportToCSV } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
 import { LeadTasksPanel } from "@/components/leads/LeadTasksPanel";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -242,11 +244,41 @@ export default function Leads() {
         <div className="flex items-center gap-3">
           <Inbox className="h-6 w-6 text-primary" />
           <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Lead Inbox</h1>
+          <PageInfoButton
+            title="Lead Inbox"
+            description="Track new business opportunities from initial contact through qualification and conversion."
+            actions={["Create and manage leads", "Convert qualified leads into proposals", "Schedule meetings from lead context", "Archive inactive leads to keep views clean"]}
+            audience="Sales team and admins managing the pipeline."
+            note="Non-admin members see only leads they own or are linked to via company access."
+          />
         </div>
         {isAdmin && (
-          <Button size="sm" onClick={() => { setEditingLead(null); setDialogOpen(true); }}>
-            <Plus className="h-4 w-4 mr-1" /> New Lead
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                exportToCSV(
+                  displayLeads,
+                  [
+                    { key: "title", label: "Title" },
+                    { key: "status", label: "Status" },
+                    { key: "source", label: "Source" },
+                    { key: "estimated_value", label: "Est. Value" },
+                    { key: "currency", label: "Currency" },
+                    { key: "next_follow_up", label: "Next Follow-Up", format: (v: any) => v ? new Date(v).toLocaleDateString() : "" },
+                    { key: "created_at", label: "Created", format: (v: any) => new Date(v).toLocaleDateString() },
+                  ],
+                  "leads-export"
+                )
+              }
+            >
+              <Download className="h-4 w-4 mr-1" /> Export
+            </Button>
+            <Button size="sm" onClick={() => { setEditingLead(null); setDialogOpen(true); }}>
+              <Plus className="h-4 w-4 mr-1" /> New Lead
+            </Button>
+          </div>
         )}
       </div>
       <p className="mb-5 text-sm text-muted-foreground max-w-2xl">

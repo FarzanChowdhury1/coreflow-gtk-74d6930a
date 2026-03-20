@@ -13,9 +13,11 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Calendar, Search, Video, Building2, FolderKanban, Clock, FileText } from "lucide-react";
+import { Plus, Calendar, Search, Video, Building2, Clock, FileText, Download } from "lucide-react";
 import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
 import { MeetingDetail } from "@/components/meetings/MeetingDetail";
+import { PageInfoButton } from "@/components/layout/PageInfoButton";
+import { exportToCSV } from "@/lib/csv-export";
 
 const STATUS_STYLES: Record<string, string> = {
   scheduled: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -81,14 +83,53 @@ export default function Meetings() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Meetings</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-foreground">Meetings</h1>
+            <PageInfoButton
+              title="Meetings"
+              description="Schedule internal and client meetings, record minutes, and attach recordings or transcripts."
+              actions={["Schedule meetings linked to leads, clients, or projects", "Record meeting minutes after the meeting", "Attach recording or transcript files"]}
+              audience="Anyone scheduling or participating in meetings."
+            />
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             Schedule meetings, record minutes, and attach recordings or transcripts.
           </p>
         </div>
-        <Button onClick={() => { setEditMeeting(null); setShowForm(true); }} className="gap-1.5">
-          <Plus className="h-4 w-4" /> Schedule Meeting
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              exportToCSV(
+                meetings.map((m: any) => ({
+                  title: m.title,
+                  type: m.meeting_type,
+                  status: m.status,
+                  starts_at: m.starts_at ? format(new Date(m.starts_at), "yyyy-MM-dd HH:mm") : "",
+                  company: m.companies?.legal_name || "",
+                  project: m.projects?.name || "",
+                  location: m.location || "",
+                })),
+                [
+                  { key: "title", label: "Title" },
+                  { key: "type", label: "Type" },
+                  { key: "status", label: "Status" },
+                  { key: "starts_at", label: "Date/Time" },
+                  { key: "company", label: "Company" },
+                  { key: "project", label: "Project" },
+                  { key: "location", label: "Location" },
+                ],
+                "meetings-export"
+              )
+            }
+          >
+            <Download className="h-4 w-4 mr-1" /> Export
+          </Button>
+          <Button onClick={() => { setEditMeeting(null); setShowForm(true); }} className="gap-1.5">
+            <Plus className="h-4 w-4" /> Schedule Meeting
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

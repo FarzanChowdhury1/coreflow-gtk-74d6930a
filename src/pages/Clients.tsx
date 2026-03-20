@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Building2, Plus, Search, Link2, User, Calendar, Shield, Archive, RotateCcw } from "lucide-react";
+import { Building2, Plus, Search, Link2, User, Calendar, Shield, Archive, RotateCcw, Download } from "lucide-react";
+import { PageInfoButton } from "@/components/layout/PageInfoButton";
+import { exportToCSV } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -152,11 +154,39 @@ export default function Clients() {
         <div className="flex items-center gap-3">
           <Building2 className="h-6 w-6 text-primary" />
           <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Clients</h1>
+          <PageInfoButton
+            title="Clients"
+            description="Your external client companies and contacts. This is not internal team — those are managed under Internal Team."
+            actions={["Add and manage client companies", "Add contacts linked to companies or independent", "Archive clients to preserve history", "Manage who on your team has access to each company"]}
+            audience="Admins manage all clients. Team members see only clients they have access to."
+            note="Contacts can exist without a company. Archived records are hidden from active views."
+          />
         </div>
         {isAdmin && (
-          <Button variant="outline" onClick={() => setPortalLinkOpen(true)}>
-            <Link2 className="mr-1 h-4 w-4" /> Client Portal Access
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                exportToCSV(
+                  companies.filter(c => !c.deleted_at),
+                  [
+                    { key: "legal_name", label: "Company Name" },
+                    { key: "phone", label: "Phone" },
+                    { key: "address", label: "Address" },
+                    { key: "bin", label: "BIN" },
+                    { key: "created_at", label: "Created", format: (v: any) => new Date(v).toLocaleDateString() },
+                  ],
+                  "clients-export"
+                )
+              }
+            >
+              <Download className="h-4 w-4 mr-1" /> Export
+            </Button>
+            <Button variant="outline" onClick={() => setPortalLinkOpen(true)}>
+              <Link2 className="mr-1 h-4 w-4" /> Client Portal Access
+            </Button>
+          </div>
         )}
       </div>
       <p className="mb-5 text-sm text-muted-foreground max-w-2xl">

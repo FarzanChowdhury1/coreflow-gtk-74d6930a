@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import {
   Activity, Server, History, Mail, RefreshCw, Trash2,
 } from "lucide-react";
+import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -405,6 +406,12 @@ export default function OpsHealth() {
         <div className="flex items-center gap-3">
           <Activity className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-semibold text-foreground">Ops / System Health</h1>
+          <PageInfoButton
+            title="Ops / System Health"
+            description="Monitor background workers, digest runs, email delivery, and cleanup operations. Use this to verify automated processes are running correctly."
+            actions={["View scheduled worker run history", "Check email delivery logs", "Trigger manual cleanup", "Inspect digest run summaries"]}
+            audience="System administrators and ops leads."
+          />
         </div>
         <Button size="sm" variant="ghost" onClick={refreshAll}>
           <RefreshCw className="h-4 w-4 mr-1.5" /> Refresh
