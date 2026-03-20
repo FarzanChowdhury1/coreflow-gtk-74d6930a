@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FolderKanban, Plus, Search } from "lucide-react";
+import { FolderKanban, Plus, Search, Building2, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
