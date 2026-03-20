@@ -9,7 +9,7 @@ import { ContactFormDialog } from "@/components/clients/ContactFormDialog";
 import { PortalLinkDialog } from "@/components/clients/PortalLinkDialog";
 import { CompanyAccessDialog } from "@/components/clients/CompanyAccessDialog";
 import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
-import { useToast } from "@/hooks/use-toast";
+// useToast available if needed for future actions
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Tables } from "@/integrations/supabase/types";
 
