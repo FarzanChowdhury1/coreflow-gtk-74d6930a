@@ -125,7 +125,9 @@ export default function Leads() {
         )}
       </div>
       <p className="mb-5 text-sm text-muted-foreground max-w-2xl">
-        Track new business opportunities from first contact to conversion. When a lead is ready, convert it into a proposal.
+        {isAdmin
+          ? "Track new business opportunities from first contact to conversion. When a lead is ready, convert it into a proposal."
+          : "Leads assigned to you or linked to your projects appear here."}
       </p>
 
       <div className="mb-4">
