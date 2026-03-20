@@ -30,6 +30,7 @@ interface Props {
 
 export function ProposalFormDialog({ open, onOpenChange, prefill, onCreated }: Props) {
   const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
