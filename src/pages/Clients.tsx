@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Navigate } from "react-router-dom";
 import { Building2, Plus, Search, Link2, User, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -16,7 +17,7 @@ type Company = Tables<"companies">;
 type Contact = Tables<"contacts">;
 
 export default function Clients() {
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, currentRole } = useWorkspace();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
@@ -28,6 +29,7 @@ export default function Clients() {
   const [meetingCompanyId, setMeetingCompanyId] = useState<string | null>(null);
 
   const workspaceId = currentWorkspace?.id;
+  const isAdmin = currentRole === "admin";
 
   const { data: companies = [], isLoading: loadingCompanies } = useQuery({
     queryKey: ["companies", workspaceId],
@@ -75,6 +77,10 @@ export default function Clients() {
     if (!companyId) return "—";
     return companies.find((c) => c.id === companyId)?.legal_name ?? "—";
   };
+
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div>

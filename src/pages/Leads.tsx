@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Navigate } from "react-router-dom";
 import { Inbox, Plus, Search, FileText, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LeadTasksPanel } from "@/components/leads/LeadTasksPanel";
@@ -26,7 +27,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function Leads() {
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, currentRole } = useWorkspace();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -36,6 +37,7 @@ export default function Leads() {
   const navigate = useNavigate();
 
   const workspaceId = currentWorkspace?.id;
+  const isAdmin = currentRole === "admin";
 
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ["leads", workspaceId],
@@ -106,6 +108,11 @@ export default function Leads() {
       </span>
     );
   };
+
+  // Sales-side: admin-only access
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div>

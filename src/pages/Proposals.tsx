@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Navigate } from "react-router-dom";
 import { FileText, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,11 +11,12 @@ import { ProposalFormDialog } from "@/components/proposals/ProposalFormDialog";
 import { ProposalDetail } from "@/components/proposals/ProposalDetail";
 
 export default function Proposals() {
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, currentRole } = useWorkspace();
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedProposalId, setSelectedProposalId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const workspaceId = currentWorkspace?.id;
+  const isAdmin = currentRole === "admin";
 
   const { data: proposals = [], isLoading } = useQuery({
     queryKey: ["proposals", workspaceId],
@@ -63,6 +65,10 @@ export default function Proposals() {
     rejected: "bg-destructive/15 text-destructive",
     voided: "bg-muted text-foreground/70 line-through",
   };
+
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   if (selectedProposalId) {
     return (

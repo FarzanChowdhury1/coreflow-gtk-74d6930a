@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { CreditCard, Plus } from "lucide-react";
+import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Button } from "@/components/ui/button";
@@ -20,11 +21,12 @@ const METHOD_LABELS: Record<string, string> = {
 };
 
 export default function Payments() {
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, currentRole } = useWorkspace();
   const [payments, setPayments] = useState<(Tables<"payments"> & { invoices: { invoice_number: string } | null })[]>([]);
   const [invoices, setInvoices] = useState<Tables<"invoices">[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const isAdmin = currentRole === "admin";
 
   const fetchData = useCallback(async () => {
     if (!currentWorkspace) return;
@@ -52,6 +54,10 @@ export default function Payments() {
 
   // Calculate total received
   const totalReceived = payments.reduce((s, p) => s + Number(p.amount), 0);
+
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div>
