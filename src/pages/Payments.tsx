@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { CreditCard, Plus } from "lucide-react";
+import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Button } from "@/components/ui/button";

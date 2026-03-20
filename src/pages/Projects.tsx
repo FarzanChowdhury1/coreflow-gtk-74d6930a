@@ -40,9 +40,13 @@ export default function Projects() {
     staleTime: 30000,
   });
 
-  const filtered = projects.filter((p) =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filtered = projects
+    .filter((p) => {
+      if (filterType === "client") return p.company_id != null;
+      if (filterType === "internal") return p.company_id == null;
+      return true;
+    })
+    .filter((p) => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   if (selectedProjectId) {
     return <ProjectDetail projectId={selectedProjectId} onBack={() => setSelectedProjectId(null)} />;
