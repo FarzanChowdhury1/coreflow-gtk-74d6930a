@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
 import { Inbox, Plus, Search, FileText, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LeadTasksPanel } from "@/components/leads/LeadTasksPanel";
