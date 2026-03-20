@@ -26,10 +26,7 @@ export default function Payments() {
   const [invoices, setInvoices] = useState<Tables<"invoices">[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  if (currentRole !== "admin") {
-    return <Navigate to="/dashboard" replace />;
-  }
+  const isAdmin = currentRole === "admin";
 
   const fetchData = useCallback(async () => {
     if (!currentWorkspace) return;
@@ -57,6 +54,10 @@ export default function Payments() {
 
   // Calculate total received
   const totalReceived = payments.reduce((s, p) => s + Number(p.amount), 0);
+
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div>
