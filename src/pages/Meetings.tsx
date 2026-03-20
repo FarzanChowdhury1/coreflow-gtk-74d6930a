@@ -13,7 +13,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Calendar, Search, Video, Building2, FolderKanban, Clock, FileText, Download } from "lucide-react";
+import { Plus, Calendar, Search, Video, Building2, Clock, FileText, Download } from "lucide-react";
 import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
 import { MeetingDetail } from "@/components/meetings/MeetingDetail";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
