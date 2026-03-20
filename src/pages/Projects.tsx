@@ -21,6 +21,7 @@ export default function Projects() {
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState<"all" | "client" | "internal">("all");
   const workspaceId = currentWorkspace?.id;
 
   const { data: projects = [], isLoading } = useQuery({
