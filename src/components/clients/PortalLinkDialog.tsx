@@ -132,10 +132,10 @@ export function PortalLinkDialog({ open, onOpenChange, contacts, companies }: Pr
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Link2 className="h-5 w-5" /> Generate Portal Link
+            <Link2 className="h-5 w-5" /> Client Portal Access
           </DialogTitle>
           <DialogDescription>
-            Create a secure magic link for a client to access their proposals, invoices, and payment history.
+            Generate a secure link for your client to access their portal — where they can view proposals, invoices, payments, and documents.
           </DialogDescription>
         </DialogHeader>
 
