@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Inbox, Plus, Search, FileText, Calendar } from "lucide-react";
+import { Inbox, Plus, Search, FileText, Calendar, Archive, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LeadTasksPanel } from "@/components/leads/LeadTasksPanel";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -12,6 +12,7 @@ import type { ProposalFormPrefill } from "@/components/proposals/ProposalFormDia
 import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import type { Tables } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -32,6 +33,7 @@ export default function Leads() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
   const [proposalPrefill, setProposalPrefill] = useState<ProposalFormPrefill | null>(null);
   const [meetingContext, setMeetingContext] = useState<{ lead_id?: string; company_id?: string; contact_id?: string } | null>(null);
   const queryClient = useQueryClient();
@@ -41,15 +43,18 @@ export default function Leads() {
   const isAdmin = currentRole === "admin";
 
   const { data: leads = [], isLoading } = useQuery({
-    queryKey: ["leads", workspaceId],
+    queryKey: ["leads", workspaceId, showArchived],
     queryFn: async () => {
       if (!workspaceId) return [];
-      const { data, error } = await supabase
+      let query = supabase
         .from("leads")
         .select("*")
         .eq("workspace_id", workspaceId)
-        .is("deleted_at", null)
         .order("created_at", { ascending: false });
+      if (!showArchived) {
+        query = query.is("deleted_at", null);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -91,6 +96,9 @@ export default function Leads() {
     l.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const activeLeads = filteredLeads.filter((l) => !l.deleted_at);
+  const archivedLeads = filteredLeads.filter((l) => l.deleted_at);
+
   const getCompanyName = (id: string | null) =>
     id ? companies.find((c) => c.id === id)?.legal_name ?? "—" : "—";
 
@@ -110,11 +118,126 @@ export default function Leads() {
     );
   };
 
-  // RLS handles scoping — non-admins see only owned/relevant leads
+  const handleArchive = async (lead: Lead) => {
+    const { error } = await supabase
+      .from("leads")
+      .update({ deleted_at: new Date().toISOString() } as any)
+      .eq("id", lead.id);
+    if (error) {
+      toast.error("Failed to archive lead");
+    } else {
+      toast.success("Lead archived");
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+    }
+  };
+
+  const handleRestore = async (lead: Lead) => {
+    const { error } = await supabase
+      .from("leads")
+      .update({ deleted_at: null } as any)
+      .eq("id", lead.id);
+    if (error) {
+      toast.error("Failed to restore lead");
+    } else {
+      toast.success("Lead restored");
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+    }
+  };
+
+  const renderLeadRow = (lead: Lead) => {
+    const isArchived = !!lead.deleted_at;
+    return (
+      <tr key={lead.id} className={`border-b last:border-0 hover:bg-muted/30 transition-colors ${isArchived ? "opacity-60" : ""}`}>
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-foreground">{lead.title}</span>
+            {isArchived && <Badge variant="outline" className="text-[10px]">Archived</Badge>}
+          </div>
+          {!isArchived && workspaceId && (
+            <LeadTasksPanel leadId={lead.id} workspaceId={workspaceId} />
+          )}
+        </td>
+        <td className="px-4 py-3">
+          <Badge variant="secondary" className={statusColors[lead.status] || ""}>
+            {lead.status}
+          </Badge>
+        </td>
+        <td className="px-4 py-3 text-muted-foreground">{getCompanyName(lead.company_id)}</td>
+        <td className="px-4 py-3 text-muted-foreground">{getContactName(lead.contact_id)}</td>
+        <td className="px-4 py-3 text-muted-foreground">
+          {lead.estimated_value ? `${lead.currency} ${Number(lead.estimated_value).toLocaleString()}` : "—"}
+        </td>
+        <td className="px-4 py-3 text-muted-foreground">{formatFollowUp(lead.next_follow_up)}</td>
+        <td className="px-4 py-3 text-right space-x-1">
+          {(isAdmin || lead.owner_id === user?.id) && (
+            <>
+              {isArchived ? (
+                <Button variant="ghost" size="sm" onClick={() => handleRestore(lead)}>
+                  <RotateCcw className="h-3.5 w-3.5 mr-1" /> Restore
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMeetingContext({
+                        lead_id: lead.id,
+                        company_id: lead.company_id || undefined,
+                        contact_id: lead.contact_id || undefined,
+                      });
+                    }}
+                  >
+                    <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
+                  </Button>
+                  {isAdmin && lead.status !== "converted" && lead.status !== "unqualified" && lead.company_id && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setProposalPrefill({
+                          title: lead.title,
+                          company_id: lead.company_id!,
+                          notes: lead.notes || undefined,
+                          lead_id: lead.id,
+                        });
+                      }}
+                    >
+                      <FileText className="h-3.5 w-3.5 mr-1" /> Convert
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setEditingLead(lead); setDialogOpen(true); }}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-destructive"
+                    onClick={() => handleArchive(lead)}
+                    title="Archive this lead"
+                  >
+                    <Archive className="h-3.5 w-3.5" />
+                  </Button>
+                </>
+              )}
+            </>
+          )}
+        </td>
+      </tr>
+    );
+  };
+
+  const displayLeads = showArchived ? filteredLeads : activeLeads;
 
   return (
     <div>
-      {/* Shell renders immediately */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Inbox className="h-6 w-6 text-primary" />
@@ -128,12 +251,12 @@ export default function Leads() {
       </div>
       <p className="mb-5 text-sm text-muted-foreground max-w-2xl">
         {isAdmin
-          ? "Track new business opportunities from first contact to conversion. When a lead is ready, convert it into a proposal."
+          ? "Track new business opportunities from first contact to conversion. Archived leads are hidden from active views but preserved for reference."
           : "Leads assigned to you or linked to your projects appear here."}
       </p>
 
-      <div className="mb-4">
-        <div className="relative max-w-sm">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
@@ -143,6 +266,15 @@ export default function Leads() {
             className="h-9 w-full rounded-md border bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
+        {isAdmin && (
+          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+            <Switch checked={showArchived} onCheckedChange={setShowArchived} />
+            Show archived
+            {showArchived && archivedLeads.length > 0 && (
+              <span className="text-xs">({archivedLeads.length})</span>
+            )}
+          </label>
+        )}
       </div>
 
       {isLoading ? (
@@ -155,16 +287,22 @@ export default function Leads() {
             </div>
           ))}
         </div>
-      ) : filteredLeads.length === 0 ? (
+      ) : displayLeads.length === 0 ? (
         <div className="rounded-lg border bg-card p-10 text-center">
           <Inbox className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
-          <h2 className="text-sm font-medium text-foreground mb-1">No leads yet</h2>
+          <h2 className="text-sm font-medium text-foreground mb-1">
+            {showArchived ? "No leads found" : "No active leads"}
+          </h2>
           <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-            Leads track new business opportunities from first contact to conversion. Add your first lead to start managing your sales pipeline.
+            {showArchived
+              ? "No leads match your current filters."
+              : "Leads track new business opportunities from first contact to conversion. Add your first lead to start managing your sales pipeline."}
           </p>
-          <Button size="sm" onClick={() => { setEditingLead(null); setDialogOpen(true); }}>
-            <Plus className="h-4 w-4 mr-1" /> Add First Lead
-          </Button>
+          {!showArchived && (
+            <Button size="sm" onClick={() => { setEditingLead(null); setDialogOpen(true); }}>
+              <Plus className="h-4 w-4 mr-1" /> Add First Lead
+            </Button>
+          )}
         </div>
       ) : (
         <div className="rounded-lg border bg-card overflow-x-auto">
@@ -181,72 +319,7 @@ export default function Leads() {
               </tr>
             </thead>
             <tbody>
-              {filteredLeads.map((lead) => (
-                <tr key={lead.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-foreground">{lead.title}</div>
-                    {workspaceId && (
-                      <LeadTasksPanel leadId={lead.id} workspaceId={workspaceId} />
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant="secondary" className={statusColors[lead.status] || ""}>
-                      {lead.status}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{getCompanyName(lead.company_id)}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{getContactName(lead.contact_id)}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {lead.estimated_value ? `${lead.currency} ${Number(lead.estimated_value).toLocaleString()}` : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{formatFollowUp(lead.next_follow_up)}</td>
-                  <td className="px-4 py-3 text-right space-x-1">
-                    {(isAdmin || lead.owner_id === user?.id) && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMeetingContext({
-                              lead_id: lead.id,
-                              company_id: lead.company_id || undefined,
-                              contact_id: lead.contact_id || undefined,
-                            });
-                          }}
-                        >
-                          <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
-                        </Button>
-                        {isAdmin && lead.status !== "converted" && lead.status !== "unqualified" && lead.company_id && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-primary"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setProposalPrefill({
-                                title: lead.title,
-                                company_id: lead.company_id!,
-                                notes: lead.notes || undefined,
-                                lead_id: lead.id,
-                              });
-                            }}
-                          >
-                            <FileText className="h-3.5 w-3.5 mr-1" /> Convert
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => { setEditingLead(lead); setDialogOpen(true); }}
-                        >
-                          Edit
-                        </Button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {displayLeads.map(renderLeadRow)}
             </tbody>
           </table>
         </div>
@@ -265,7 +338,6 @@ export default function Leads() {
         onOpenChange={(open) => { if (!open) setProposalPrefill(null); }}
         prefill={proposalPrefill || undefined}
         onCreated={async () => {
-          // Mark lead as converted
           if (proposalPrefill?.lead_id) {
             await supabase
               .from("leads")

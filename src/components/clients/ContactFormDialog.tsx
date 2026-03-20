@@ -227,8 +227,8 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
           <DialogTitle>{contact ? "Edit Contact" : "Add Contact"}</DialogTitle>
           <DialogDescription>
             {contact
-              ? "Update this contact's details."
-              : "Add a person at a client company. They can receive portal links and communications."}
+              ? "Update this contact's details. You can reassign them to a different company or make them independent."
+              : "Add a contact person. They can be linked to a client company or exist independently."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">

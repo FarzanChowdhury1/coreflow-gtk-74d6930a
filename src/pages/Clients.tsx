@@ -1,16 +1,18 @@
 import { useState } from "react";
-import { Building2, Plus, Search, Link2, User, Calendar, Shield } from "lucide-react";
+import { Building2, Plus, Search, Link2, User, Calendar, Shield, Archive, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CompanyFormDialog } from "@/components/clients/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/clients/ContactFormDialog";
 import { PortalLinkDialog } from "@/components/clients/PortalLinkDialog";
 import { CompanyAccessDialog } from "@/components/clients/CompanyAccessDialog";
 import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
-// useToast available if needed for future actions
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Company = Tables<"companies">;
@@ -18,6 +20,7 @@ type Contact = Tables<"contacts">;
 
 export default function Clients() {
   const { currentWorkspace, currentRole } = useWorkspace();
+  const queryClient = useQueryClient();
   
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
@@ -27,19 +30,27 @@ export default function Clients() {
   const [portalLinkOpen, setPortalLinkOpen] = useState(false);
   const [meetingCompanyId, setMeetingCompanyId] = useState<string | null>(null);
   const [accessCompany, setAccessCompany] = useState<Company | null>(null);
+  const [showArchivedCompanies, setShowArchivedCompanies] = useState(false);
+  const [showArchivedContacts, setShowArchivedContacts] = useState(false);
 
   const workspaceId = currentWorkspace?.id;
   const isAdmin = currentRole === "admin";
 
+  // For archived companies, admin needs a broader query
   const { data: companies = [], isLoading: loadingCompanies } = useQuery({
-    queryKey: ["companies", workspaceId],
+    queryKey: ["companies", workspaceId, showArchivedCompanies],
     queryFn: async () => {
       if (!workspaceId) return [];
-      const { data, error } = await supabase
+      let query = supabase
         .from("companies")
         .select("*")
         .eq("workspace_id", workspaceId)
         .order("created_at", { ascending: false });
+      // RLS already filters deleted_at for non-admin; for admin showing archived we skip the filter
+      if (!showArchivedCompanies) {
+        query = query.is("deleted_at", null);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -47,35 +58,92 @@ export default function Clients() {
   });
 
   const { data: contacts = [], isLoading: loadingContacts } = useQuery({
-    queryKey: ["contacts", workspaceId],
+    queryKey: ["contacts", workspaceId, showArchivedContacts],
     queryFn: async () => {
       if (!workspaceId) return [];
-      const { data, error } = await supabase
+      let query = supabase
         .from("contacts")
         .select("*")
         .eq("workspace_id", workspaceId)
         .order("created_at", { ascending: false });
+      if (!showArchivedContacts) {
+        query = query.is("deleted_at", null);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
     enabled: !!workspaceId,
   });
 
-  const filteredCompanies = companies.filter(
+  const activeCompanies = companies.filter((c) => !c.deleted_at);
+  const archivedCompanies = companies.filter((c) => c.deleted_at);
+  const activeContacts = contacts.filter((c) => !c.deleted_at);
+  const archivedContacts = contacts.filter((c) => c.deleted_at);
+
+  const displayCompanies = (showArchivedCompanies ? companies : activeCompanies).filter(
     (c) =>
       c.legal_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (c.bin || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredContacts = contacts.filter(
+  const displayContacts = (showArchivedContacts ? contacts : activeContacts).filter(
     (c) =>
       c.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const getCompanyName = (companyId: string | null) => {
-    if (!companyId) return "—";
+    if (!companyId) return <span className="italic text-muted-foreground/70">Independent</span>;
     return companies.find((c) => c.id === companyId)?.legal_name ?? "—";
+  };
+
+  const handleArchiveCompany = async (company: Company) => {
+    const { error } = await supabase
+      .from("companies")
+      .update({ deleted_at: new Date().toISOString() } as any)
+      .eq("id", company.id);
+    if (error) toast.error("Failed to archive company");
+    else {
+      toast.success("Company archived");
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+    }
+  };
+
+  const handleRestoreCompany = async (company: Company) => {
+    const { error } = await supabase
+      .from("companies")
+      .update({ deleted_at: null } as any)
+      .eq("id", company.id);
+    if (error) toast.error("Failed to restore company");
+    else {
+      toast.success("Company restored");
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+    }
+  };
+
+  const handleArchiveContact = async (contact: Contact) => {
+    const { error } = await supabase
+      .from("contacts")
+      .update({ deleted_at: new Date().toISOString() } as any)
+      .eq("id", contact.id);
+    if (error) toast.error("Failed to archive contact");
+    else {
+      toast.success("Contact archived");
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+    }
+  };
+
+  const handleRestoreContact = async (contact: Contact) => {
+    const { error } = await supabase
+      .from("contacts")
+      .update({ deleted_at: null } as any)
+      .eq("id", contact.id);
+    if (error) toast.error("Failed to restore contact");
+    else {
+      toast.success("Contact restored");
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+    }
   };
 
   return (
@@ -93,7 +161,7 @@ export default function Clients() {
       </div>
       <p className="mb-5 text-sm text-muted-foreground max-w-2xl">
         {isAdmin
-          ? "Your external client companies and contacts. Use Manage Access to control which team members can see each client relationship."
+          ? "Your external client companies and contacts. Archive records instead of deleting to preserve history. Contacts can exist independently or be linked to a company."
           : "Client companies and contacts you have access to. You can see clients you own, collaborate on, or are linked to through your projects."}
       </p>
 
@@ -113,33 +181,42 @@ export default function Clients() {
       <Tabs defaultValue="companies">
         <div className="flex items-center justify-between mb-4">
           <TabsList>
-            <TabsTrigger value="companies">Companies ({companies.length})</TabsTrigger>
-            <TabsTrigger value="contacts">Contacts ({contacts.length})</TabsTrigger>
+            <TabsTrigger value="companies">Companies ({activeCompanies.length})</TabsTrigger>
+            <TabsTrigger value="contacts">Contacts ({activeContacts.length})</TabsTrigger>
           </TabsList>
         </div>
 
         <TabsContent value="companies">
-          {isAdmin && (
-            <div className="mb-4 flex justify-end">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            {isAdmin && (
+              <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                <Switch checked={showArchivedCompanies} onCheckedChange={setShowArchivedCompanies} />
+                Show archived
+                {showArchivedCompanies && archivedCompanies.length > 0 && (
+                  <span className="text-xs">({archivedCompanies.length})</span>
+                )}
+              </label>
+            )}
+            {isAdmin && (
               <Button size="sm" onClick={() => { setEditingCompany(null); setCompanyDialogOpen(true); }}>
                 <Plus className="h-4 w-4 mr-1" /> Add Company
               </Button>
-            </div>
-          )}
+            )}
+          </div>
           {loadingCompanies ? (
             <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
-          ) : filteredCompanies.length === 0 ? (
+          ) : displayCompanies.length === 0 ? (
             <div className="rounded-lg border bg-card p-10 text-center">
               <Building2 className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
               <h2 className="text-sm font-medium text-foreground mb-1">
-                {isAdmin ? "No companies yet" : "No client companies available"}
+                {showArchivedCompanies ? "No companies found" : isAdmin ? "No active companies" : "No client companies available"}
               </h2>
               <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
                 {isAdmin
                   ? "Companies are your client organizations. Add one to start linking contacts, proposals, invoices, and projects."
                   : "You don't have access to any client companies yet. An admin can assign you as a relationship owner or collaborator."}
               </p>
-              {isAdmin && (
+              {isAdmin && !showArchivedCompanies && (
                 <Button size="sm" onClick={() => { setEditingCompany(null); setCompanyDialogOpen(true); }}>
                   <Plus className="h-4 w-4 mr-1" /> Add First Company
                 </Button>
@@ -157,41 +234,53 @@ export default function Clients() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCompanies.map((company) => (
-                    <tr key={company.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 font-medium text-foreground">{company.legal_name}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{company.bin || "—"}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{company.address || "—"}</td>
-                      <td className="px-4 py-3 text-right space-x-1">
-                        {isAdmin && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setAccessCompany(company)}
-                              title="Manage who can access this client"
-                            >
-                              <Shield className="h-3.5 w-3.5 mr-1" /> Access
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setMeetingCompanyId(company.id)}
-                            >
-                              <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => { setEditingCompany(company); setCompanyDialogOpen(true); }}
-                            >
-                              Edit
-                            </Button>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {displayCompanies.map((company) => {
+                    const isArchived = !!company.deleted_at;
+                    return (
+                      <tr key={company.id} className={`border-b last:border-0 hover:bg-muted/30 transition-colors ${isArchived ? "opacity-60" : ""}`}>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground">{company.legal_name}</span>
+                            {isArchived && <Badge variant="outline" className="text-[10px]">Archived</Badge>}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{company.bin || "—"}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{company.address || "—"}</td>
+                        <td className="px-4 py-3 text-right space-x-1">
+                          {isAdmin && (
+                            <>
+                              {isArchived ? (
+                                <Button variant="ghost" size="sm" onClick={() => handleRestoreCompany(company)}>
+                                  <RotateCcw className="h-3.5 w-3.5 mr-1" /> Restore
+                                </Button>
+                              ) : (
+                                <>
+                                  <Button variant="ghost" size="sm" onClick={() => setAccessCompany(company)} title="Manage who can access this client">
+                                    <Shield className="h-3.5 w-3.5 mr-1" /> Access
+                                  </Button>
+                                  <Button variant="ghost" size="sm" onClick={() => setMeetingCompanyId(company.id)}>
+                                    <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
+                                  </Button>
+                                  <Button variant="ghost" size="sm" onClick={() => { setEditingCompany(company); setCompanyDialogOpen(true); }}>
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-muted-foreground hover:text-destructive"
+                                    onClick={() => handleArchiveCompany(company)}
+                                    title="Archive this company"
+                                  >
+                                    <Archive className="h-3.5 w-3.5" />
+                                  </Button>
+                                </>
+                              )}
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -199,27 +288,36 @@ export default function Clients() {
         </TabsContent>
 
         <TabsContent value="contacts">
-          {isAdmin && (
-            <div className="mb-4 flex justify-end">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            {isAdmin && (
+              <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                <Switch checked={showArchivedContacts} onCheckedChange={setShowArchivedContacts} />
+                Show archived
+                {showArchivedContacts && archivedContacts.length > 0 && (
+                  <span className="text-xs">({archivedContacts.length})</span>
+                )}
+              </label>
+            )}
+            {isAdmin && (
               <Button size="sm" onClick={() => { setEditingContact(null); setContactDialogOpen(true); }}>
                 <Plus className="h-4 w-4 mr-1" /> Add Contact
               </Button>
-            </div>
-          )}
+            )}
+          </div>
           {loadingContacts ? (
             <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
-          ) : filteredContacts.length === 0 ? (
+          ) : displayContacts.length === 0 ? (
             <div className="rounded-lg border bg-card p-10 text-center">
               <User className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
               <h2 className="text-sm font-medium text-foreground mb-1">
-                {isAdmin ? "No contacts yet" : "No contacts available"}
+                {showArchivedContacts ? "No contacts found" : isAdmin ? "No active contacts" : "No contacts available"}
               </h2>
               <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
                 {isAdmin
-                  ? "Contacts are the people at your client companies. Add contacts to send portal links and track communication."
+                  ? "Contacts are people at your client companies or independent contacts. They can receive portal links and communications."
                   : "You don't have access to any contacts yet. Contacts are visible based on your access to their linked company."}
               </p>
-              {isAdmin && (
+              {isAdmin && !showArchivedContacts && (
                 <Button size="sm" onClick={() => { setEditingContact(null); setContactDialogOpen(true); }}>
                   <Plus className="h-4 w-4 mr-1" /> Add First Contact
                 </Button>
@@ -238,25 +336,52 @@ export default function Clients() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredContacts.map((contact) => (
-                    <tr key={contact.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 font-medium text-foreground">{contact.full_name}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{contact.email || "—"}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{contact.phone || "—"}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{getCompanyName(contact.company_id)}</td>
-                      <td className="px-4 py-3 text-right">
-                        {isAdmin && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => { setEditingContact(contact); setContactDialogOpen(true); }}
-                          >
-                            Edit
-                          </Button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {displayContacts.map((contact) => {
+                    const isArchived = !!contact.deleted_at;
+                    return (
+                      <tr key={contact.id} className={`border-b last:border-0 hover:bg-muted/30 transition-colors ${isArchived ? "opacity-60" : ""}`}>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground">{contact.full_name}</span>
+                            {isArchived && <Badge variant="outline" className="text-[10px]">Archived</Badge>}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{contact.email || "—"}</td>
+                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{contact.phone || "—"}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{getCompanyName(contact.company_id)}</td>
+                        <td className="px-4 py-3 text-right space-x-1">
+                          {isAdmin && (
+                            <>
+                              {isArchived ? (
+                                <Button variant="ghost" size="sm" onClick={() => handleRestoreContact(contact)}>
+                                  <RotateCcw className="h-3.5 w-3.5 mr-1" /> Restore
+                                </Button>
+                              ) : (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => { setEditingContact(contact); setContactDialogOpen(true); }}
+                                  >
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-muted-foreground hover:text-destructive"
+                                    onClick={() => handleArchiveContact(contact)}
+                                    title="Archive this contact"
+                                  >
+                                    <Archive className="h-3.5 w-3.5" />
+                                  </Button>
+                                </>
+                              )}
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -273,13 +398,13 @@ export default function Clients() {
         open={contactDialogOpen}
         onOpenChange={setContactDialogOpen}
         contact={editingContact}
-        companies={companies}
+        companies={companies.filter((c) => !c.deleted_at)}
       />
       <PortalLinkDialog
         open={portalLinkOpen}
         onOpenChange={setPortalLinkOpen}
-        contacts={contacts}
-        companies={companies}
+        contacts={activeContacts}
+        companies={activeCompanies}
       />
       <CompanyAccessDialog
         open={!!accessCompany}
