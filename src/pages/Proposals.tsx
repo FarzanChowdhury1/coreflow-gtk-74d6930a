@@ -99,7 +99,7 @@ export default function Proposals() {
               variant="outline"
               onClick={() =>
                 exportToCSV(
-                  proposals.map((p: any) => ({
+                  filtered.map((p: any) => ({
                     title: p.title,
                     company: p.companies?.legal_name || "",
                     status: getLatestVersion(p.id)?.status || "draft",

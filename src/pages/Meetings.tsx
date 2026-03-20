@@ -84,7 +84,7 @@ export default function Meetings() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-foreground">Meetings</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Meetings</h1>
             <PageInfoButton
               title="Meetings"
               description="Schedule internal and client meetings, record minutes, and attach recordings or transcripts."
@@ -102,7 +102,7 @@ export default function Meetings() {
             size="sm"
             onClick={() =>
               exportToCSV(
-                meetings.map((m: any) => ({
+                filtered.map((m: any) => ({
                   title: m.title,
                   type: m.meeting_type,
                   status: m.status,
