@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
 import { Inbox, Plus, Search, FileText, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LeadTasksPanel } from "@/components/leads/LeadTasksPanel";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LeadFormDialog } from "@/components/leads/LeadFormDialog";
@@ -28,6 +28,7 @@ const statusColors: Record<string, string> = {
 
 export default function Leads() {
   const { currentWorkspace, currentRole } = useWorkspace();
+  const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -109,10 +110,7 @@ export default function Leads() {
     );
   };
 
-  // Sales-side: admin-only access
-  if (!isAdmin) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  // RLS handles scoping — non-admins see only owned/relevant leads
 
   return (
     <div>
@@ -122,12 +120,16 @@ export default function Leads() {
           <Inbox className="h-6 w-6 text-primary" />
           <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Lead Inbox</h1>
         </div>
-        <Button size="sm" onClick={() => { setEditingLead(null); setDialogOpen(true); }}>
-          <Plus className="h-4 w-4 mr-1" /> New Lead
-        </Button>
+        {isAdmin && (
+          <Button size="sm" onClick={() => { setEditingLead(null); setDialogOpen(true); }}>
+            <Plus className="h-4 w-4 mr-1" /> New Lead
+          </Button>
+        )}
       </div>
       <p className="mb-5 text-sm text-muted-foreground max-w-2xl">
-        Track new business opportunities from first contact to conversion. When a lead is ready, convert it into a proposal.
+        {isAdmin
+          ? "Track new business opportunities from first contact to conversion. When a lead is ready, convert it into a proposal."
+          : "Leads assigned to you or linked to your projects appear here."}
       </p>
 
       <div className="mb-4">
@@ -199,45 +201,49 @@ export default function Leads() {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{formatFollowUp(lead.next_follow_up)}</td>
                   <td className="px-4 py-3 text-right space-x-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setMeetingContext({
-                          lead_id: lead.id,
-                          company_id: lead.company_id || undefined,
-                          contact_id: lead.contact_id || undefined,
-                        });
-                      }}
-                    >
-                      <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
-                    </Button>
-                    {lead.status !== "converted" && lead.status !== "unqualified" && lead.company_id && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-primary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setProposalPrefill({
-                            title: lead.title,
-                            company_id: lead.company_id!,
-                            notes: lead.notes || undefined,
-                            lead_id: lead.id,
-                          });
-                        }}
-                      >
-                        <FileText className="h-3.5 w-3.5 mr-1" /> Convert
-                      </Button>
+                    {(isAdmin || lead.owner_id === user?.id) && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMeetingContext({
+                              lead_id: lead.id,
+                              company_id: lead.company_id || undefined,
+                              contact_id: lead.contact_id || undefined,
+                            });
+                          }}
+                        >
+                          <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
+                        </Button>
+                        {isAdmin && lead.status !== "converted" && lead.status !== "unqualified" && lead.company_id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setProposalPrefill({
+                                title: lead.title,
+                                company_id: lead.company_id!,
+                                notes: lead.notes || undefined,
+                                lead_id: lead.id,
+                              });
+                            }}
+                          >
+                            <FileText className="h-3.5 w-3.5 mr-1" /> Convert
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => { setEditingLead(lead); setDialogOpen(true); }}
+                        >
+                          Edit
+                        </Button>
+                      </>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => { setEditingLead(lead); setDialogOpen(true); }}
-                    >
-                      Edit
-                    </Button>
                   </td>
                 </tr>
               ))}

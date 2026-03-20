@@ -11,6 +11,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { Search } from "lucide-react";
 
 export interface ProposalFormPrefill {
@@ -29,6 +30,7 @@ interface Props {
 
 export function ProposalFormDialog({ open, onOpenChange, prefill, onCreated }: Props) {
   const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -99,6 +101,7 @@ export function ProposalFormDialog({ open, onOpenChange, prefill, onCreated }: P
         title: form.title.trim(),
         notes: form.notes || null,
         lead_id: prefill?.lead_id || null,
+        owner_id: user?.id || null,
       } as any)
       .select()
       .single();

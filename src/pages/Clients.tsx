@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
 import { Building2, Plus, Search, Link2, User, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -78,9 +77,7 @@ export default function Clients() {
     return companies.find((c) => c.id === companyId)?.legal_name ?? "—";
   };
 
-  if (!isAdmin) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  // Companies/contacts visible to all workspace members as reference data
 
   return (
     <div>
@@ -89,13 +86,16 @@ export default function Clients() {
           <Building2 className="h-6 w-6 text-primary" />
           <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Clients</h1>
         </div>
-        <Button variant="outline" onClick={() => setPortalLinkOpen(true)}>
-          <Link2 className="mr-1 h-4 w-4" /> Client Portal Link
-        </Button>
+        {isAdmin && (
+          <Button variant="outline" onClick={() => setPortalLinkOpen(true)}>
+            <Link2 className="mr-1 h-4 w-4" /> Client Portal Link
+          </Button>
+        )}
       </div>
       <p className="mb-5 text-sm text-muted-foreground max-w-2xl">
-        Your external client companies and contacts. Contacts can exist independently or be linked to a company.
-        Use Client Portal Links to give clients secure access to their proposals, invoices, and documents.
+        {isAdmin
+          ? "Your external client companies and contacts. Contacts can exist independently or be linked to a company. Use Client Portal Links to give clients secure access to their proposals, invoices, and documents."
+          : "Client companies and contacts in your workspace. Contact an admin to manage portal access."}
       </p>
 
       <div className="mb-4 flex items-center gap-3">
@@ -120,11 +120,13 @@ export default function Clients() {
         </div>
 
         <TabsContent value="companies">
-          <div className="mb-4 flex justify-end">
-            <Button size="sm" onClick={() => { setEditingCompany(null); setCompanyDialogOpen(true); }}>
-              <Plus className="h-4 w-4 mr-1" /> Add Company
-            </Button>
-          </div>
+          {isAdmin && (
+            <div className="mb-4 flex justify-end">
+              <Button size="sm" onClick={() => { setEditingCompany(null); setCompanyDialogOpen(true); }}>
+                <Plus className="h-4 w-4 mr-1" /> Add Company
+              </Button>
+            </div>
+          )}
           {loadingCompanies ? (
             <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
           ) : filteredCompanies.length === 0 ? (
@@ -155,22 +157,26 @@ export default function Clients() {
                       <td className="px-4 py-3 font-medium text-foreground">{company.legal_name}</td>
                       <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{company.bin}</td>
                       <td className="px-4 py-3 text-muted-foreground">{company.address || "—"}</td>
-                      <td className="px-4 py-3 text-right space-x-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setMeetingCompanyId(company.id)}
-                        >
-                          <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => { setEditingCompany(company); setCompanyDialogOpen(true); }}
-                        >
-                          Edit
-                        </Button>
-                      </td>
+                       <td className="px-4 py-3 text-right space-x-1">
+                        {isAdmin && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setMeetingCompanyId(company.id)}
+                            >
+                              <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => { setEditingCompany(company); setCompanyDialogOpen(true); }}
+                            >
+                              Edit
+                            </Button>
+                          </>
+                        )}
+                       </td>
                     </tr>
                   ))}
                 </tbody>
@@ -180,11 +186,13 @@ export default function Clients() {
         </TabsContent>
 
         <TabsContent value="contacts">
-          <div className="mb-4 flex justify-end">
-            <Button size="sm" onClick={() => { setEditingContact(null); setContactDialogOpen(true); }}>
-              <Plus className="h-4 w-4 mr-1" /> Add Contact
-            </Button>
-          </div>
+          {isAdmin && (
+            <div className="mb-4 flex justify-end">
+              <Button size="sm" onClick={() => { setEditingContact(null); setContactDialogOpen(true); }}>
+                <Plus className="h-4 w-4 mr-1" /> Add Contact
+              </Button>
+            </div>
+          )}
           {loadingContacts ? (
             <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
           ) : filteredContacts.length === 0 ? (
@@ -192,11 +200,13 @@ export default function Clients() {
               <User className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
               <h2 className="text-sm font-medium text-foreground mb-1">No contacts yet</h2>
               <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-                Contacts are the people at your client companies. Add contacts to send portal links and track communication.
+                {isAdmin ? "Contacts are the people at your client companies. Add contacts to send portal links and track communication." : "No contacts found in your workspace."}
               </p>
-              <Button size="sm" onClick={() => { setEditingContact(null); setContactDialogOpen(true); }}>
-                <Plus className="h-4 w-4 mr-1" /> Add First Contact
-              </Button>
+              {isAdmin && (
+                <Button size="sm" onClick={() => { setEditingContact(null); setContactDialogOpen(true); }}>
+                  <Plus className="h-4 w-4 mr-1" /> Add First Contact
+                </Button>
+              )}
             </div>
           ) : (
             <div className="rounded-lg border bg-card overflow-x-auto">
@@ -218,13 +228,15 @@ export default function Clients() {
                       <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{contact.phone || "—"}</td>
                       <td className="px-4 py-3 text-muted-foreground">{getCompanyName(contact.company_id)}</td>
                       <td className="px-4 py-3 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => { setEditingContact(contact); setContactDialogOpen(true); }}
-                        >
-                          Edit
-                        </Button>
+                        {isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => { setEditingContact(contact); setContactDialogOpen(true); }}
+                          >
+                            Edit
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))}
