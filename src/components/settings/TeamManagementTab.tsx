@@ -23,6 +23,9 @@ interface MemberRow {
   created_at: string;
   full_name: string | null;
   email: string | null;
+  department_id: string | null;
+  department_name: string | null;
+  team_names: string[];
 }
 
 interface InviteRow {
