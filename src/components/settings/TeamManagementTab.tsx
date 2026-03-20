@@ -278,8 +278,8 @@ export function TeamManagementTab() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
           <div>
-            <CardTitle>Team Members</CardTitle>
-            <CardDescription>Manage who has access to this workspace</CardDescription>
+            <CardTitle>Internal Team Members</CardTitle>
+            <CardDescription>Your internal workspace members. Clients are managed separately in the Clients section.</CardDescription>
           </div>
           <Button size="sm" onClick={() => { setInviteOpen(true); setLastCreatedToken(null); setLastCreatedInviteId(null); setEmailStatus("idle"); setEmailError(null); }}>
             <Plus className="mr-2 h-4 w-4" />
