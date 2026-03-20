@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Inbox, Plus, Search, FileText, Calendar, Archive, RotateCcw } from "lucide-react";
+import { Inbox, Plus, Search, FileText, Calendar, Archive, RotateCcw, Download } from "lucide-react";
+import { PageInfoButton } from "@/components/layout/PageInfoButton";
+import { exportToCSV } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
 import { LeadTasksPanel } from "@/components/leads/LeadTasksPanel";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
