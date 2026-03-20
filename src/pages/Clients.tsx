@@ -78,6 +78,10 @@ export default function Clients() {
     return companies.find((c) => c.id === companyId)?.legal_name ?? "—";
   };
 
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">

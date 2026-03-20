@@ -16,11 +16,7 @@ export default function Proposals() {
   const [selectedProposalId, setSelectedProposalId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const workspaceId = currentWorkspace?.id;
-
-  // Sales-side: admin-only access
-  if (currentRole !== "admin") {
-    return <Navigate to="/dashboard" replace />;
-  }
+  const isAdmin = currentRole === "admin";
 
   const { data: proposals = [], isLoading } = useQuery({
     queryKey: ["proposals", workspaceId],
