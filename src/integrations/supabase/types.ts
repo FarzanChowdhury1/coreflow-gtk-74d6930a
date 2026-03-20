@@ -383,6 +383,7 @@ export type Database = {
           id: string
           legal_name: string
           notes: string | null
+          owner_id: string | null
           phone: string | null
           updated_at: string
           workspace_id: string
@@ -395,6 +396,7 @@ export type Database = {
           id?: string
           legal_name: string
           notes?: string | null
+          owner_id?: string | null
           phone?: string | null
           updated_at?: string
           workspace_id: string
@@ -407,6 +409,7 @@ export type Database = {
           id?: string
           legal_name?: string
           notes?: string | null
+          owner_id?: string | null
           phone?: string | null
           updated_at?: string
           workspace_id?: string
@@ -414,6 +417,48 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "companies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_access: {
+        Row: {
+          company_id: string
+          created_at: string
+          granted_by: string | null
+          id: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_access_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_access_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -2160,6 +2205,10 @@ export type Database = {
         Returns: Json
       }
       get_dashboard_metrics: { Args: { _workspace_id: string }; Returns: Json }
+      has_company_access: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_workspace_access: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
