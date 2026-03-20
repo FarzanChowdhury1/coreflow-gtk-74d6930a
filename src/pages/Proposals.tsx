@@ -66,9 +66,7 @@ export default function Proposals() {
     voided: "bg-muted text-foreground/70 line-through",
   };
 
-  if (!isAdmin) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  // RLS handles scoping — non-admins see only owned/relevant proposals
 
   if (selectedProposalId) {
     return (

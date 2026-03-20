@@ -109,10 +109,7 @@ export default function Leads() {
     );
   };
 
-  // Sales-side: admin-only access
-  if (!isAdmin) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  // RLS handles scoping — non-admins see only owned/relevant leads
 
   return (
     <div>

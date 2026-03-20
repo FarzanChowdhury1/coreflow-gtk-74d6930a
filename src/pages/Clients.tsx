@@ -78,9 +78,7 @@ export default function Clients() {
     return companies.find((c) => c.id === companyId)?.legal_name ?? "—";
   };
 
-  if (!isAdmin) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  // Companies/contacts visible to all workspace members as reference data
 
   return (
     <div>

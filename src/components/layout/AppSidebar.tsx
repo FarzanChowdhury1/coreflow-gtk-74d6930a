@@ -37,11 +37,11 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard", section: "Overview" },
-  { label: "Leads", icon: Inbox, path: "/leads", section: "Sales", adminOnly: true },
-  { label: "Proposals", icon: FileText, path: "/proposals", section: "Sales", adminOnly: true },
+  { label: "Leads", icon: Inbox, path: "/leads", section: "Sales" },
+  { label: "Proposals", icon: FileText, path: "/proposals", section: "Sales" },
   { label: "Approvals", icon: CheckSquare, path: "/approvals", section: "Sales" },
-  { label: "Clients", icon: Building2, path: "/clients", section: "Clients", adminOnly: true },
-  { label: "Client Updates", icon: MessageSquare, path: "/client-updates", section: "Clients", adminOnly: true },
+  { label: "Clients", icon: Building2, path: "/clients", section: "Clients" },
+  { label: "Client Updates", icon: MessageSquare, path: "/client-updates", section: "Clients" },
   { label: "Projects", icon: FolderKanban, path: "/projects", section: "Delivery" },
   { label: "Meetings", icon: CalendarDays, path: "/meetings", section: "Delivery" },
   { label: "Invoices", icon: Receipt, path: "/invoices", section: "Finance", adminOnly: true },
