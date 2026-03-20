@@ -100,7 +100,7 @@ export function ProjectFormDialog({ open, onOpenChange }: Props) {
         onOpenChange(false);
       }
     } else {
-      if (!form.name.trim() || !form.company_id) {
+      if (!form.name.trim()) {
         setLoading(false);
         return;
       }
