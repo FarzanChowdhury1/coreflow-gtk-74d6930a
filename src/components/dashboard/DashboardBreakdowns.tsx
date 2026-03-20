@@ -203,7 +203,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
 
             <Card>
               <CardHeader className="pb-2 pt-4 px-4">
-                <CardTitle className="text-xs font-medium text-muted-foreground">Proposals by Status</CardTitle>
+                <CardTitle className="text-xs font-medium text-muted-foreground">Proposals by Status (latest version)</CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
                 <StatusBar
