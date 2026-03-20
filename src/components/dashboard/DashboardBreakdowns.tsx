@@ -72,16 +72,24 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
     },
   });
 
-  // Proposals breakdown
+  // Proposals breakdown — use latest version per proposal to avoid overcounting
   const { data: proposalVersions = [], isLoading: pl } = useQuery({
     queryKey: ["dash-proposals", workspaceId, rangeStart],
     enabled: !!workspaceId,
     staleTime: 30000,
     queryFn: async () => {
-      let q = supabase.from("proposal_versions").select("status").eq("workspace_id", workspaceId);
+      let q = supabase.from("proposal_versions").select("status, proposal_id, version_number").eq("workspace_id", workspaceId);
       if (rangeStart) q = q.gte("created_at", rangeStart);
+      q = q.order("version_number", { ascending: false });
       const { data } = await q;
-      return data || [];
+      if (!data) return [];
+      // Deduplicate: keep only the latest version per proposal
+      const seen = new Set<string>();
+      return data.filter((v: any) => {
+        if (seen.has(v.proposal_id)) return false;
+        seen.add(v.proposal_id);
+        return true;
+      });
     },
   });
 
