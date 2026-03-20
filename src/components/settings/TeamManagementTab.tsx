@@ -319,6 +319,7 @@ export function TeamManagementTab() {
                 <TableRow>
                   <TableHead>Member</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Department / Teams</TableHead>
                   <TableHead>Joined</TableHead>
                   <TableHead className="w-[80px]" />
                 </TableRow>
@@ -358,6 +359,24 @@ export function TeamManagementTab() {
                           </SelectContent>
                         </Select>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-0.5">
+                        {m.department_name && (
+                          <p className="text-xs text-foreground">{m.department_name}</p>
+                        )}
+                        {m.team_names.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {m.team_names.map((tn) => (
+                              <Badge key={tn} variant="outline" className="text-[10px] px-1.5 py-0">
+                                {tn}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : !m.department_name ? (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        ) : null}
+                      </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {new Date(m.created_at).toLocaleDateString()}
