@@ -481,6 +481,41 @@ export type Database = {
           },
         ]
       }
+      departments: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       digest_runs: {
         Row: {
           error_message: string | null
@@ -1295,7 +1330,7 @@ export type Database = {
       }
       projects: {
         Row: {
-          company_id: string
+          company_id: string | null
           created_at: string
           deleted_at: string | null
           description: string | null
@@ -1309,7 +1344,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
-          company_id: string
+          company_id?: string | null
           created_at?: string
           deleted_at?: string | null
           description?: string | null
@@ -1323,7 +1358,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
-          company_id?: string
+          company_id?: string | null
           created_at?: string
           deleted_at?: string | null
           description?: string | null
@@ -1781,6 +1816,90 @@ export type Database = {
           },
         ]
       }
+      team_members: {
+        Row: {
+          created_at: string
+          id: string
+          team_id: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          team_id: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          team_id?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string
+          department_id: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       worker_runs: {
         Row: {
           created_at: string
@@ -1876,6 +1995,7 @@ export type Database = {
       workspace_memberships: {
         Row: {
           created_at: string
+          department_id: string | null
           id: string
           role: Database["public"]["Enums"]["app_role"]
           updated_at: string
@@ -1884,6 +2004,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          department_id?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
@@ -1892,6 +2013,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          department_id?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
@@ -1899,6 +2021,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "workspace_memberships_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workspace_memberships_workspace_id_fkey"
             columns: ["workspace_id"]
