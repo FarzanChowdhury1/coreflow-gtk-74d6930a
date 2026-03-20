@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { CheckSquare, Plus, Settings2, Clock, CheckCircle2, Info } from "lucide-react";
+import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
