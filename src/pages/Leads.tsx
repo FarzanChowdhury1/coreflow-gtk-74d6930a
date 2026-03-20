@@ -3,6 +3,7 @@ import { Inbox, Plus, Search, FileText, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LeadTasksPanel } from "@/components/leads/LeadTasksPanel";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LeadFormDialog } from "@/components/leads/LeadFormDialog";
