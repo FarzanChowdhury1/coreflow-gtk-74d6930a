@@ -456,9 +456,9 @@ export function TeamManagementTab() {
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Invite Team Member</DialogTitle>
+            <DialogTitle>Invite Internal Team Member</DialogTitle>
             <DialogDescription>
-              Send an invite link. The user will need to accept it after logging in or signing up.
+              Invite a colleague to join this workspace. This is for internal team members only — client access is handled through Client Portal Links.
             </DialogDescription>
           </DialogHeader>
 
