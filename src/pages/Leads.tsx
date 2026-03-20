@@ -36,12 +36,8 @@ export default function Leads() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  // Sales-side: admin-only access
-  if (currentRole !== "admin") {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   const workspaceId = currentWorkspace?.id;
+  const isAdmin = currentRole === "admin";
 
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ["leads", workspaceId],
