@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import {
   Activity, Server, History, Mail, RefreshCw, Trash2,
 } from "lucide-react";
+import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
