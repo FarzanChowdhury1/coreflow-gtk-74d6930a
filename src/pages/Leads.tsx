@@ -199,45 +199,49 @@ export default function Leads() {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{formatFollowUp(lead.next_follow_up)}</td>
                   <td className="px-4 py-3 text-right space-x-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setMeetingContext({
-                          lead_id: lead.id,
-                          company_id: lead.company_id || undefined,
-                          contact_id: lead.contact_id || undefined,
-                        });
-                      }}
-                    >
-                      <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
-                    </Button>
-                    {lead.status !== "converted" && lead.status !== "unqualified" && lead.company_id && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-primary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setProposalPrefill({
-                            title: lead.title,
-                            company_id: lead.company_id!,
-                            notes: lead.notes || undefined,
-                            lead_id: lead.id,
-                          });
-                        }}
-                      >
-                        <FileText className="h-3.5 w-3.5 mr-1" /> Convert
-                      </Button>
+                    {(isAdmin || lead.owner_id === user?.id) && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMeetingContext({
+                              lead_id: lead.id,
+                              company_id: lead.company_id || undefined,
+                              contact_id: lead.contact_id || undefined,
+                            });
+                          }}
+                        >
+                          <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
+                        </Button>
+                        {isAdmin && lead.status !== "converted" && lead.status !== "unqualified" && lead.company_id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setProposalPrefill({
+                                title: lead.title,
+                                company_id: lead.company_id!,
+                                notes: lead.notes || undefined,
+                                lead_id: lead.id,
+                              });
+                            }}
+                          >
+                            <FileText className="h-3.5 w-3.5 mr-1" /> Convert
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => { setEditingLead(lead); setDialogOpen(true); }}
+                        >
+                          Edit
+                        </Button>
+                      </>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => { setEditingLead(lead); setDialogOpen(true); }}
-                    >
-                      Edit
-                    </Button>
                   </td>
                 </tr>
               ))}
