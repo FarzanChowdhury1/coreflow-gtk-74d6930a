@@ -1526,6 +1526,7 @@ export type Database = {
           id: string
           lead_id: string | null
           notes: string | null
+          owner_id: string | null
           title: string
           updated_at: string
           workspace_id: string
@@ -1537,6 +1538,7 @@ export type Database = {
           id?: string
           lead_id?: string | null
           notes?: string | null
+          owner_id?: string | null
           title: string
           updated_at?: string
           workspace_id: string
@@ -1548,6 +1550,7 @@ export type Database = {
           id?: string
           lead_id?: string | null
           notes?: string | null
+          owner_id?: string | null
           title?: string
           updated_at?: string
           workspace_id?: string
