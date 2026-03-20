@@ -101,6 +101,7 @@ export function ProposalFormDialog({ open, onOpenChange, prefill, onCreated }: P
         title: form.title.trim(),
         notes: form.notes || null,
         lead_id: prefill?.lead_id || null,
+        owner_id: user?.id || null,
       } as any)
       .select()
       .single();
