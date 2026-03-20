@@ -109,7 +109,7 @@ export function ProjectFormDialog({ open, onOpenChange }: Props) {
         .from("projects")
         .insert({
           workspace_id: workspaceId,
-          company_id: form.company_id,
+          company_id: form.company_id || null,
           name: form.name.trim(),
           description: form.description || null,
           start_date: form.start_date || null,
