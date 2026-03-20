@@ -134,7 +134,7 @@ export function CompanyAccessDialog({ open, onOpenChange, company }: Props) {
           {/* Owner Section */}
           <div>
             <label className="mb-2 flex items-center gap-1.5 text-sm font-medium text-foreground">
-              <Crown className="h-3.5 w-3.5 text-amber-500" />
+              <Crown className="h-3.5 w-3.5 text-primary" />
               Relationship Owner
             </label>
             <p className="mb-2 text-xs text-muted-foreground">

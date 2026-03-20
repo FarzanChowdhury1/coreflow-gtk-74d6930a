@@ -18,7 +18,7 @@ type Contact = Tables<"contacts">;
 
 export default function Clients() {
   const { currentWorkspace, currentRole } = useWorkspace();
-  const { toast } = useToast();
+  
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
