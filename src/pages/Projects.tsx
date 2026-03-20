@@ -112,7 +112,7 @@ export default function Projects() {
                 </Badge>
               </div>
               <p className="text-xs text-foreground/70 mb-3">
-                {(project.companies as any)?.legal_name ?? "—"}
+                {(project.companies as any)?.legal_name ?? <span className="italic text-foreground/50">Internal project</span>}
               </p>
               <div className="flex gap-4 text-xs text-foreground/60">
                 {project.start_date && <span>Start: {project.start_date}</span>}
