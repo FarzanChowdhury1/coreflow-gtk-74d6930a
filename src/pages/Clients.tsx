@@ -191,7 +191,9 @@ export default function Clients() {
                 exportToCSV(
                   displayContacts.map((c) => ({
                     ...c,
-                    company_name: getCompanyName(c.company_id),
+                    company_name: c.company_id
+                      ? companies.find((co) => co.id === c.company_id)?.legal_name ?? "—"
+                      : "Independent",
                   })),
                   [
                     { key: "full_name", label: "Name" },
