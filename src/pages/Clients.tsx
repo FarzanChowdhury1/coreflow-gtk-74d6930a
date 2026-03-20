@@ -28,12 +28,8 @@ export default function Clients() {
   const [portalLinkOpen, setPortalLinkOpen] = useState(false);
   const [meetingCompanyId, setMeetingCompanyId] = useState<string | null>(null);
 
-  // Client management: admin-only access
-  if (currentRole !== "admin") {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   const workspaceId = currentWorkspace?.id;
+  const isAdmin = currentRole === "admin";
 
   const { data: companies = [], isLoading: loadingCompanies } = useQuery({
     queryKey: ["companies", workspaceId],
