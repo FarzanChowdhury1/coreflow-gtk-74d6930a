@@ -68,8 +68,8 @@ export default function Projects() {
         Track both client delivery and internal initiatives. Projects linked to a client company are client work; projects without a company are internal.
       </p>
 
-      <div className="mb-4">
-        <div className="relative max-w-sm">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
@@ -78,6 +78,21 @@ export default function Projects() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="h-9 w-full rounded-md border bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
+        </div>
+        <div className="flex items-center gap-1">
+          {(["all", "client", "internal"] as const).map((type) => (
+            <Button
+              key={type}
+              variant={filterType === type ? "default" : "outline"}
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => setFilterType(type)}
+            >
+              {type === "all" && "All"}
+              {type === "client" && <><Building2 className="h-3 w-3 mr-1" />Client</>}
+              {type === "internal" && <><Wrench className="h-3 w-3 mr-1" />Internal</>}
+            </Button>
+          ))}
         </div>
       </div>
 
