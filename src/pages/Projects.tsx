@@ -53,12 +53,15 @@ export default function Projects() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <FolderKanban className="h-6 w-6 text-primary" />
-          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Project Tracker</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Projects</h1>
         </div>
         <Button size="sm" onClick={() => setCreateOpen(true)}>
           <Plus className="h-4 w-4 mr-1" /> New Project
         </Button>
       </div>
+      <p className="mb-4 text-sm text-muted-foreground max-w-2xl">
+        Track both client delivery and internal initiatives. Projects linked to a client company are client work; projects without a company are internal.
+      </p>
 
       <div className="mb-4">
         <div className="relative max-w-sm">
@@ -109,7 +112,7 @@ export default function Projects() {
                 </Badge>
               </div>
               <p className="text-xs text-foreground/70 mb-3">
-                {(project.companies as any)?.legal_name ?? "—"}
+                {(project.companies as any)?.legal_name ?? <span className="italic text-foreground/50">Internal project</span>}
               </p>
               <div className="flex gap-4 text-xs text-foreground/60">
                 {project.start_date && <span>Start: {project.start_date}</span>}

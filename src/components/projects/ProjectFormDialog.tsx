@@ -100,7 +100,7 @@ export function ProjectFormDialog({ open, onOpenChange }: Props) {
         onOpenChange(false);
       }
     } else {
-      if (!form.name.trim() || !form.company_id) {
+      if (!form.name.trim()) {
         setLoading(false);
         return;
       }
@@ -109,7 +109,7 @@ export function ProjectFormDialog({ open, onOpenChange }: Props) {
         .from("projects")
         .insert({
           workspace_id: workspaceId,
-          company_id: form.company_id,
+          company_id: form.company_id || null,
           name: form.name.trim(),
           description: form.description || null,
           start_date: form.start_date || null,
@@ -211,14 +211,15 @@ export function ProjectFormDialog({ open, onOpenChange }: Props) {
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Company *</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
+                  Client Company <span className="text-xs text-muted-foreground font-normal">(leave empty for internal projects)</span>
+                </label>
                 <select
                   value={form.company_id}
                   onChange={(e) => setForm((f) => ({ ...f, company_id: e.target.value }))}
                   className="h-10 w-full rounded-md border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  required
                 >
-                  <option value="">Select company</option>
+                  <option value="">No client (internal project)</option>
                   {companies.map((c) => (
                     <option key={c.id} value={c.id}>{c.legal_name}</option>
                   ))}

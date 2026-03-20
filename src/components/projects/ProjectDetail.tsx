@@ -89,7 +89,7 @@ export function ProjectDetail({ projectId, onBack }: Props) {
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            {(project.companies as any)?.legal_name}
+            {(project.companies as any)?.legal_name || <span className="italic">Internal project</span>}
             {project.start_date && ` · Started ${project.start_date}`}
             {project.target_end_date && ` · Target ${project.target_end_date}`}
           </p>

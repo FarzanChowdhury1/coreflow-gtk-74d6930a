@@ -81,14 +81,15 @@ export default function Clients() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Building2 className="h-6 w-6 text-primary" />
-          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Client Directory</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Clients</h1>
         </div>
         <Button variant="outline" onClick={() => setPortalLinkOpen(true)}>
-          <Link2 className="mr-1 h-4 w-4" /> Portal Link
+          <Link2 className="mr-1 h-4 w-4" /> Client Portal Link
         </Button>
       </div>
       <p className="mb-5 text-sm text-muted-foreground max-w-2xl">
-        Manage your client companies and contacts. Link them to proposals, invoices, and projects.
+        Your external client companies and contacts. Contacts can exist independently or be linked to a company.
+        Use Client Portal Links to give clients secure access to their proposals, invoices, and documents.
       </p>
 
       <div className="mb-4 flex items-center gap-3">
