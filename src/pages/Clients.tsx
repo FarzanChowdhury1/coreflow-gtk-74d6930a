@@ -120,11 +120,13 @@ export default function Clients() {
         </div>
 
         <TabsContent value="companies">
-          <div className="mb-4 flex justify-end">
-            <Button size="sm" onClick={() => { setEditingCompany(null); setCompanyDialogOpen(true); }}>
-              <Plus className="h-4 w-4 mr-1" /> Add Company
-            </Button>
-          </div>
+          {isAdmin && (
+            <div className="mb-4 flex justify-end">
+              <Button size="sm" onClick={() => { setEditingCompany(null); setCompanyDialogOpen(true); }}>
+                <Plus className="h-4 w-4 mr-1" /> Add Company
+              </Button>
+            </div>
+          )}
           {loadingCompanies ? (
             <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
           ) : filteredCompanies.length === 0 ? (
