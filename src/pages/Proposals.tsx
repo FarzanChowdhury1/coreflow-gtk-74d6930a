@@ -90,7 +90,9 @@ export default function Proposals() {
         )}
       </div>
       <p className="mb-5 text-sm text-muted-foreground max-w-2xl">
-        Create proposals with line items and pricing, send them for client approval, then convert approved proposals into projects.
+        {isAdmin
+          ? "Create proposals with line items and pricing, send them for client approval, then convert approved proposals into projects."
+          : "Proposals linked to your projects or assigned to you appear here."}
       </p>
 
       <div className="mb-4">
