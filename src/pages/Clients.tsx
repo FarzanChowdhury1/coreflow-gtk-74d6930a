@@ -228,13 +228,15 @@ export default function Clients() {
                       <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{contact.phone || "—"}</td>
                       <td className="px-4 py-3 text-muted-foreground">{getCompanyName(contact.company_id)}</td>
                       <td className="px-4 py-3 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => { setEditingContact(contact); setContactDialogOpen(true); }}
-                        >
-                          Edit
-                        </Button>
+                        {isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => { setEditingContact(contact); setContactDialogOpen(true); }}
+                          >
+                            Edit
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))}
