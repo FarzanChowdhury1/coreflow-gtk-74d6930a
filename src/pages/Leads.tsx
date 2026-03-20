@@ -28,6 +28,7 @@ const statusColors: Record<string, string> = {
 
 export default function Leads() {
   const { currentWorkspace, currentRole } = useWorkspace();
+  const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
