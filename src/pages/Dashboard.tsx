@@ -1,5 +1,7 @@
 import { LayoutDashboard, TrendingUp, FileText, FolderKanban, Receipt, DollarSign, Users, AlertTriangle, X } from "lucide-react";
 import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
+import { DashboardBreakdowns } from "@/components/dashboard/DashboardBreakdowns";
+import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
