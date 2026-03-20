@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
-import { Receipt, Plus } from "lucide-react";
+import { Receipt, Plus, Download } from "lucide-react";
+import { PageInfoButton } from "@/components/layout/PageInfoButton";
+import { exportToCSV } from "@/lib/csv-export";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Button } from "@/components/ui/button";
