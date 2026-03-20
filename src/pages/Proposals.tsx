@@ -83,9 +83,11 @@ export default function Proposals() {
           <FileText className="h-6 w-6 text-primary" />
           <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Proposal Builder</h1>
         </div>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4 mr-1" /> New Proposal
-        </Button>
+        {isAdmin && (
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> New Proposal
+          </Button>
+        )}
       </div>
       <p className="mb-5 text-sm text-muted-foreground max-w-2xl">
         Create proposals with line items and pricing, send them for client approval, then convert approved proposals into projects.
