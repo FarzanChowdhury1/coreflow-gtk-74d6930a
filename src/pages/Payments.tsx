@@ -20,11 +20,15 @@ const METHOD_LABELS: Record<string, string> = {
 };
 
 export default function Payments() {
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, currentRole } = useWorkspace();
   const [payments, setPayments] = useState<(Tables<"payments"> & { invoices: { invoice_number: string } | null })[]>([]);
   const [invoices, setInvoices] = useState<Tables<"invoices">[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  if (currentRole !== "admin") {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const fetchData = useCallback(async () => {
     if (!currentWorkspace) return;
