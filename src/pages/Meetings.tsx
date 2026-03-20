@@ -102,7 +102,7 @@ export default function Meetings() {
             size="sm"
             onClick={() =>
               exportToCSV(
-                meetings.map((m: any) => ({
+                filtered.map((m: any) => ({
                   title: m.title,
                   type: m.meeting_type,
                   status: m.status,
