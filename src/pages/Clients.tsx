@@ -16,7 +16,7 @@ type Company = Tables<"companies">;
 type Contact = Tables<"contacts">;
 
 export default function Clients() {
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, currentRole } = useWorkspace();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
@@ -26,6 +26,11 @@ export default function Clients() {
   const [searchTerm, setSearchTerm] = useState("");
   const [portalLinkOpen, setPortalLinkOpen] = useState(false);
   const [meetingCompanyId, setMeetingCompanyId] = useState<string | null>(null);
+
+  // Client management: admin-only access
+  if (currentRole !== "admin") {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const workspaceId = currentWorkspace?.id;
 
