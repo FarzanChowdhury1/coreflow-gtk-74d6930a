@@ -143,6 +143,11 @@ export default function Dashboard() {
             ))}
       </div>
 
+      {/* Pipeline breakdowns */}
+      {currentWorkspace?.id && (
+        <DashboardBreakdowns workspaceId={currentWorkspace.id} currency={currency} />
+      )}
+
       {/* Onboarding checklist for new admins */}
       <OnboardingChecklist />
 
