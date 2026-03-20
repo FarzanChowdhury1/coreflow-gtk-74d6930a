@@ -186,11 +186,13 @@ export default function Clients() {
         </TabsContent>
 
         <TabsContent value="contacts">
-          <div className="mb-4 flex justify-end">
-            <Button size="sm" onClick={() => { setEditingContact(null); setContactDialogOpen(true); }}>
-              <Plus className="h-4 w-4 mr-1" /> Add Contact
-            </Button>
-          </div>
+          {isAdmin && (
+            <div className="mb-4 flex justify-end">
+              <Button size="sm" onClick={() => { setEditingContact(null); setContactDialogOpen(true); }}>
+                <Plus className="h-4 w-4 mr-1" /> Add Contact
+              </Button>
+            </div>
+          )}
           {loadingContacts ? (
             <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
           ) : filteredContacts.length === 0 ? (
@@ -198,11 +200,13 @@ export default function Clients() {
               <User className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
               <h2 className="text-sm font-medium text-foreground mb-1">No contacts yet</h2>
               <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-                Contacts are the people at your client companies. Add contacts to send portal links and track communication.
+                {isAdmin ? "Contacts are the people at your client companies. Add contacts to send portal links and track communication." : "No contacts found in your workspace."}
               </p>
-              <Button size="sm" onClick={() => { setEditingContact(null); setContactDialogOpen(true); }}>
-                <Plus className="h-4 w-4 mr-1" /> Add First Contact
-              </Button>
+              {isAdmin && (
+                <Button size="sm" onClick={() => { setEditingContact(null); setContactDialogOpen(true); }}>
+                  <Plus className="h-4 w-4 mr-1" /> Add First Contact
+                </Button>
+              )}
             </div>
           ) : (
             <div className="rounded-lg border bg-card overflow-x-auto">
