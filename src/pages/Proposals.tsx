@@ -66,6 +66,10 @@ export default function Proposals() {
     voided: "bg-muted text-foreground/70 line-through",
   };
 
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   if (selectedProposalId) {
     return (
       <ProposalDetail
