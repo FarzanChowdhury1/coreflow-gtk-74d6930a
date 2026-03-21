@@ -344,6 +344,91 @@ export type Database = {
           },
         ]
       }
+      client_tasks: {
+        Row: {
+          approved_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          id: string
+          project_id: string | null
+          response_link: string | null
+          response_notes: string | null
+          response_text: string | null
+          revision_note: string | null
+          sort_order: number
+          status: Database["public"]["Enums"]["client_task_status"]
+          submitted_at: string | null
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          company_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          project_id?: string | null
+          response_link?: string | null
+          response_notes?: string | null
+          response_text?: string | null
+          revision_note?: string | null
+          sort_order?: number
+          status?: Database["public"]["Enums"]["client_task_status"]
+          submitted_at?: string | null
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          project_id?: string | null
+          response_link?: string | null
+          response_notes?: string | null
+          response_text?: string | null
+          revision_note?: string | null
+          sort_order?: number
+          status?: Database["public"]["Enums"]["client_task_status"]
+          submitted_at?: string | null
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_tasks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_updates: {
         Row: {
           author_id: string
@@ -2532,6 +2617,11 @@ export type Database = {
       app_role: "admin" | "team_member"
       approvable_type: "proposal_version" | "invoice" | "project"
       approval_status: "pending" | "approved" | "rejected" | "cancelled"
+      client_task_status:
+        | "todo"
+        | "submitted"
+        | "approved"
+        | "revision_requested"
       feedback_category:
         | "bug"
         | "ui_ux"
@@ -2694,6 +2784,12 @@ export const Constants = {
       app_role: ["admin", "team_member"],
       approvable_type: ["proposal_version", "invoice", "project"],
       approval_status: ["pending", "approved", "rejected", "cancelled"],
+      client_task_status: [
+        "todo",
+        "submitted",
+        "approved",
+        "revision_requested",
+      ],
       feedback_category: [
         "bug",
         "ui_ux",
