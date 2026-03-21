@@ -21,6 +21,9 @@ import {
   Activity,
   X,
   CalendarDays,
+  Store,
+  Wallet,
+  PieChart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
