@@ -280,9 +280,72 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
                 <p className="text-[11px] text-muted-foreground mt-0.5">{TIME_LABELS[range]}</p>
               </CardContent>
             </Card>
-          </div>
+           </div>
         </>
       )}
+
+      {/* Finance Ops Summary */}
+      <FinanceOpsSummary workspaceId={workspaceId} currency={currency} />
+    </div>
+  );
+}
+
+function FinanceOpsSummary({ workspaceId, currency }: { workspaceId: string; currency: string }) {
+  const { data: expenseTotal = 0 } = useQuery({
+    queryKey: ["dashboard-expense-total", workspaceId],
+    queryFn: async () => {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
+      const { data, error } = await supabase
+        .from("expenses")
+        .select("amount")
+        .eq("workspace_id", workspaceId)
+        .is("deleted_at", null)
+        .gte("expense_date", start)
+        .lte("expense_date", end);
+      if (error) return 0;
+      return (data || []).reduce((s: number, e: any) => s + Number(e.amount), 0);
+    },
+    staleTime: 60000,
+  });
+
+  const { data: subBurn = 0 } = useQuery({
+    queryKey: ["dashboard-sub-burn", workspaceId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("subscriptions")
+        .select("amount, interval_months")
+        .eq("workspace_id", workspaceId)
+        .eq("is_active", true);
+      if (error) return 0;
+      return (data || []).reduce((s: number, sub: any) => s + Number(sub.amount) / sub.interval_months, 0);
+    },
+    staleTime: 60000,
+  });
+
+  const fmt = (v: number) =>
+    new Intl.NumberFormat("en-BD", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
+
+  if (expenseTotal === 0 && subBurn === 0) return null;
+
+  return (
+    <div className="mt-4">
+      <h3 className="text-sm font-medium text-foreground mb-2">Outgoing Costs</h3>
+      <div className="grid gap-3 md:grid-cols-2">
+        <Card>
+          <CardContent className="pt-4 pb-4 px-4">
+            <p className="text-xs text-muted-foreground">Expenses This Month</p>
+            <p className="text-lg font-semibold text-foreground tabular-nums">{fmt(expenseTotal)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-4 px-4">
+            <p className="text-xs text-muted-foreground">Monthly Subscription Burn</p>
+            <p className="text-lg font-semibold text-foreground tabular-nums">{fmt(Math.round(subBurn))}</p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
