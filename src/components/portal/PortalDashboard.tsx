@@ -99,8 +99,16 @@ export function PortalDashboard({ session }: Props) {
             <TabsTrigger value="updates" className="gap-1.5">
               <MessageSquare className="h-4 w-4" /> Updates
             </TabsTrigger>
-            <TabsTrigger value="documents" className="gap-1.5">
+             <TabsTrigger value="documents" className="gap-1.5">
               <FolderOpen className="h-4 w-4" /> Documents
+            </TabsTrigger>
+            <TabsTrigger value="onboarding" className="gap-1.5">
+              <ClipboardList className="h-4 w-4" /> Onboarding
+              {summary && summary.onboarding_pending > 0 && (
+                <Badge className="ml-1 h-5 bg-primary text-primary-foreground text-[10px] px-1.5">
+                  {summary.onboarding_pending}
+                </Badge>
+              )}
             </TabsTrigger>
           </TabsList>
 
