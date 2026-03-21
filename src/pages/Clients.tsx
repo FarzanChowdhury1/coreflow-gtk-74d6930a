@@ -12,6 +12,7 @@ import { CompanyFormDialog } from "@/components/clients/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/clients/ContactFormDialog";
 import { PortalLinkDialog } from "@/components/clients/PortalLinkDialog";
 import { CompanyAccessDialog } from "@/components/clients/CompanyAccessDialog";
+import { ClientOnboardingManager } from "@/components/clients/ClientOnboardingManager";
 import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
