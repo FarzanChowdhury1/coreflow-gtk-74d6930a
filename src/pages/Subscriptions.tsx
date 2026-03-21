@@ -162,7 +162,7 @@ export default function Subscriptions() {
                   <TableCell className="text-right font-medium whitespace-nowrap">{formatCurrency(Number(sub.amount), sub.currency)}</TableCell>
                   <TableCell className="text-xs">{sub.interval_months === 1 ? "Monthly" : sub.interval_months === 12 ? "Yearly" : `${sub.interval_months}mo`}</TableCell>
                   <TableCell className="text-xs whitespace-nowrap">{format(new Date(sub.next_billing_date), "dd MMM yyyy")}</TableCell>
-                  <TableCell>{sub.is_active ? <Badge className="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">Active</Badge> : <Badge variant="outline" className="text-[10px]">Paused</Badge>}</TableCell>
+                  <TableCell>{sub.is_active ? <Badge className="text-[10px] bg-primary/10 text-primary">Active</Badge> : <Badge variant="outline" className="text-[10px]">Paused</Badge>}</TableCell>
                   <TableCell>
                     <div className="flex gap-1 justify-end">
                       <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => { setEditing(sub); setFormOpen(true); }}>
