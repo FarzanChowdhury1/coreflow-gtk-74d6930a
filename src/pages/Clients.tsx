@@ -313,12 +313,15 @@ export default function Clients() {
                                 </Button>
                               ) : (
                                 <>
-                                  <Button variant="ghost" size="sm" onClick={() => setAccessCompany(company)} title="Manage who can access this client">
-                                    <Shield className="h-3.5 w-3.5 mr-1" /> Access
-                                  </Button>
-                                  <Button variant="ghost" size="sm" onClick={() => setMeetingCompanyId(company.id)}>
-                                    <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
-                                  </Button>
+                                   <Button variant="ghost" size="sm" onClick={() => setAccessCompany(company)} title="Manage who can access this client">
+                                     <Shield className="h-3.5 w-3.5 mr-1" /> Access
+                                   </Button>
+                                   <Button variant="ghost" size="sm" onClick={() => setOnboardingCompany(company)} title="Manage onboarding tasks">
+                                     <ClipboardList className="h-3.5 w-3.5 mr-1" /> Onboarding
+                                   </Button>
+                                   <Button variant="ghost" size="sm" onClick={() => setMeetingCompanyId(company.id)}>
+                                     <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
+                                   </Button>
                                   <Button variant="ghost" size="sm" onClick={() => { setEditingCompany(company); setCompanyDialogOpen(true); }}>
                                     Edit
                                   </Button>
