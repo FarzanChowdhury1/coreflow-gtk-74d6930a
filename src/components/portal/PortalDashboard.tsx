@@ -245,6 +245,9 @@ export function PortalDashboard({ session }: Props) {
           <TabsContent value="documents">
             <PortalDocuments session={session} />
           </TabsContent>
+          <TabsContent value="onboarding">
+            <PortalOnboarding session={session} />
+          </TabsContent>
         </Tabs>
       </div>
     </main>
