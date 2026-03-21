@@ -91,6 +91,10 @@ const App = () => (
                 <Route path="/digest-inspector" element={<DigestInspector />} />
                 <Route path="/ops" element={<OpsHealth />} />
                 <Route path="/beta-feedback" element={<BetaFeedback />} />
+                <Route path="/vendors" element={<Vendors />} />
+                <Route path="/expenses" element={<Expenses />} />
+                <Route path="/subscriptions" element={<Subscriptions />} />
+                <Route path="/budget" element={<BudgetActual />} />
                 <Route path="/team" element={<Team />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>
