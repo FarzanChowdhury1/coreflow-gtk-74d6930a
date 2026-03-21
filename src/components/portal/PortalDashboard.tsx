@@ -5,9 +5,10 @@ import { PortalInvoices } from "./PortalInvoices";
 import { PortalPayments } from "./PortalPayments";
 import { PortalUpdates } from "./PortalUpdates";
 import { PortalDocuments } from "./PortalDocuments";
+import { PortalOnboarding } from "./PortalOnboarding";
 import {
   Building2, FileText, Receipt, CreditCard, LogOut, MessageSquare,
-  FolderOpen, AlertCircle, Clock, CheckCircle2,
+  FolderOpen, AlertCircle, Clock, CheckCircle2, ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,6 +27,8 @@ interface PortalSummary {
   currency: string;
   recent_updates: number;
   recent_update_date: string | null;
+  onboarding_pending: number;
+  onboarding_total: number;
 }
 
 export function PortalDashboard({ session }: Props) {
@@ -44,7 +47,7 @@ export function PortalDashboard({ session }: Props) {
     window.location.href = "/portal";
   };
 
-  const hasActions = summary && (summary.proposals_awaiting > 0 || summary.overdue_invoices > 0 || summary.unpaid_invoices > 0);
+  const hasActions = summary && (summary.proposals_awaiting > 0 || summary.overdue_invoices > 0 || summary.unpaid_invoices > 0 || summary.onboarding_pending > 0);
 
   return (
     <main className="min-h-screen bg-muted/30">
@@ -96,8 +99,16 @@ export function PortalDashboard({ session }: Props) {
             <TabsTrigger value="updates" className="gap-1.5">
               <MessageSquare className="h-4 w-4" /> Updates
             </TabsTrigger>
-            <TabsTrigger value="documents" className="gap-1.5">
+             <TabsTrigger value="documents" className="gap-1.5">
               <FolderOpen className="h-4 w-4" /> Documents
+            </TabsTrigger>
+            <TabsTrigger value="onboarding" className="gap-1.5">
+              <ClipboardList className="h-4 w-4" /> Onboarding
+              {summary && summary.onboarding_pending > 0 && (
+                <Badge className="ml-1 h-5 bg-primary text-primary-foreground text-[10px] px-1.5">
+                  {summary.onboarding_pending}
+                </Badge>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -167,6 +178,21 @@ export function PortalDashboard({ session }: Props) {
                           </div>
                         </button>
                       )}
+                      {summary!.onboarding_pending > 0 && (
+                        <button
+                          onClick={() => setActiveTab("onboarding")}
+                          className="flex items-center gap-3 w-full text-left rounded-md border bg-card px-4 py-3 hover:border-primary/50 hover:shadow-sm transition-all group"
+                        >
+                          <ClipboardList className="h-5 w-5 text-primary shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                              {summary!.onboarding_pending} onboarding task{summary!.onboarding_pending > 1 ? "s" : ""} to complete
+                            </p>
+                            <p className="text-xs text-muted-foreground">Submit the requested information</p>
+                          </div>
+                          <Badge className="bg-primary text-primary-foreground shrink-0">Start</Badge>
+                        </button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -233,6 +259,9 @@ export function PortalDashboard({ session }: Props) {
           </TabsContent>
           <TabsContent value="documents">
             <PortalDocuments session={session} />
+          </TabsContent>
+          <TabsContent value="onboarding">
+            <PortalOnboarding session={session} />
           </TabsContent>
         </Tabs>
       </div>

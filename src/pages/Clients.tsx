@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Building2, Plus, Search, Link2, User, Calendar, Shield, Archive, RotateCcw, Download } from "lucide-react";
+import { Building2, Plus, Search, Link2, User, Calendar, Shield, Archive, RotateCcw, Download, ClipboardList } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { CompanyFormDialog } from "@/components/clients/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/clients/ContactFormDialog";
 import { PortalLinkDialog } from "@/components/clients/PortalLinkDialog";
 import { CompanyAccessDialog } from "@/components/clients/CompanyAccessDialog";
+import { ClientOnboardingManager } from "@/components/clients/ClientOnboardingManager";
 import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -34,6 +35,7 @@ export default function Clients() {
   const [accessCompany, setAccessCompany] = useState<Company | null>(null);
   const [showArchivedCompanies, setShowArchivedCompanies] = useState(false);
   const [showArchivedContacts, setShowArchivedContacts] = useState(false);
+  const [onboardingCompany, setOnboardingCompany] = useState<Company | null>(null);
 
   const workspaceId = currentWorkspace?.id;
   const isAdmin = currentRole === "admin";
@@ -311,12 +313,15 @@ export default function Clients() {
                                 </Button>
                               ) : (
                                 <>
-                                  <Button variant="ghost" size="sm" onClick={() => setAccessCompany(company)} title="Manage who can access this client">
-                                    <Shield className="h-3.5 w-3.5 mr-1" /> Access
-                                  </Button>
-                                  <Button variant="ghost" size="sm" onClick={() => setMeetingCompanyId(company.id)}>
-                                    <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
-                                  </Button>
+                                   <Button variant="ghost" size="sm" onClick={() => setAccessCompany(company)} title="Manage who can access this client">
+                                     <Shield className="h-3.5 w-3.5 mr-1" /> Access
+                                   </Button>
+                                   <Button variant="ghost" size="sm" onClick={() => setOnboardingCompany(company)} title="Manage onboarding tasks">
+                                     <ClipboardList className="h-3.5 w-3.5 mr-1" /> Onboarding
+                                   </Button>
+                                   <Button variant="ghost" size="sm" onClick={() => setMeetingCompanyId(company.id)}>
+                                     <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
+                                   </Button>
                                   <Button variant="ghost" size="sm" onClick={() => { setEditingCompany(company); setCompanyDialogOpen(true); }}>
                                     Edit
                                   </Button>
@@ -473,6 +478,14 @@ export default function Clients() {
         onSaved={() => setMeetingCompanyId(null)}
         defaultContext={meetingCompanyId ? { company_id: meetingCompanyId } : undefined}
       />
+      {onboardingCompany && (
+        <ClientOnboardingManager
+          companyId={onboardingCompany.id}
+          companyName={onboardingCompany.legal_name}
+          open={!!onboardingCompany}
+          onOpenChange={(open) => { if (!open) setOnboardingCompany(null); }}
+        />
+      )}
     </div>
   );
 }

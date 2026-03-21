@@ -50,21 +50,12 @@ function parseCookies(header: string | null): Record<string, string> {
   );
 }
 
-/**
- * Extract JWT from cookie or Authorization header (fallback for cross-site cookie blocking).
- */
 function extractToken(req: Request): string | null {
-  // Try cookie first
   const cookies = parseCookies(req.headers.get("Cookie"));
   const cookieToken = cookies[COOKIE_NAME];
   if (cookieToken) return cookieToken;
-
-  // Fallback: Authorization Bearer header
   const authHeader = req.headers.get("Authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    return authHeader.slice(7);
-  }
-
+  if (authHeader?.startsWith("Bearer ")) return authHeader.slice(7);
   return null;
 }
 
@@ -88,18 +79,14 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Method not allowed" }, 405, hdrs);
   }
 
-  // Authenticate via JWT cookie OR Authorization header
   const token = extractToken(req);
-
   if (!token) {
     return jsonResponse({ error: "Not authenticated" }, 401, hdrs);
   }
 
   let sess: PortalSession;
   try {
-    const { payload } = await jwtVerify(token, getJwtSecret(), {
-      issuer: "coreflow-portal",
-    });
+    const { payload } = await jwtVerify(token, getJwtSecret(), { issuer: "coreflow-portal" });
     sess = {
       workspace_id: payload.workspace_id as string,
       company_id: payload.company_id as string,
@@ -114,12 +101,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
 
-    // --------------- Data resources ---------------
     if (body.resource) {
       return await handleResource(supabase, sess, body.resource, hdrs);
     }
 
-    // --------------- Mutations (require origin validation) ---------------
     if (body.action) {
       if (!isAllowedOrigin(origin)) {
         return jsonResponse({ error: "Forbidden" }, 403, hdrs);
@@ -194,11 +179,7 @@ async function handleResource(
 
       const enriched = (payments || []).map((p: Record<string, unknown>) => {
         const inv = invoiceMap[p.invoice_id as string] || { invoice_number: "—", currency: "BDT" };
-        return {
-          ...p,
-          invoice_number: inv.invoice_number,
-          currency: inv.currency,
-        };
+        return { ...p, invoice_number: inv.invoice_number, currency: inv.currency };
       });
 
       return jsonResponse({ data: enriched }, 200, hdrs);
@@ -223,8 +204,6 @@ async function handleResource(
     }
 
     case "documents": {
-      // Return files owned by the company or by the company's projects/invoices
-      // owner_type = 'company' with owner_id = company_id
       const { data: companyFiles } = await supabase
         .from("files")
         .select("id, file_name, mime_type, file_size, created_at, owner_type, description")
@@ -235,7 +214,6 @@ async function handleResource(
         .order("created_at", { ascending: false })
         .limit(50);
 
-      // Also get files attached to this company's invoices
       const { data: invoices } = await supabase
         .from("invoices")
         .select("id")
@@ -258,7 +236,6 @@ async function handleResource(
         invoiceFiles = data || [];
       }
 
-      // Merge and sort
       const allFiles = [...(companyFiles || []), ...invoiceFiles]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0, 50);
@@ -266,9 +243,18 @@ async function handleResource(
       return jsonResponse({ data: allFiles }, 200, hdrs);
     }
 
+    case "onboarding_tasks": {
+      const { data } = await supabase
+        .from("client_tasks")
+        .select("id, title, description, status, sort_order, due_date, response_text, response_link, response_notes, revision_note, submitted_at, approved_at")
+        .eq("company_id", session.company_id)
+        .eq("workspace_id", session.workspace_id)
+        .order("sort_order", { ascending: true });
+      return jsonResponse({ data: data || [] }, 200, hdrs);
+    }
+
     case "summary": {
-      // Aggregate counts for the overview dashboard
-      const [proposalsRes, invoicesRes, updatesRes] = await Promise.all([
+      const [proposalsRes, invoicesRes, updatesRes, tasksRes] = await Promise.all([
         supabase
           .from("proposals")
           .select("id, proposal_versions(id, status, grand_total)")
@@ -291,13 +277,18 @@ async function handleResource(
           .is("deleted_at", null)
           .order("published_at", { ascending: false })
           .limit(5),
+        supabase
+          .from("client_tasks")
+          .select("id, status")
+          .eq("company_id", session.company_id)
+          .eq("workspace_id", session.workspace_id),
       ]);
 
       const proposals = proposalsRes.data || [];
       const invoices = invoicesRes.data || [];
       const updates = updatesRes.data || [];
+      const tasks = tasksRes.data || [];
 
-      // Count proposals awaiting client decision (status = 'sent')
       let proposals_awaiting = 0;
       for (const p of proposals) {
         const versions = (p as any).proposal_versions || [];
@@ -306,7 +297,6 @@ async function handleResource(
         }
       }
 
-      // Invoice stats
       const unpaidInvoices = invoices.filter(
         (i: any) => i.status !== "paid" && i.status !== "void"
       );
@@ -318,8 +308,12 @@ async function handleResource(
         0
       );
       const currency = invoices.length > 0 ? (invoices[0] as any).currency || "BDT" : "BDT";
-
       const recentUpdateDate = updates.length > 0 ? (updates[0] as any).published_at : null;
+
+      const onboarding_pending = tasks.filter(
+        (t: any) => t.status === "todo" || t.status === "revision_requested"
+      ).length;
+      const onboarding_total = tasks.length;
 
       return jsonResponse({
         data: {
@@ -330,6 +324,8 @@ async function handleResource(
           currency,
           recent_updates: updates.length,
           recent_update_date: recentUpdateDate,
+          onboarding_pending,
+          onboarding_total,
         },
       }, 200, hdrs);
     }
@@ -390,7 +386,6 @@ async function handleAction(
         return jsonResponse({ error: "Invalid decision" }, 400, hdrs);
       }
 
-      // Delegate to the database RPC which enforces all business logic
       const { data: rpcResult, error: rpcErr } = await supabase.rpc(
         "portal_respond_proposal_internal",
         {
@@ -417,7 +412,6 @@ async function handleAction(
       const fileId = body.file_id as string;
       if (!fileId) return jsonResponse({ error: "file_id required" }, 400, hdrs);
 
-      // Verify the file belongs to this company's scope
       const { data: file } = await supabase
         .from("files")
         .select("id, storage_path, owner_type, owner_id, workspace_id")
@@ -428,7 +422,6 @@ async function handleAction(
 
       if (!file) return jsonResponse({ error: "File not found" }, 404, hdrs);
 
-      // Verify ownership: company files or invoice files for this company
       let authorized = false;
       if (file.owner_type === "company" && file.owner_id === session.company_id) {
         authorized = true;
@@ -446,7 +439,6 @@ async function handleAction(
         return jsonResponse({ error: "Access denied" }, 403, hdrs);
       }
 
-      // Generate a signed URL (valid for 1 hour)
       const { data: signedUrl, error: signErr } = await supabase.storage
         .from("workspace-files")
         .createSignedUrl(file.storage_path, 3600);
@@ -456,6 +448,45 @@ async function handleAction(
       }
 
       return jsonResponse({ url: signedUrl.signedUrl }, 200, hdrs);
+    }
+
+    case "submit_onboarding_task": {
+      const taskId = body.task_id as string;
+      if (!taskId) return jsonResponse({ error: "task_id required" }, 400, hdrs);
+
+      // Verify the task belongs to this company
+      const { data: task } = await supabase
+        .from("client_tasks")
+        .select("id, company_id, workspace_id, status")
+        .eq("id", taskId)
+        .single();
+
+      if (!task || task.company_id !== session.company_id || task.workspace_id !== session.workspace_id) {
+        return jsonResponse({ error: "Task not found" }, 404, hdrs);
+      }
+
+      if (task.status !== "todo" && task.status !== "revision_requested") {
+        return jsonResponse({ error: "Task cannot be submitted in its current state" }, 400, hdrs);
+      }
+
+      const { error: updateErr } = await supabase
+        .from("client_tasks")
+        .update({
+          status: "submitted",
+          response_text: (body.response_text as string) || null,
+          response_link: (body.response_link as string) || null,
+          response_notes: (body.response_notes as string) || null,
+          submitted_at: new Date().toISOString(),
+          revision_note: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", taskId);
+
+      if (updateErr) {
+        return jsonResponse({ error: "Failed to submit" }, 500, hdrs);
+      }
+
+      return jsonResponse({ success: true }, 200, hdrs);
     }
 
     default:
