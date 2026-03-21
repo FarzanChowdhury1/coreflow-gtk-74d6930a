@@ -189,7 +189,7 @@ export default function BudgetActual() {
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Remaining</p>
-            <p className={`text-xl font-semibold ${totalBudget - totalActual < 0 ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"}`}>
+            <p className={`text-xl font-semibold ${totalBudget - totalActual < 0 ? "text-destructive" : "text-primary"}`}>
               {formatCurrency(totalBudget - totalActual, currency)}
             </p>
           </CardContent>
