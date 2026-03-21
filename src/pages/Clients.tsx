@@ -35,6 +35,7 @@ export default function Clients() {
   const [accessCompany, setAccessCompany] = useState<Company | null>(null);
   const [showArchivedCompanies, setShowArchivedCompanies] = useState(false);
   const [showArchivedContacts, setShowArchivedContacts] = useState(false);
+  const [onboardingCompany, setOnboardingCompany] = useState<Company | null>(null);
 
   const workspaceId = currentWorkspace?.id;
   const isAdmin = currentRole === "admin";
