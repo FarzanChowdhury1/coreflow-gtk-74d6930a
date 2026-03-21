@@ -5,9 +5,10 @@ import { PortalInvoices } from "./PortalInvoices";
 import { PortalPayments } from "./PortalPayments";
 import { PortalUpdates } from "./PortalUpdates";
 import { PortalDocuments } from "./PortalDocuments";
+import { PortalOnboarding } from "./PortalOnboarding";
 import {
   Building2, FileText, Receipt, CreditCard, LogOut, MessageSquare,
-  FolderOpen, AlertCircle, Clock, CheckCircle2,
+  FolderOpen, AlertCircle, Clock, CheckCircle2, ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
