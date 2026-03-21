@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,15 +20,27 @@ interface Props {
 }
 
 export function SubscriptionFormDialog({ open, onOpenChange, subscription, workspaceId, currency, onSaved }: Props) {
-  const [name, setName] = useState(subscription?.name || "");
-  const [amount, setAmount] = useState(subscription?.amount?.toString() || "");
-  const [intervalMonths, setIntervalMonths] = useState(subscription?.interval_months?.toString() || "1");
-  const [nextBilling, setNextBilling] = useState(subscription?.next_billing_date || new Date().toISOString().split("T")[0]);
-  const [category, setCategory] = useState(subscription?.category || "software");
-  const [vendorId, setVendorId] = useState(subscription?.vendor_id || "none");
-  const [notes, setNotes] = useState(subscription?.notes || "");
+  const [name, setName] = useState("");
+  const [amount, setAmount] = useState("");
+  const [intervalMonths, setIntervalMonths] = useState("1");
+  const [nextBilling, setNextBilling] = useState(new Date().toISOString().split("T")[0]);
+  const [category, setCategory] = useState("software");
+  const [vendorId, setVendorId] = useState("none");
+  const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    if (open) {
+      setName(subscription?.name || "");
+      setAmount(subscription?.amount?.toString() || "");
+      setIntervalMonths(subscription?.interval_months?.toString() || "1");
+      setNextBilling(subscription?.next_billing_date || new Date().toISOString().split("T")[0]);
+      setCategory(subscription?.category || "software");
+      setVendorId(subscription?.vendor_id || "none");
+      setNotes(subscription?.notes || "");
+      setSaving(false);
+    }
+  }, [open, subscription]);
   const { data: vendors = [] } = useQuery({
     queryKey: ["vendors-list", workspaceId],
     queryFn: async () => {
