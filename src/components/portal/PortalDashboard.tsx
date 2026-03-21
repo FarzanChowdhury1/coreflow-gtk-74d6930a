@@ -47,7 +47,7 @@ export function PortalDashboard({ session }: Props) {
     window.location.href = "/portal";
   };
 
-  const hasActions = summary && (summary.proposals_awaiting > 0 || summary.overdue_invoices > 0 || summary.unpaid_invoices > 0);
+  const hasActions = summary && (summary.proposals_awaiting > 0 || summary.overdue_invoices > 0 || summary.unpaid_invoices > 0 || summary.onboarding_pending > 0);
 
   return (
     <main className="min-h-screen bg-muted/30">
