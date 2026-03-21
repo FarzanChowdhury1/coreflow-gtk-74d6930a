@@ -27,6 +27,8 @@ interface PortalSummary {
   currency: string;
   recent_updates: number;
   recent_update_date: string | null;
+  onboarding_pending: number;
+  onboarding_total: number;
 }
 
 export function PortalDashboard({ session }: Props) {
