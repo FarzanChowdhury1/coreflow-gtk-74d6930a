@@ -28,7 +28,7 @@ export interface Vendor {
   created_at: string;
 }
 
-const CATEGORIES = ["general", "freelancer", "software", "media", "logistics", "consulting", "other"];
+
 
 export default function Vendors() {
   const { currentWorkspace, currentRole } = useWorkspace();
