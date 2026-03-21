@@ -478,6 +478,14 @@ export default function Clients() {
         onSaved={() => setMeetingCompanyId(null)}
         defaultContext={meetingCompanyId ? { company_id: meetingCompanyId } : undefined}
       />
+      {onboardingCompany && (
+        <ClientOnboardingManager
+          companyId={onboardingCompany.id}
+          companyName={onboardingCompany.legal_name}
+          open={!!onboardingCompany}
+          onOpenChange={(open) => { if (!open) setOnboardingCompany(null); }}
+        />
+      )}
     </div>
   );
 }
