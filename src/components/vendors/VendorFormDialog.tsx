@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,14 +20,25 @@ interface Props {
 }
 
 export function VendorFormDialog({ open, onOpenChange, vendor, workspaceId, onSaved }: Props) {
-  const [name, setName] = useState(vendor?.name || "");
-  const [contactName, setContactName] = useState(vendor?.contact_name || "");
-  const [email, setEmail] = useState(vendor?.email || "");
-  const [phone, setPhone] = useState(vendor?.phone || "");
-  const [category, setCategory] = useState(vendor?.category || "general");
-  const [notes, setNotes] = useState(vendor?.notes || "");
+  const [name, setName] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [category, setCategory] = useState("general");
+  const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    if (open) {
+      setName(vendor?.name || "");
+      setContactName(vendor?.contact_name || "");
+      setEmail(vendor?.email || "");
+      setPhone(vendor?.phone || "");
+      setCategory(vendor?.category || "general");
+      setNotes(vendor?.notes || "");
+      setSaving(false);
+    }
+  }, [open, vendor]);
   const handleSubmit = async () => {
     if (!name.trim()) { toast.error("Vendor name is required"); return; }
     setSaving(true);

@@ -262,10 +262,19 @@ export default function BudgetActual() {
 function BudgetFormDialog({ open, onOpenChange, budget, workspaceId, currency, periodStart, periodEnd, onSaved }: {
   open: boolean; onOpenChange: (o: boolean) => void; budget: Budget | null; workspaceId: string; currency: string; periodStart: string; periodEnd: string; onSaved: () => void;
 }) {
-  const [category, setCategory] = useState(budget?.category || "general");
-  const [targetAmount, setTargetAmount] = useState(budget?.target_amount?.toString() || "");
-  const [notes, setNotes] = useState(budget?.notes || "");
+  const [category, setCategory] = useState("general");
+  const [targetAmount, setTargetAmount] = useState("");
+  const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setCategory(budget?.category || "general");
+      setTargetAmount(budget?.target_amount?.toString() || "");
+      setNotes(budget?.notes || "");
+      setSaving(false);
+    }
+  }, [open, budget]);
 
   const handleSubmit = async () => {
     if (!targetAmount || Number(targetAmount) <= 0) { toast.error("Valid target amount required"); return; }

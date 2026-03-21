@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,16 +24,29 @@ interface Props {
 
 export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, currency, onSaved }: Props) {
   const { user } = useAuth();
-  const [description, setDescription] = useState(expense?.description || "");
-  const [amount, setAmount] = useState(expense?.amount?.toString() || "");
-  const [expenseDate, setExpenseDate] = useState(expense?.expense_date || new Date().toISOString().split("T")[0]);
-  const [category, setCategory] = useState(expense?.category || "general");
-  const [vendorId, setVendorId] = useState(expense?.vendor_id || "none");
-  const [projectId, setProjectId] = useState(expense?.project_id || "none");
-  const [paymentMethod, setPaymentMethod] = useState(expense?.payment_method || "bank_transfer");
-  const [notes, setNotes] = useState(expense?.notes || "");
+  const [description, setDescription] = useState("");
+  const [amount, setAmount] = useState("");
+  const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split("T")[0]);
+  const [category, setCategory] = useState("general");
+  const [vendorId, setVendorId] = useState("none");
+  const [projectId, setProjectId] = useState("none");
+  const [paymentMethod, setPaymentMethod] = useState("bank_transfer");
+  const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    if (open) {
+      setDescription(expense?.description || "");
+      setAmount(expense?.amount?.toString() || "");
+      setExpenseDate(expense?.expense_date || new Date().toISOString().split("T")[0]);
+      setCategory(expense?.category || "general");
+      setVendorId(expense?.vendor_id || "none");
+      setProjectId(expense?.project_id || "none");
+      setPaymentMethod(expense?.payment_method || "bank_transfer");
+      setNotes(expense?.notes || "");
+      setSaving(false);
+    }
+  }, [open, expense]);
   const { data: vendors = [] } = useQuery({
     queryKey: ["vendors-list", workspaceId],
     queryFn: async () => {
