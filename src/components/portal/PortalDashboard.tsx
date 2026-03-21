@@ -178,6 +178,21 @@ export function PortalDashboard({ session }: Props) {
                           </div>
                         </button>
                       )}
+                      {summary!.onboarding_pending > 0 && (
+                        <button
+                          onClick={() => setActiveTab("onboarding")}
+                          className="flex items-center gap-3 w-full text-left rounded-md border bg-card px-4 py-3 hover:border-primary/50 hover:shadow-sm transition-all group"
+                        >
+                          <ClipboardList className="h-5 w-5 text-primary shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                              {summary!.onboarding_pending} onboarding task{summary!.onboarding_pending > 1 ? "s" : ""} to complete
+                            </p>
+                            <p className="text-xs text-muted-foreground">Submit the requested information</p>
+                          </div>
+                          <Badge className="bg-primary text-primary-foreground shrink-0">Start</Badge>
+                        </button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
