@@ -21,6 +21,9 @@ import {
   Activity,
   X,
   CalendarDays,
+  Store,
+  Wallet,
+  PieChart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -47,6 +50,10 @@ const navItems: NavItem[] = [
   { label: "Invoices", icon: Receipt, path: "/invoices", section: "Finance", adminOnly: true },
   { label: "Payments", icon: CreditCard, path: "/payments", section: "Finance", adminOnly: true },
   { label: "Renewals", icon: RefreshCw, path: "/renewals", section: "Finance", adminOnly: true },
+  { label: "Expenses", icon: Wallet, path: "/expenses", section: "Finance", adminOnly: true },
+  { label: "Vendors", icon: Store, path: "/vendors", section: "Finance", adminOnly: true },
+  { label: "Subscriptions", icon: CreditCard, path: "/subscriptions", section: "Finance", adminOnly: true },
+  { label: "Budget vs Actual", icon: PieChart, path: "/budget", section: "Finance", adminOnly: true },
   { label: "Internal Team", icon: Users, path: "/team", section: "Workspace", adminOnly: true },
   { label: "Notifications", icon: Bell, path: "/notifications", section: "Workspace" },
   { label: "Digest Inspector", icon: FileSearch, path: "/digest-inspector", section: "Workspace", adminOnly: true },
