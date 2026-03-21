@@ -44,7 +44,7 @@ function formatCurrency(value: number, currency: string = "BDT") {
 
 export default function Expenses() {
   const { currentWorkspace, currentRole } = useWorkspace();
-  const { user } = useAuth();
+  
   const queryClient = useQueryClient();
   const isAdmin = currentRole === "admin";
   const [formOpen, setFormOpen] = useState(false);
