@@ -126,18 +126,23 @@ export function ProposalDetail({ proposalId, onBack }: Props) {
   };
 
   const handleVoidVersion = async () => {
-    if (!activeVersion || currentRole !== "admin") return;
-    const { error } = await supabase
-      .from("proposal_versions")
-      .update({ status: "voided" })
-      .eq("id", activeVersion.id);
+    if (!activeVersion || !workspaceId || currentRole !== "admin") return;
+    const { data, error } = await supabase.rpc("void_proposal_version", {
+      _workspace_id: workspaceId,
+      _version_id: activeVersion.id,
+    });
     if (error) {
       toast({ title: "Failed", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Version voided" });
-      queryClient.invalidateQueries({ queryKey: ["proposal_versions", proposalId] });
-      queryClient.invalidateQueries({ queryKey: ["proposal_versions_latest"] });
+      return;
     }
+    const result = data as any;
+    if (!result?.success) {
+      toast({ title: "Failed", description: result?.error || "Could not void version", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Version voided" });
+    queryClient.invalidateQueries({ queryKey: ["proposal_versions", proposalId] });
+    queryClient.invalidateQueries({ queryKey: ["proposal_versions_latest"] });
   };
 
   const handleExportPdf = async () => {
