@@ -135,16 +135,23 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
   };
 
   const voidInvoice = async () => {
-    const { error } = await supabase
-      .from("invoices")
-      .update({ status: "void" as any })
-      .eq("id", invoice.id);
-    if (error) toast.error(error.message);
-    else {
-      toast.success("Invoice voided");
-      onUpdated();
-      onBack();
+    if (!currentWorkspace) return;
+    const { data, error } = await supabase.rpc("void_invoice", {
+      _workspace_id: currentWorkspace.id,
+      _invoice_id: invoice.id,
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
     }
+    const result = data as any;
+    if (!result?.success) {
+      toast.error(result?.error || "Failed to void invoice");
+      return;
+    }
+    toast.success("Invoice voided");
+    onUpdated();
+    onBack();
   };
 
   // Mushak 6.3 breakdown display
