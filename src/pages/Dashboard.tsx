@@ -43,10 +43,10 @@ function useDashboardMetrics(workspaceId: string | undefined) {
 }
 
 const cards = [
-  { key: "active_leads" as const, label: "Active Leads", icon: Users, color: "text-blue-500", href: "/leads" },
-  { key: "open_proposals" as const, label: "Open Proposals", icon: FileText, color: "text-amber-500", href: "/proposals" },
-  { key: "running_projects" as const, label: "Running Projects", icon: FolderKanban, color: "text-emerald-500", href: "/projects" },
-  { key: "pending_invoices" as const, label: "Pending Invoices", icon: Receipt, color: "text-rose-500", href: "/invoices" },
+  { key: "active_leads" as const, label: "Active Leads", icon: Users, color: "text-primary", href: "/leads" },
+  { key: "open_proposals" as const, label: "Open Proposals", icon: FileText, color: "text-warning", href: "/proposals" },
+  { key: "running_projects" as const, label: "Running Projects", icon: FolderKanban, color: "text-success", href: "/projects" },
+  { key: "pending_invoices" as const, label: "Pending Invoices", icon: Receipt, color: "text-destructive", href: "/invoices" },
 ];
 
 function MetricCardSkeleton() {
@@ -109,8 +109,7 @@ export default function Dashboard() {
             ))}
       </div>
 
-
-      {/* Pipeline breakdowns */}
+      {/* Pipeline breakdowns + Current Month Financial Snapshot */}
       {currentWorkspace?.id && (
         <DashboardBreakdowns workspaceId={currentWorkspace.id} currency={currency} />
       )}
@@ -132,8 +131,8 @@ export default function Dashboard() {
 
 const SEVERITY_COLORS: Record<string, string> = {
   critical: "bg-destructive/10 text-destructive border-destructive/30",
-  warning: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700",
-  info: "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+  warning: "bg-warning/10 text-warning border-warning/30",
+  info: "bg-primary/5 text-primary border-primary/20",
 };
 
 function SystemAlerts({ workspaceId }: { workspaceId: string | undefined }) {
@@ -168,7 +167,7 @@ function SystemAlerts({ workspaceId }: { workspaceId: string | undefined }) {
     <Card className="mt-4">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-sm font-medium">
-          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <AlertTriangle className="h-4 w-4 text-warning" />
           System Alerts
           <Badge variant="secondary" className="text-xs">{alerts.length}</Badge>
         </CardTitle>
