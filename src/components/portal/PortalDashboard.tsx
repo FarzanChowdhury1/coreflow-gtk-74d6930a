@@ -198,6 +198,43 @@ export function PortalDashboard({ session }: Props) {
                 </Card>
               )}
 
+              {/* Onboarding progress card */}
+              {summary && summary.onboarding_total > 0 && (
+                <Card className="border-primary/20">
+                  <CardContent className="py-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <ClipboardList className="h-5 w-5 text-primary" />
+                        <h3 className="text-sm font-semibold text-foreground">Getting Started</h3>
+                      </div>
+                      <Badge variant={summary.onboarding_pending === 0 ? "default" : "secondary"} className="text-xs">
+                        {summary.onboarding_total - summary.onboarding_pending}/{summary.onboarding_total} done
+                      </Badge>
+                    </div>
+                    <div className="h-2 rounded-full bg-secondary overflow-hidden mb-2">
+                      <div
+                        className="h-full bg-primary transition-all rounded-full"
+                        style={{ width: `${((summary.onboarding_total - summary.onboarding_pending) / summary.onboarding_total) * 100}%` }}
+                      />
+                    </div>
+                    {summary.onboarding_pending > 0 ? (
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">
+                          {summary.onboarding_pending} task{summary.onboarding_pending !== 1 ? "s" : ""} remaining
+                        </p>
+                        <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => setActiveTab("onboarding")}>
+                          Continue onboarding →
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-primary flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> All onboarding tasks completed!
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Summary cards */}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <SummaryCard
