@@ -122,26 +122,6 @@ export default function Dashboard() {
             ))}
       </div>
 
-      {/* Financial rollups — clickable */}
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        {isLoading
-          ? financialCards.map(({ key }) => <MetricCardSkeleton key={key} />)
-          : financialCards.map(({ key, label, icon: Icon, color, href }) => (
-              <button
-                key={key}
-                onClick={() => navigate(href)}
-                className="rounded-lg border bg-card p-5 text-left hover:border-primary/50 hover:shadow-sm transition-all group"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">{label}</p>
-                  <Icon className={`h-5 w-5 ${color}`} />
-                </div>
-                <p className="mt-2 text-2xl font-semibold text-card-foreground">
-                  {formatCurrency(metrics?.[key] ?? 0, currency)}
-                </p>
-              </button>
-            ))}
-      </div>
 
       {/* Pipeline breakdowns */}
       {currentWorkspace?.id && (
