@@ -48,20 +48,6 @@ const cards = [
   { key: "pending_invoices" as const, label: "Pending Invoices", icon: Receipt, color: "text-rose-500", href: "/invoices" },
 ];
 
-const financialCards = [
-  { key: "total_receivable" as const, label: "Total Receivable", icon: TrendingUp, color: "text-orange-500", href: "/invoices" },
-  { key: "total_collected" as const, label: "Total Collected", icon: DollarSign, color: "text-green-500", href: "/payments" },
-];
-
-function formatCurrency(value: number, currency: string = "BDT") {
-  return new Intl.NumberFormat("en-BD", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
 function MetricCardSkeleton() {
   return (
     <div className="rounded-lg border bg-card p-5">
