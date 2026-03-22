@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { subDays, subMonths, startOfDay, startOfMonth, endOfMonth } from "date-fns";
+import { subDays, subMonths, startOfDay, startOfMonth, endOfMonth, format } from "date-fns";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import {
   TrendingUp,
@@ -47,11 +47,20 @@ function getRangeStart(range: TimeRange): string | null {
   }
 }
 
-function getCurrentMonthBounds() {
+/** Returns timezone-safe month boundaries for both timestamp and date-only columns */
+function getLocalMonthBounds() {
   const now = new Date();
+  const monthStart = startOfMonth(now);
+  const monthEnd = endOfMonth(now);
   return {
-    start: startOfMonth(now).toISOString(),
-    end: endOfMonth(now).toISOString(),
+    // For timestamp columns (payments.paid_at) — full ISO timestamps in local tz
+    tsStart: monthStart.toISOString(),
+    tsEnd: monthEnd.toISOString(),
+    // For date-only columns (expenses.expense_date, budgets.period_start) — safe local YYYY-MM-DD
+    dateStart: format(monthStart, "yyyy-MM-dd"),
+    dateEnd: format(monthEnd, "yyyy-MM-dd"),
+    // Cache key based on year-month so it invalidates on month change
+    key: format(now, "yyyy-MM"),
   };
 }
 
@@ -123,7 +132,9 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   const rangeStart = useMemo(() => getRangeStart(range), [range]);
   const { currentRole } = useWorkspace();
   const isAdmin = currentRole === "admin";
-  const monthBounds = useMemo(getCurrentMonthBounds, []);
+
+  // Recalculates on every render — lightweight and never stale across month boundaries
+  const month = getLocalMonthBounds();
 
   const fmt = (n: number) =>
     new Intl.NumberFormat("en-BD", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
@@ -178,27 +189,27 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
     enabled: !!workspaceId,
     staleTime: 30000,
     queryFn: async () => {
-      let q = supabase.from("invoices").select("status, grand_total, amount_paid, due_date").eq("workspace_id", workspaceId).is("deleted_at", null);
+      let q = supabase.from("invoices").select("status, grand_total, amount_paid").eq("workspace_id", workspaceId).is("deleted_at", null);
       if (rangeStart) q = q.gte("created_at", rangeStart);
       const { data } = await q;
       return data || [];
     },
   });
 
-  /* ══════════════ FINANCIAL QUERIES (current month) ══════════════ */
+  /* ══════════════ FINANCIAL QUERIES (current month — admin only) ══════════════ */
 
   const { data: revenueData, isLoading: revenueLoading } = useQuery({
-    queryKey: ["dash-revenue-month", workspaceId, monthBounds.start],
+    queryKey: ["dash-revenue-month", workspaceId, month.key],
     enabled: !!workspaceId && isAdmin,
     staleTime: 60000,
     queryFn: async () => {
-      // Collected this month from payments
+      // Collected this month — timestamp column, use ISO bounds
       const { data: payments } = await supabase
         .from("payments")
         .select("amount")
         .eq("workspace_id", workspaceId)
-        .gte("paid_at", monthBounds.start)
-        .lte("paid_at", monthBounds.end);
+        .gte("paid_at", month.tsStart)
+        .lte("paid_at", month.tsEnd);
       const collectedThisMonth = (payments || []).reduce((s: number, p: any) => s + Number(p.amount), 0);
 
       // Active renewals count
@@ -208,23 +219,34 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
         .eq("workspace_id", workspaceId)
         .eq("is_active", true);
 
-      return { collectedThisMonth, renewalsCount: renewalsCount || 0 };
+      // Overdue invoices — independent of pipeline range, uses global workspace scope
+      const today = format(new Date(), "yyyy-MM-dd");
+      const { data: overdueRows } = await supabase
+        .from("invoices")
+        .select("id")
+        .eq("workspace_id", workspaceId)
+        .is("deleted_at", null)
+        .lt("due_date", today)
+        .not("status", "in", '("paid","void")');
+      const overdueCount = overdueRows?.length ?? 0;
+
+      return { collectedThisMonth, renewalsCount: renewalsCount || 0, overdueCount };
     },
   });
 
   const { data: spendData, isLoading: spendLoading } = useQuery({
-    queryKey: ["dash-spend-month", workspaceId, monthBounds.start],
+    queryKey: ["dash-spend-month", workspaceId, month.key],
     enabled: !!workspaceId && isAdmin,
     staleTime: 60000,
     queryFn: async () => {
-      // Expenses this month
+      // Expenses this month — date-only column, use local YYYY-MM-DD
       const { data: expenses } = await supabase
         .from("expenses")
         .select("amount")
         .eq("workspace_id", workspaceId)
         .is("deleted_at", null)
-        .gte("expense_date", monthBounds.start.split("T")[0])
-        .lte("expense_date", monthBounds.end.split("T")[0]);
+        .gte("expense_date", month.dateStart)
+        .lte("expense_date", month.dateEnd);
       const expenseThisMonth = (expenses || []).reduce((s: number, e: any) => s + Number(e.amount), 0);
 
       // Subscription monthly burn
@@ -249,13 +271,13 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
         .eq("workspace_id", workspaceId)
         .is("deleted_at", null);
 
-      // Monthly budget only (period_start within current month)
+      // Monthly budget only — date-only column, use local YYYY-MM-DD
       const { data: budgets } = await supabase
         .from("budgets")
         .select("target_amount")
         .eq("workspace_id", workspaceId)
-        .gte("period_start", monthBounds.start.split("T")[0])
-        .lte("period_start", monthBounds.end.split("T")[0]);
+        .gte("period_start", month.dateStart)
+        .lte("period_start", month.dateEnd);
       const totalBudget = (budgets || []).reduce((s: number, b: any) => s + Number(b.target_amount), 0);
 
       return {
@@ -281,11 +303,6 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   const projectCounts = useMemo(() => countByStatus(projects), [projects]);
   const invoiceCounts = useMemo(() => countByStatus(invoices), [invoices]);
 
-  const overdueInvoices = useMemo(() => {
-    const today = startOfDay(new Date());
-    return invoices.filter((i: any) => i.due_date && new Date(i.due_date) < today && i.status !== "paid" && i.status !== "void");
-  }, [invoices]);
-
   const totalInvoiced = invoices.reduce((s: number, i: any) => s + Number(i.grand_total), 0);
   const totalCollected = invoices.reduce((s: number, i: any) => s + Number(i.amount_paid), 0);
   const totalReceivable = invoices.reduce((s: number, i: any) => {
@@ -299,6 +316,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   const collectedThisMonth = revenueData?.collectedThisMonth ?? 0;
   const expenseThisMonth = spendData?.expenseThisMonth ?? 0;
   const netThisMonth = collectedThisMonth - expenseThisMonth;
+  const overdueCount = revenueData?.overdueCount ?? 0;
 
   return (
     <div className="mt-6 space-y-6">
@@ -385,7 +403,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
             </Card>
           </div>
 
-          {/* Range-based invoice summary visible to all */}
+          {/* Range-based invoice summary — clearly labelled with selected range */}
           <div className="grid gap-3 md:grid-cols-3">
             <KpiCard label="Total Invoiced" value={fmt(totalInvoiced)} icon={Receipt} iconColor="text-primary" sub={TIME_LABELS[range]} />
             <KpiCard label="Total Collected" value={fmt(totalCollected)} icon={CreditCard} iconColor="text-emerald-500" sub={TIME_LABELS[range]} />
@@ -417,12 +435,13 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
                   <CardContent className="pt-4 pb-4 px-4">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-xs text-muted-foreground">Overdue Invoices</p>
-                      {overdueInvoices.length > 0 && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Action needed</Badge>}
+                      {overdueCount > 0 && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Action needed</Badge>}
                     </div>
-                    <p className="text-lg font-semibold text-foreground tabular-nums">{overdueInvoices.length}</p>
+                    <p className="text-lg font-semibold text-foreground tabular-nums">{overdueCount}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">All time</p>
                   </CardContent>
                 </Card>
-                <KpiCard label="Active Renewals" value={revenueData?.renewalsCount ?? 0} icon={RefreshCw} iconColor="text-primary" />
+                <KpiCard label="Active Renewals" value={revenueData?.renewalsCount ?? "—"} icon={RefreshCw} iconColor="text-primary" />
               </div>
             )}
           </div>
@@ -439,8 +458,8 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
               <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
                 <KpiCard label="Expenses This Month" value={fmt(expenseThisMonth)} icon={Wallet} iconColor="text-destructive" sub="This month" />
                 <KpiCard label="Monthly Subscription Burn" value={fmt(spendData?.subBurn ?? 0)} icon={RefreshCw} iconColor="text-amber-500" />
-                <KpiCard label="Active Subscriptions" value={spendData?.activeSubsCount ?? 0} icon={CreditCard} iconColor="text-primary" />
-                <KpiCard label="Vendors" value={spendData?.vendorsCount ?? 0} icon={Store} iconColor="text-muted-foreground" />
+                <KpiCard label="Active Subscriptions" value={spendData?.activeSubsCount ?? "—"} icon={CreditCard} iconColor="text-primary" />
+                <KpiCard label="Vendors" value={spendData?.vendorsCount ?? "—"} icon={Store} iconColor="text-muted-foreground" />
                 {(spendData?.totalBudget ?? 0) > 0 ? (
                   <Card>
                     <CardContent className="pt-4 pb-4 px-4">
