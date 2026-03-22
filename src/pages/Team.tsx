@@ -3,16 +3,10 @@ import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { TeamManagementTab } from "@/components/settings/TeamManagementTab";
 import { DepartmentManager } from "@/components/team/DepartmentManager";
 import { TeamPodManager } from "@/components/team/TeamPodManager";
-import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { Navigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Team() {
-  const { currentRole } = useWorkspace();
-
-  if (currentRole !== "admin") {
-    return <Navigate to="/dashboard" replace />;
-  }
+  // Route-level AdminGuard in App.tsx enforces admin-only access
 
   return (
     <div>
