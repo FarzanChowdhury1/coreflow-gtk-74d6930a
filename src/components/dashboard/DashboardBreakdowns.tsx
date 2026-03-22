@@ -24,6 +24,7 @@ import {
   Wallet,
   PieChart,
   AlertCircle,
+  DollarSign,
 } from "lucide-react";
 
 /* ── Time range helpers ── */
@@ -51,12 +52,12 @@ function getRangeStart(range: TimeRange): string | null {
 /**
  * Returns month boundaries for financial snapshot queries.
  *
- * - `tsStart` / `tsEnd`: UTC ISO-8601 strings produced by `.toISOString()`.
- *   They represent the UTC instant corresponding to the local month start/end.
- *   Used for filtering **timestamp** columns (e.g. `payments.paid_at`).
+ * - `tsStart` / `tsEnd`: UTC ISO-8601 strings via `.toISOString()`.
+ *   These represent the UTC instant corresponding to the local month
+ *   start/end and are used for **timestamp** columns (e.g. `payments.paid_at`).
  *
  * - `dateStart` / `dateEnd`: Local `yyyy-MM-dd` strings via `date-fns/format`
- *   (no UTC shift). Used for filtering **date-only** columns
+ *   (no UTC shift). Used for **date-only** columns
  *   (e.g. `expenses.expense_date`, `budgets.period_start`).
  *
  * - `key`: Year-month cache key so react-query invalidates on month rollover.
@@ -167,7 +168,8 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
     queryFn: async () => {
       let q = supabase.from("leads").select("status").eq("workspace_id", workspaceId).is("deleted_at", null);
       if (rangeStart) q = q.gte("created_at", rangeStart);
-      const { data } = await q;
+      const { data, error } = await q;
+      if (error) throw error;
       return data || [];
     },
   });
@@ -180,7 +182,8 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
       let q = supabase.from("proposal_versions").select("status, proposal_id, version_number").eq("workspace_id", workspaceId);
       if (rangeStart) q = q.gte("created_at", rangeStart);
       q = q.order("version_number", { ascending: false });
-      const { data } = await q;
+      const { data, error } = await q;
+      if (error) throw error;
       if (!data) return [];
       const seen = new Set<string>();
       return data.filter((v: any) => {
@@ -198,7 +201,8 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
     queryFn: async () => {
       let q = supabase.from("projects").select("status").eq("workspace_id", workspaceId).is("deleted_at", null);
       if (rangeStart) q = q.gte("created_at", rangeStart);
-      const { data } = await q;
+      const { data, error } = await q;
+      if (error) throw error;
       return data || [];
     },
   });
@@ -210,7 +214,8 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
     queryFn: async () => {
       let q = supabase.from("invoices").select("status, grand_total, amount_paid").eq("workspace_id", workspaceId).is("deleted_at", null);
       if (rangeStart) q = q.gte("created_at", rangeStart);
-      const { data } = await q;
+      const { data, error } = await q;
+      if (error) throw error;
       return data || [];
     },
   });
@@ -222,32 +227,62 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
     enabled: !!workspaceId && isAdmin,
     staleTime: 60000,
     queryFn: async () => {
-      const { data: payments } = await supabase
+      // Total collected this month from payments ledger
+      const { data: payments, error: paymentsErr } = await supabase
         .from("payments")
         .select("amount")
         .eq("workspace_id", workspaceId)
         .gte("paid_at", month.tsStart)
         .lte("paid_at", month.tsEnd);
+      if (paymentsErr) throw paymentsErr;
       const collectedThisMonth = (payments || []).reduce((s: number, p: any) => s + Number(p.amount), 0);
 
-      const { count: renewalsCount } = await supabase
+      // Total invoiced this month (by issue_date)
+      const { data: monthInvoices, error: invErr } = await supabase
+        .from("invoices")
+        .select("grand_total, amount_paid, status")
+        .eq("workspace_id", workspaceId)
+        .is("deleted_at", null)
+        .gte("issue_date", month.dateStart)
+        .lte("issue_date", month.dateEnd);
+      if (invErr) throw invErr;
+      const invoicedThisMonth = (monthInvoices || []).reduce((s: number, i: any) => s + Number(i.grand_total), 0);
+
+      // Outstanding receivable — all unpaid/partially paid invoices workspace-wide
+      const { data: openInvoices, error: openErr } = await supabase
+        .from("invoices")
+        .select("grand_total, amount_paid")
+        .eq("workspace_id", workspaceId)
+        .is("deleted_at", null)
+        .not("status", "in", '("paid","void")');
+      if (openErr) throw openErr;
+      const outstandingReceivable = (openInvoices || []).reduce(
+        (s: number, i: any) => s + (Number(i.grand_total) - Number(i.amount_paid)), 0
+      );
+
+      // Active renewals count
+      const { count: renewalsCount, error: renErr } = await supabase
         .from("renewals")
         .select("id", { count: "exact", head: true })
         .eq("workspace_id", workspaceId)
         .eq("is_active", true);
+      if (renErr) throw renErr;
 
       // Overdue invoices — independent of pipeline range
       const today = format(new Date(), "yyyy-MM-dd");
-      const { data: overdueRows } = await supabase
+      const { data: overdueRows, error: overdueErr } = await supabase
         .from("invoices")
         .select("id")
         .eq("workspace_id", workspaceId)
         .is("deleted_at", null)
         .lt("due_date", today)
         .not("status", "in", '("paid","void")');
+      if (overdueErr) throw overdueErr;
 
       return {
         collectedThisMonth,
+        invoicedThisMonth,
+        outstandingReceivable,
         renewalsCount: renewalsCount || 0,
         overdueCount: overdueRows?.length ?? 0,
       };
@@ -259,33 +294,37 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
     enabled: !!workspaceId && isAdmin,
     staleTime: 60000,
     queryFn: async () => {
-      const { data: expenses } = await supabase
+      const { data: expenses, error: expErr } = await supabase
         .from("expenses")
         .select("amount")
         .eq("workspace_id", workspaceId)
         .is("deleted_at", null)
         .gte("expense_date", month.dateStart)
         .lte("expense_date", month.dateEnd);
+      if (expErr) throw expErr;
       const expenseThisMonth = (expenses || []).reduce((s: number, e: any) => s + Number(e.amount), 0);
 
-      const { data: subs } = await supabase
+      const { data: subs, error: subErr } = await supabase
         .from("subscriptions")
         .select("amount, interval_months")
         .eq("workspace_id", workspaceId)
         .eq("is_active", true);
+      if (subErr) throw subErr;
       const subBurn = (subs || []).reduce((s: number, sub: any) => s + Number(sub.amount) / sub.interval_months, 0);
 
-      const { count: activeSubsCount } = await supabase
+      const { count: activeSubsCount, error: ascErr } = await supabase
         .from("subscriptions")
         .select("id", { count: "exact", head: true })
         .eq("workspace_id", workspaceId)
         .eq("is_active", true);
+      if (ascErr) throw ascErr;
 
-      const { count: vendorsCount } = await supabase
+      const { count: vendorsCount, error: venErr } = await supabase
         .from("vendors")
         .select("id", { count: "exact", head: true })
         .eq("workspace_id", workspaceId)
         .is("deleted_at", null);
+      if (venErr) throw venErr;
 
       /*
        * Budget snapshot — only counts budget rows whose `period_start` falls
@@ -293,12 +332,13 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
        * intentionally excluded unless represented as monthly entries. This
        * prevents double-counting across overlapping budget periods.
        */
-      const { data: budgets } = await supabase
+      const { data: budgets, error: budErr } = await supabase
         .from("budgets")
         .select("target_amount")
         .eq("workspace_id", workspaceId)
         .gte("period_start", month.dateStart)
         .lte("period_start", month.dateEnd);
+      if (budErr) throw budErr;
       const totalBudget = (budgets || []).reduce((s: number, b: any) => s + Number(b.target_amount), 0);
 
       return {
@@ -442,12 +482,14 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
               Revenue
             </h3>
             {revenueLoading ? (
-              <FinanceSkeletonRow count={3} />
+              <FinanceSkeletonRow count={5} />
             ) : revenueError ? (
               <FinanceErrorBanner message="Could not load revenue metrics. Try refreshing the page." />
             ) : (
-              <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
-                <KpiCard label="Revenue Collected" value={fmt(revenueData?.collectedThisMonth ?? 0)} icon={CreditCard} iconColor="text-success" sub="This month" />
+              <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
+                <KpiCard label="Total Invoiced" value={fmt(revenueData?.invoicedThisMonth ?? 0)} icon={DollarSign} iconColor="text-primary" sub="This month" />
+                <KpiCard label="Total Collected" value={fmt(revenueData?.collectedThisMonth ?? 0)} icon={CreditCard} iconColor="text-success" sub="This month" />
+                <KpiCard label="Outstanding Receivable" value={fmt(revenueData?.outstandingReceivable ?? 0)} icon={Receipt} iconColor="text-warning" sub="All open invoices" />
                 <Card>
                   <CardContent className="pt-4 pb-4 px-4">
                     <div className="flex items-center justify-between mb-1">
