@@ -2565,7 +2565,15 @@ export type Database = {
         }
         Returns: Json
       }
+      next_client_task_order: {
+        Args: { _company_id: string; _workspace_id: string }
+        Returns: number
+      }
       next_invoice_number: { Args: { _workspace_id: string }; Returns: string }
+      normalize_client_task_order: {
+        Args: { _company_id: string; _workspace_id: string }
+        Returns: undefined
+      }
       portal_respond_proposal: {
         Args: { _action: string; _token: string; _version_id: string }
         Returns: Json
@@ -2603,6 +2611,10 @@ export type Database = {
           _workspace_id: string
         }
         Returns: Json
+      }
+      swap_client_task_order: {
+        Args: { _task_a: string; _task_b: string }
+        Returns: undefined
       }
       sweep_lead_followups: { Args: never; Returns: Json }
       sweep_overdue_invoices: { Args: never; Returns: Json }
