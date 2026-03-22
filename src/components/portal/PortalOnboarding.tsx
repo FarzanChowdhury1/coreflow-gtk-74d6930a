@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import {
   ClipboardList, CheckCircle2, Clock, AlertTriangle, Send,
-  ChevronDown, ChevronUp, ExternalLink,
+  ChevronDown, ChevronUp, ExternalLink, LinkIcon, FileText,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -46,7 +46,6 @@ export function PortalOnboarding({ session: _session }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Form state per task
   const [formText, setFormText] = useState("");
   const [formLink, setFormLink] = useState("");
   const [formNotes, setFormNotes] = useState("");
@@ -201,6 +200,44 @@ export function PortalOnboarding({ session: _session }: Props) {
   );
 }
 
+/* ---- Submission content renderer ---- */
+function SubmissionContent({ task }: { task: OnboardingTask }) {
+  const hasText = !!task.response_text;
+  const hasLink = !!task.response_link;
+  const hasNotes = !!task.response_notes;
+
+  if (!hasText && !hasLink && !hasNotes) return null;
+
+  return (
+    <div className="border-t px-4 py-3 space-y-2">
+      {hasText && (
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+            <FileText className="h-3 w-3" /> Your Response
+          </p>
+          <p className="text-sm text-foreground whitespace-pre-wrap">{task.response_text}</p>
+        </div>
+      )}
+      {hasLink && (
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+            <LinkIcon className="h-3 w-3" /> Attached Link
+          </p>
+          <a href={task.response_link!} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline inline-flex items-center gap-1 break-all">
+            <ExternalLink className="h-3 w-3 shrink-0" /> {task.response_link}
+          </a>
+        </div>
+      )}
+      {hasNotes && (
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-1">Additional Notes</p>
+          <p className="text-sm text-foreground whitespace-pre-wrap">{task.response_notes}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TaskCard({
   task,
   expanded,
@@ -318,17 +355,9 @@ function TaskCard({
         </div>
       )}
 
-      {/* Show previous response for submitted/approved */}
-      {(task.status === "submitted" || task.status === "approved") && task.response_text && (
-        <div className="border-t px-4 py-3">
-          <p className="text-xs font-medium text-muted-foreground mb-1">Your Response</p>
-          <p className="text-sm text-foreground line-clamp-3">{task.response_text}</p>
-          {task.response_link && (
-            <a href={task.response_link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline mt-1 inline-flex items-center gap-1">
-              <ExternalLink className="h-3 w-3" /> {task.response_link}
-            </a>
-          )}
-        </div>
+      {/* Show previous response for submitted/approved - using unified renderer */}
+      {(task.status === "submitted" || task.status === "approved") && (
+        <SubmissionContent task={task} />
       )}
     </Card>
   );
