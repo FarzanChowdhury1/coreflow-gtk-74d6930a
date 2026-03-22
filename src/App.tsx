@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { AdminGuard } from "@/components/auth/AdminGuard";
 import { AppLayout } from "@/components/layout/AppLayout";
 
 // Critical path – loaded eagerly
@@ -75,28 +76,31 @@ const App = () => (
                   </ProtectedRoute>
                 }
               >
+                {/* Team-visible routes */}
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/leads" element={<Leads />} />
                 <Route path="/clients" element={<Clients />} />
                 <Route path="/proposals" element={<Proposals />} />
                 <Route path="/approvals" element={<ApprovalsPage />} />
                 <Route path="/projects" element={<Projects />} />
-                <Route path="/invoices" element={<Invoices />} />
                 <Route path="/meetings" element={<Meetings />} />
-                <Route path="/payments" element={<Payments />} />
                 <Route path="/notifications" element={<Notifications />} />
-                <Route path="/audit" element={<AuditLog />} />
                 <Route path="/client-updates" element={<ClientUpdates />} />
-                <Route path="/renewals" element={<Renewals />} />
-                <Route path="/digest-inspector" element={<DigestInspector />} />
-                <Route path="/ops" element={<OpsHealth />} />
-                <Route path="/beta-feedback" element={<BetaFeedback />} />
-                <Route path="/vendors" element={<Vendors />} />
-                <Route path="/expenses" element={<Expenses />} />
-                <Route path="/subscriptions" element={<Subscriptions />} />
-                <Route path="/budget" element={<BudgetActual />} />
-                <Route path="/team" element={<Team />} />
                 <Route path="/settings" element={<SettingsPage />} />
+
+                {/* Admin-only routes — guarded at route level */}
+                <Route path="/invoices" element={<AdminGuard><Invoices /></AdminGuard>} />
+                <Route path="/payments" element={<AdminGuard><Payments /></AdminGuard>} />
+                <Route path="/renewals" element={<AdminGuard><Renewals /></AdminGuard>} />
+                <Route path="/vendors" element={<AdminGuard><Vendors /></AdminGuard>} />
+                <Route path="/expenses" element={<AdminGuard><Expenses /></AdminGuard>} />
+                <Route path="/subscriptions" element={<AdminGuard><Subscriptions /></AdminGuard>} />
+                <Route path="/budget" element={<AdminGuard><BudgetActual /></AdminGuard>} />
+                <Route path="/audit" element={<AdminGuard><AuditLog /></AdminGuard>} />
+                <Route path="/team" element={<AdminGuard><Team /></AdminGuard>} />
+                <Route path="/digest-inspector" element={<AdminGuard><DigestInspector /></AdminGuard>} />
+                <Route path="/ops" element={<AdminGuard><OpsHealth /></AdminGuard>} />
+                <Route path="/beta-feedback" element={<AdminGuard><BetaFeedback /></AdminGuard>} />
               </Route>
 
               {/* Redirects */}
