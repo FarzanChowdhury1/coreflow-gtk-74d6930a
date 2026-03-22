@@ -1,4 +1,4 @@
-import { LayoutDashboard, TrendingUp, FileText, FolderKanban, Receipt, DollarSign, Users, AlertTriangle, X } from "lucide-react";
+import { LayoutDashboard, Users, FileText, FolderKanban, Receipt, AlertTriangle, X } from "lucide-react";
 import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 import { DashboardBreakdowns } from "@/components/dashboard/DashboardBreakdowns";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
