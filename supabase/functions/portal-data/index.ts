@@ -246,11 +246,29 @@ async function handleResource(
     case "onboarding_tasks": {
       const { data } = await supabase
         .from("client_tasks")
-        .select("id, title, description, status, sort_order, due_date, response_text, response_link, response_notes, revision_note, submitted_at, approved_at")
+        .select("id, title, description, status, sort_order, due_date, response_text, response_link, response_notes, revision_note, submitted_at, approved_at, project_id")
         .eq("company_id", session.company_id)
         .eq("workspace_id", session.workspace_id)
         .order("sort_order", { ascending: true });
-      return jsonResponse({ data: data || [] }, 200, hdrs);
+
+      // Enrich with project names
+      const tasks = data || [];
+      const projectIds = [...new Set(tasks.filter((t: any) => t.project_id).map((t: any) => t.project_id))];
+      let projectMap: Record<string, string> = {};
+      if (projectIds.length > 0) {
+        const { data: projects } = await supabase
+          .from("projects")
+          .select("id, name")
+          .in("id", projectIds);
+        if (projects) {
+          projectMap = Object.fromEntries(projects.map((p: any) => [p.id, p.name]));
+        }
+      }
+      const enriched = tasks.map((t: any) => ({
+        ...t,
+        project_name: t.project_id ? (projectMap[t.project_id] || null) : null,
+      }));
+      return jsonResponse({ data: enriched }, 200, hdrs);
     }
 
     case "summary": {
