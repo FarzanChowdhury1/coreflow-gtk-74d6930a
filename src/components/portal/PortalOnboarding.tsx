@@ -283,6 +283,11 @@ function TaskCard({
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-medium text-foreground">{task.title}</span>
               <Badge className={`text-[10px] h-5 ${meta.color}`}>{meta.label}</Badge>
+              {task.project_name && (
+                <Badge variant="outline" className="text-[10px] h-5 font-normal">
+                  {task.project_name}
+                </Badge>
+              )}
             </div>
             {task.description && !expanded && (
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{task.description}</p>

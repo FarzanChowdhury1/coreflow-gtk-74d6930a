@@ -135,6 +135,13 @@ export function ClientOnboardingManager({ companyId, companyName, open, onOpenCh
       if (error) { toast.error("Failed to update task"); return; }
       toast.success("Task updated");
     } else {
+      // Use backend RPC for safe sort_order
+      const { data: nextOrder, error: orderError } = await supabase.rpc("next_client_task_order", {
+        _company_id: companyId,
+        _workspace_id: workspaceId,
+      });
+      if (orderError) { toast.error("Failed to determine task order"); return; }
+
       const { error } = await supabase.from("client_tasks").insert({
         title: title.trim(),
         description: description.trim() || null,
@@ -142,7 +149,7 @@ export function ClientOnboardingManager({ companyId, companyName, open, onOpenCh
         project_id: linkedProject,
         workspace_id: workspaceId,
         company_id: companyId,
-        sort_order: tasks.length,
+        sort_order: nextOrder ?? 0,
         created_by: user.id,
       } as any);
       if (error) { toast.error("Failed to create task"); return; }
@@ -154,15 +161,17 @@ export function ClientOnboardingManager({ companyId, companyName, open, onOpenCh
   };
 
   const handleDelete = async (taskId: string) => {
+    if (!workspaceId) return;
     const { error } = await supabase.from("client_tasks").delete().eq("id", taskId);
     if (error) { toast.error("Failed to delete task"); return; }
-    // Re-normalize sort_order after delete
-    const remaining = tasks.filter((t) => t.id !== taskId).sort((a, b) => a.sort_order - b.sort_order);
-    for (let i = 0; i < remaining.length; i++) {
-      if (remaining[i].sort_order !== i) {
-        await supabase.from("client_tasks").update({ sort_order: i } as any).eq("id", remaining[i].id);
-      }
-    }
+
+    // Normalize sort_order atomically via RPC
+    const { error: normError } = await supabase.rpc("normalize_client_task_order", {
+      _company_id: companyId,
+      _workspace_id: workspaceId,
+    });
+    if (normError) console.warn("Sort normalization failed:", normError.message);
+
     toast.success("Task deleted");
     invalidate();
   };
@@ -174,11 +183,15 @@ export function ClientOnboardingManager({ companyId, companyName, open, onOpenCh
     const swapIdx = direction === "up" ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= sorted.length) return;
 
-    const updates = [
-      supabase.from("client_tasks").update({ sort_order: swapIdx } as any).eq("id", sorted[idx].id),
-      supabase.from("client_tasks").update({ sort_order: idx } as any).eq("id", sorted[swapIdx].id),
-    ];
-    await Promise.all(updates);
+    // Atomic swap via RPC
+    const { error } = await supabase.rpc("swap_client_task_order", {
+      _task_a: sorted[idx].id,
+      _task_b: sorted[swapIdx].id,
+    });
+    if (error) {
+      toast.error("Failed to reorder task");
+      return;
+    }
     invalidate();
   };
 
@@ -407,7 +420,7 @@ export function ClientOnboardingManager({ companyId, companyName, open, onOpenCh
                   )}
                 </div>
 
-                {/* Client response - show all combos */}
+                {/* Client response */}
                 {reviewTask.response_text && (
                   <div className="rounded-md border bg-muted/50 p-3">
                     <p className="text-xs font-medium text-muted-foreground mb-1">Client Response</p>
