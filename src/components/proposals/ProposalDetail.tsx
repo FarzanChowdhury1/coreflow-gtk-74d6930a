@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Plus, Send, Copy, Download } from "lucide-react";
+import { ArrowLeft, Send, Copy, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { exportProposalPdf } from "@/lib/proposal-pdf";
 import { Badge } from "@/components/ui/badge";
