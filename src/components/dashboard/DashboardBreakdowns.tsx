@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { subDays, subMonths, startOfDay } from "date-fns";
+import { subDays, subMonths, startOfDay, startOfMonth, endOfMonth } from "date-fns";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import {
   TrendingUp,
@@ -24,6 +24,8 @@ import {
   Wallet,
   PieChart,
 } from "lucide-react";
+
+/* ── Time range helpers ── */
 
 type TimeRange = "7d" | "30d" | "90d" | "12m" | "all";
 const TIME_LABELS: Record<TimeRange, string> = {
@@ -44,6 +46,16 @@ function getRangeStart(range: TimeRange): string | null {
     case "all": return null;
   }
 }
+
+function getCurrentMonthBounds() {
+  const now = new Date();
+  return {
+    start: startOfMonth(now).toISOString(),
+    end: endOfMonth(now).toISOString(),
+  };
+}
+
+/* ── Shared sub-components ── */
 
 interface Props {
   workspaceId: string;
@@ -88,23 +100,36 @@ function KpiCard({ label, value, icon: Icon, iconColor, sub }: {
   );
 }
 
-function getMonthRange() {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
-  return { start, end };
+function FinanceSkeletonRow({ count = 5 }: { count?: number }) {
+  return (
+    <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
+      {Array.from({ length: count }).map((_, i) => (
+        <Card key={i}>
+          <CardContent className="pt-4 pb-4 px-4">
+            <Skeleton className="h-3 w-20 mb-2" />
+            <Skeleton className="h-6 w-24" />
+            <Skeleton className="h-2.5 w-16 mt-1.5" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
 }
+
+/* ── Main component ── */
 
 export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   const [range, setRange] = useState<TimeRange>("30d");
   const rangeStart = useMemo(() => getRangeStart(range), [range]);
   const { currentRole } = useWorkspace();
   const isAdmin = currentRole === "admin";
+  const monthBounds = useMemo(getCurrentMonthBounds, []);
 
   const fmt = (n: number) =>
     new Intl.NumberFormat("en-BD", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
 
-  // ── Pipeline data ──
+  /* ══════════════ PIPELINE QUERIES (range-based) ══════════════ */
+
   const { data: leads = [], isLoading: ll } = useQuery({
     queryKey: ["dash-leads", workspaceId, rangeStart],
     enabled: !!workspaceId,
@@ -160,137 +185,101 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
     },
   });
 
-  // ── Revenue data (admin) ──
-  const { data: renewalsCount = 0 } = useQuery({
-    queryKey: ["dash-renewals-count", workspaceId],
+  /* ══════════════ FINANCIAL QUERIES (current month) ══════════════ */
+
+  const { data: revenueData, isLoading: revenueLoading } = useQuery({
+    queryKey: ["dash-revenue-month", workspaceId, monthBounds.start],
     enabled: !!workspaceId && isAdmin,
     staleTime: 60000,
     queryFn: async () => {
-      const { count } = await supabase
+      // Collected this month from payments
+      const { data: payments } = await supabase
+        .from("payments")
+        .select("amount")
+        .eq("workspace_id", workspaceId)
+        .gte("paid_at", monthBounds.start)
+        .lte("paid_at", monthBounds.end);
+      const collectedThisMonth = (payments || []).reduce((s: number, p: any) => s + Number(p.amount), 0);
+
+      // Active renewals count
+      const { count: renewalsCount } = await supabase
         .from("renewals")
         .select("id", { count: "exact", head: true })
         .eq("workspace_id", workspaceId)
         .eq("is_active", true);
-      return count || 0;
+
+      return { collectedThisMonth, renewalsCount: renewalsCount || 0 };
     },
   });
 
-  const { start: monthStart, end: monthEnd } = useMemo(getMonthRange, []);
-
-  const { data: collectedThisMonth = 0 } = useQuery({
-    queryKey: ["dash-collected-month", workspaceId, monthStart],
+  const { data: spendData, isLoading: spendLoading } = useQuery({
+    queryKey: ["dash-spend-month", workspaceId, monthBounds.start],
     enabled: !!workspaceId && isAdmin,
     staleTime: 60000,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("payments")
-        .select("amount")
-        .eq("workspace_id", workspaceId)
-        .gte("paid_at", monthStart + "T00:00:00")
-        .lte("paid_at", monthEnd + "T23:59:59");
-      return (data || []).reduce((s: number, p: any) => s + Number(p.amount), 0);
-    },
-  });
-
-  // ── Spend data (admin) ──
-  const { data: expenseThisMonth = 0 } = useQuery({
-    queryKey: ["dashboard-expense-total", workspaceId],
-    enabled: !!workspaceId && isAdmin,
-    staleTime: 60000,
-    queryFn: async () => {
-      const { data } = await supabase
+      // Expenses this month
+      const { data: expenses } = await supabase
         .from("expenses")
         .select("amount")
         .eq("workspace_id", workspaceId)
         .is("deleted_at", null)
-        .gte("expense_date", monthStart)
-        .lte("expense_date", monthEnd);
-      return (data || []).reduce((s: number, e: any) => s + Number(e.amount), 0);
-    },
-  });
+        .gte("expense_date", monthBounds.start.split("T")[0])
+        .lte("expense_date", monthBounds.end.split("T")[0]);
+      const expenseThisMonth = (expenses || []).reduce((s: number, e: any) => s + Number(e.amount), 0);
 
-  const { data: subBurn = 0 } = useQuery({
-    queryKey: ["dashboard-sub-burn", workspaceId],
-    enabled: !!workspaceId && isAdmin,
-    staleTime: 60000,
-    queryFn: async () => {
-      const { data } = await supabase
+      // Subscription monthly burn
+      const { data: subs } = await supabase
         .from("subscriptions")
         .select("amount, interval_months")
         .eq("workspace_id", workspaceId)
         .eq("is_active", true);
-      return (data || []).reduce((s: number, sub: any) => s + Number(sub.amount) / sub.interval_months, 0);
-    },
-  });
+      const subBurn = (subs || []).reduce((s: number, sub: any) => s + Number(sub.amount) / sub.interval_months, 0);
 
-  const { data: activeSubsCount = 0 } = useQuery({
-    queryKey: ["dash-active-subs", workspaceId],
-    enabled: !!workspaceId && isAdmin,
-    staleTime: 60000,
-    queryFn: async () => {
-      const { count } = await supabase
+      // Active subs count
+      const { count: activeSubsCount } = await supabase
         .from("subscriptions")
         .select("id", { count: "exact", head: true })
         .eq("workspace_id", workspaceId)
         .eq("is_active", true);
-      return count || 0;
-    },
-  });
 
-  const { data: vendorsCount = 0 } = useQuery({
-    queryKey: ["dash-vendors-count", workspaceId],
-    enabled: !!workspaceId && isAdmin,
-    staleTime: 60000,
-    queryFn: async () => {
-      const { count } = await supabase
+      // Vendors count
+      const { count: vendorsCount } = await supabase
         .from("vendors")
         .select("id", { count: "exact", head: true })
         .eq("workspace_id", workspaceId)
         .is("deleted_at", null);
-      return count || 0;
-    },
-  });
 
-  const { data: budgetSummary } = useQuery({
-    queryKey: ["dash-budget-summary", workspaceId, monthStart],
-    enabled: !!workspaceId && isAdmin,
-    staleTime: 60000,
-    queryFn: async () => {
-      const { data } = await supabase
+      // Monthly budget only (period_start within current month)
+      const { data: budgets } = await supabase
         .from("budgets")
         .select("target_amount")
         .eq("workspace_id", workspaceId)
-        .lte("period_start", monthEnd)
-        .gte("period_end", monthStart);
-      const totalBudget = (data || []).reduce((s: number, b: any) => s + Number(b.target_amount), 0);
-      return { totalBudget };
+        .gte("period_start", monthBounds.start.split("T")[0])
+        .lte("period_start", monthBounds.end.split("T")[0]);
+      const totalBudget = (budgets || []).reduce((s: number, b: any) => s + Number(b.target_amount), 0);
+
+      return {
+        expenseThisMonth,
+        subBurn: Math.round(subBurn),
+        activeSubsCount: activeSubsCount || 0,
+        vendorsCount: vendorsCount || 0,
+        totalBudget,
+      };
     },
   });
 
-  // ── Computed pipeline metrics ──
-  const leadCounts = useMemo(() => {
-    const map: Record<string, number> = {};
-    leads.forEach((l: any) => { map[l.status] = (map[l.status] || 0) + 1; });
-    return map;
-  }, [leads]);
+  /* ══════════════ COMPUTED PIPELINE METRICS ══════════════ */
 
-  const proposalCounts = useMemo(() => {
+  const countByStatus = (arr: any[]) => {
     const map: Record<string, number> = {};
-    proposalVersions.forEach((p: any) => { map[p.status] = (map[p.status] || 0) + 1; });
+    arr.forEach((r: any) => { map[r.status] = (map[r.status] || 0) + 1; });
     return map;
-  }, [proposalVersions]);
+  };
 
-  const projectCounts = useMemo(() => {
-    const map: Record<string, number> = {};
-    projects.forEach((p: any) => { map[p.status] = (map[p.status] || 0) + 1; });
-    return map;
-  }, [projects]);
-
-  const invoiceCounts = useMemo(() => {
-    const map: Record<string, number> = {};
-    invoices.forEach((i: any) => { map[i.status] = (map[i.status] || 0) + 1; });
-    return map;
-  }, [invoices]);
+  const leadCounts = useMemo(() => countByStatus(leads), [leads]);
+  const proposalCounts = useMemo(() => countByStatus(proposalVersions), [proposalVersions]);
+  const projectCounts = useMemo(() => countByStatus(projects), [projects]);
+  const invoiceCounts = useMemo(() => countByStatus(invoices), [invoices]);
 
   const overdueInvoices = useMemo(() => {
     const today = startOfDay(new Date());
@@ -304,14 +293,18 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
     return s + (Number(i.grand_total) - Number(i.amount_paid));
   }, 0);
 
-  const loading = ll || pl || prl || il;
+  const pipelineLoading = ll || pl || prl || il;
+  const financeLoading = revenueLoading || spendLoading;
+
+  const collectedThisMonth = revenueData?.collectedThisMonth ?? 0;
+  const expenseThisMonth = spendData?.expenseThisMonth ?? 0;
   const netThisMonth = collectedThisMonth - expenseThisMonth;
 
   return (
     <div className="mt-6 space-y-6">
-      {/* Time range selector */}
+      {/* ════════════════════════ PIPELINE ════════════════════════ */}
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium text-foreground">Pipeline Breakdown</h2>
+        <h2 className="text-sm font-medium text-foreground">Pipeline</h2>
         <Select value={range} onValueChange={(v) => setRange(v as TimeRange)}>
           <SelectTrigger className="w-[160px] h-8 text-xs">
             <SelectValue />
@@ -324,7 +317,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
         </Select>
       </div>
 
-      {loading ? (
+      {pipelineLoading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i}><CardContent className="pt-5"><Skeleton className="h-20 w-full" /></CardContent></Card>
@@ -332,23 +325,19 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
         </div>
       ) : (
         <>
-          {/* Pipeline status bars */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="pb-2 pt-4 px-4">
                 <CardTitle className="text-xs font-medium text-muted-foreground">Leads by Status</CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
-                <StatusBar
-                  total={leads.length}
-                  items={[
-                    { label: "New", count: leadCounts.new || 0, color: "bg-muted-foreground/40" },
-                    { label: "Contacted", count: leadCounts.contacted || 0, color: "bg-primary/60" },
-                    { label: "Qualified", count: leadCounts.qualified || 0, color: "bg-emerald-500" },
-                    { label: "Unqualified", count: leadCounts.unqualified || 0, color: "bg-destructive/60" },
-                    { label: "Converted", count: leadCounts.converted || 0, color: "bg-accent" },
-                  ]}
-                />
+                <StatusBar total={leads.length} items={[
+                  { label: "New", count: leadCounts.new || 0, color: "bg-muted-foreground/40" },
+                  { label: "Contacted", count: leadCounts.contacted || 0, color: "bg-primary/60" },
+                  { label: "Qualified", count: leadCounts.qualified || 0, color: "bg-emerald-500" },
+                  { label: "Unqualified", count: leadCounts.unqualified || 0, color: "bg-destructive/60" },
+                  { label: "Converted", count: leadCounts.converted || 0, color: "bg-accent" },
+                ]} />
               </CardContent>
             </Card>
 
@@ -357,15 +346,12 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
                 <CardTitle className="text-xs font-medium text-muted-foreground">Proposals by Status (latest version)</CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
-                <StatusBar
-                  total={proposalVersions.length}
-                  items={[
-                    { label: "Draft", count: proposalCounts.draft || 0, color: "bg-muted-foreground/40" },
-                    { label: "Sent", count: proposalCounts.sent || 0, color: "bg-primary/60" },
-                    { label: "Approved", count: proposalCounts.approved || 0, color: "bg-emerald-500" },
-                    { label: "Rejected", count: proposalCounts.rejected || 0, color: "bg-destructive/60" },
-                  ]}
-                />
+                <StatusBar total={proposalVersions.length} items={[
+                  { label: "Draft", count: proposalCounts.draft || 0, color: "bg-muted-foreground/40" },
+                  { label: "Sent", count: proposalCounts.sent || 0, color: "bg-primary/60" },
+                  { label: "Approved", count: proposalCounts.approved || 0, color: "bg-emerald-500" },
+                  { label: "Rejected", count: proposalCounts.rejected || 0, color: "bg-destructive/60" },
+                ]} />
               </CardContent>
             </Card>
 
@@ -374,15 +360,12 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
                 <CardTitle className="text-xs font-medium text-muted-foreground">Projects by Status</CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
-                <StatusBar
-                  total={projects.length}
-                  items={[
-                    { label: "Active", count: projectCounts.active || 0, color: "bg-emerald-500" },
-                    { label: "On Hold", count: projectCounts.on_hold || 0, color: "bg-amber-500" },
-                    { label: "Completed", count: projectCounts.completed || 0, color: "bg-primary/60" },
-                    { label: "Cancelled", count: projectCounts.cancelled || 0, color: "bg-muted-foreground/40" },
-                  ]}
-                />
+                <StatusBar total={projects.length} items={[
+                  { label: "Active", count: projectCounts.active || 0, color: "bg-emerald-500" },
+                  { label: "On Hold", count: projectCounts.on_hold || 0, color: "bg-amber-500" },
+                  { label: "Completed", count: projectCounts.completed || 0, color: "bg-primary/60" },
+                  { label: "Cancelled", count: projectCounts.cancelled || 0, color: "bg-muted-foreground/40" },
+                ]} />
               </CardContent>
             </Card>
 
@@ -391,31 +374,45 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
                 <CardTitle className="text-xs font-medium text-muted-foreground">Invoices by Status</CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
-                <StatusBar
-                  total={invoices.length}
-                  items={[
-                    { label: "Draft", count: invoiceCounts.draft || 0, color: "bg-muted-foreground/40" },
-                    { label: "Issued", count: invoiceCounts.issued || 0, color: "bg-primary/60" },
-                    { label: "Partially Paid", count: invoiceCounts.partially_paid || 0, color: "bg-amber-500" },
-                    { label: "Paid", count: invoiceCounts.paid || 0, color: "bg-emerald-500" },
-                    { label: "Void", count: invoiceCounts.void || 0, color: "bg-destructive/60" },
-                  ]}
-                />
+                <StatusBar total={invoices.length} items={[
+                  { label: "Draft", count: invoiceCounts.draft || 0, color: "bg-muted-foreground/40" },
+                  { label: "Issued", count: invoiceCounts.issued || 0, color: "bg-primary/60" },
+                  { label: "Partially Paid", count: invoiceCounts.partially_paid || 0, color: "bg-amber-500" },
+                  { label: "Paid", count: invoiceCounts.paid || 0, color: "bg-emerald-500" },
+                  { label: "Void", count: invoiceCounts.void || 0, color: "bg-destructive/60" },
+                ]} />
               </CardContent>
             </Card>
           </div>
 
-          {/* ════════════════════════ REVENUE ════════════════════════ */}
-          {isAdmin && (
-            <div>
-              <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-emerald-500" />
-                Revenue
-              </h3>
-              <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
-                <KpiCard label="Total Invoiced" value={fmt(totalInvoiced)} icon={Receipt} iconColor="text-primary" sub={TIME_LABELS[range]} />
-                <KpiCard label="Total Collected" value={fmt(totalCollected)} icon={CreditCard} iconColor="text-emerald-500" sub={TIME_LABELS[range]} />
-                <KpiCard label="Outstanding Receivable" value={fmt(totalReceivable)} icon={TrendingUp} iconColor="text-amber-500" />
+          {/* Range-based invoice summary visible to all */}
+          <div className="grid gap-3 md:grid-cols-3">
+            <KpiCard label="Total Invoiced" value={fmt(totalInvoiced)} icon={Receipt} iconColor="text-primary" sub={TIME_LABELS[range]} />
+            <KpiCard label="Total Collected" value={fmt(totalCollected)} icon={CreditCard} iconColor="text-emerald-500" sub={TIME_LABELS[range]} />
+            <KpiCard label="Outstanding Receivable" value={fmt(totalReceivable)} icon={TrendingUp} iconColor="text-amber-500" sub={TIME_LABELS[range]} />
+          </div>
+        </>
+      )}
+
+      {/* ════════════════════════ CURRENT MONTH FINANCIAL SNAPSHOT (admin) ════════════════════════ */}
+      {isAdmin && (
+        <>
+          <div className="border-t border-border pt-5">
+            <h2 className="text-sm font-medium text-foreground mb-1">Current Month Financial Snapshot</h2>
+            <p className="text-[11px] text-muted-foreground mb-4">Revenue, spend, and net position for the current calendar month.</p>
+          </div>
+
+          {/* ── Revenue ── */}
+          <div>
+            <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-emerald-500" />
+              Revenue
+            </h3>
+            {financeLoading ? (
+              <FinanceSkeletonRow count={3} />
+            ) : (
+              <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
+                <KpiCard label="Revenue Collected" value={fmt(collectedThisMonth)} icon={CreditCard} iconColor="text-emerald-500" sub="This month" />
                 <Card>
                   <CardContent className="pt-4 pb-4 px-4">
                     <div className="flex items-center justify-between mb-1">
@@ -425,24 +422,26 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
                     <p className="text-lg font-semibold text-foreground tabular-nums">{overdueInvoices.length}</p>
                   </CardContent>
                 </Card>
-                <KpiCard label="Active Renewals" value={renewalsCount} icon={RefreshCw} iconColor="text-primary" />
+                <KpiCard label="Active Renewals" value={revenueData?.renewalsCount ?? 0} icon={RefreshCw} iconColor="text-primary" />
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* ════════════════════════ SPEND ════════════════════════ */}
-          {isAdmin && (
-            <div>
-              <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-                <TrendingDown className="h-4 w-4 text-rose-500" />
-                Spend
-              </h3>
+          {/* ── Spend ── */}
+          <div>
+            <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+              <TrendingDown className="h-4 w-4 text-destructive" />
+              Spend
+            </h3>
+            {financeLoading ? (
+              <FinanceSkeletonRow />
+            ) : (
               <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
-                <KpiCard label="Expenses This Month" value={fmt(expenseThisMonth)} icon={Wallet} iconColor="text-rose-500" />
-                <KpiCard label="Monthly Subscription Burn" value={fmt(Math.round(subBurn))} icon={RefreshCw} iconColor="text-amber-500" />
-                <KpiCard label="Active Subscriptions" value={activeSubsCount} icon={CreditCard} iconColor="text-primary" />
-                <KpiCard label="Vendors" value={vendorsCount} icon={Store} iconColor="text-muted-foreground" />
-                {budgetSummary && budgetSummary.totalBudget > 0 ? (
+                <KpiCard label="Expenses This Month" value={fmt(expenseThisMonth)} icon={Wallet} iconColor="text-destructive" sub="This month" />
+                <KpiCard label="Monthly Subscription Burn" value={fmt(spendData?.subBurn ?? 0)} icon={RefreshCw} iconColor="text-amber-500" />
+                <KpiCard label="Active Subscriptions" value={spendData?.activeSubsCount ?? 0} icon={CreditCard} iconColor="text-primary" />
+                <KpiCard label="Vendors" value={spendData?.vendorsCount ?? 0} icon={Store} iconColor="text-muted-foreground" />
+                {(spendData?.totalBudget ?? 0) > 0 ? (
                   <Card>
                     <CardContent className="pt-4 pb-4 px-4">
                       <div className="flex items-center justify-between mb-1">
@@ -450,41 +449,43 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
                         <PieChart className="h-4 w-4 text-primary" />
                       </div>
                       <p className="text-lg font-semibold text-foreground tabular-nums">{fmt(expenseThisMonth)}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">of {fmt(budgetSummary.totalBudget)} budgeted</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">of {fmt(spendData!.totalBudget)} budgeted</p>
                     </CardContent>
                   </Card>
                 ) : (
-                  <KpiCard label="Budget vs Actual" value="—" icon={PieChart} iconColor="text-muted-foreground" sub="No budget set" />
+                  <KpiCard label="Budget vs Actual" value="—" icon={PieChart} iconColor="text-muted-foreground" sub="No monthly budget set" />
                 )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* ════════════════════════ NET THIS MONTH ════════════════════════ */}
-          {isAdmin && (
-            <div>
-              <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-                <ArrowUpDown className="h-4 w-4 text-primary" />
-                Net This Month
-              </h3>
+          {/* ── Net This Month ── */}
+          <div>
+            <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+              <ArrowUpDown className="h-4 w-4 text-primary" />
+              Net This Month
+            </h3>
+            {financeLoading ? (
+              <FinanceSkeletonRow count={3} />
+            ) : (
               <div className="grid gap-3 md:grid-cols-3">
                 <KpiCard label="Revenue Collected" value={fmt(collectedThisMonth)} icon={TrendingUp} iconColor="text-emerald-500" sub="This month" />
-                <KpiCard label="Total Spend" value={fmt(expenseThisMonth)} icon={TrendingDown} iconColor="text-rose-500" sub="This month" />
+                <KpiCard label="Total Spend" value={fmt(expenseThisMonth)} icon={TrendingDown} iconColor="text-destructive" sub="This month" />
                 <Card>
                   <CardContent className="pt-4 pb-4 px-4">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-xs text-muted-foreground">Net Position</p>
-                      <ArrowUpDown className={`h-4 w-4 ${netThisMonth >= 0 ? "text-emerald-500" : "text-rose-500"}`} />
+                      <ArrowUpDown className={`h-4 w-4 ${netThisMonth >= 0 ? "text-emerald-500" : "text-destructive"}`} />
                     </div>
-                    <p className={`text-lg font-semibold tabular-nums ${netThisMonth >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                    <p className={`text-lg font-semibold tabular-nums ${netThisMonth >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
                       {fmt(netThisMonth)}
                     </p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">This month</p>
                   </CardContent>
                 </Card>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </>
       )}
     </div>
