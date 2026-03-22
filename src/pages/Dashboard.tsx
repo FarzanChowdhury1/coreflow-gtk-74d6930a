@@ -1,4 +1,4 @@
-import { LayoutDashboard, TrendingUp, FileText, FolderKanban, Receipt, DollarSign, Users, AlertTriangle, X } from "lucide-react";
+import { LayoutDashboard, Users, FileText, FolderKanban, Receipt, AlertTriangle, X } from "lucide-react";
 import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 import { DashboardBreakdowns } from "@/components/dashboard/DashboardBreakdowns";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
@@ -47,20 +47,6 @@ const cards = [
   { key: "running_projects" as const, label: "Running Projects", icon: FolderKanban, color: "text-emerald-500", href: "/projects" },
   { key: "pending_invoices" as const, label: "Pending Invoices", icon: Receipt, color: "text-rose-500", href: "/invoices" },
 ];
-
-const financialCards = [
-  { key: "total_receivable" as const, label: "Total Receivable", icon: TrendingUp, color: "text-orange-500", href: "/invoices" },
-  { key: "total_collected" as const, label: "Total Collected", icon: DollarSign, color: "text-green-500", href: "/payments" },
-];
-
-function formatCurrency(value: number, currency: string = "BDT") {
-  return new Intl.NumberFormat("en-BD", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 
 function MetricCardSkeleton() {
   return (
@@ -122,26 +108,6 @@ export default function Dashboard() {
             ))}
       </div>
 
-      {/* Financial rollups — clickable */}
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        {isLoading
-          ? financialCards.map(({ key }) => <MetricCardSkeleton key={key} />)
-          : financialCards.map(({ key, label, icon: Icon, color, href }) => (
-              <button
-                key={key}
-                onClick={() => navigate(href)}
-                className="rounded-lg border bg-card p-5 text-left hover:border-primary/50 hover:shadow-sm transition-all group"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">{label}</p>
-                  <Icon className={`h-5 w-5 ${color}`} />
-                </div>
-                <p className="mt-2 text-2xl font-semibold text-card-foreground">
-                  {formatCurrency(metrics?.[key] ?? 0, currency)}
-                </p>
-              </button>
-            ))}
-      </div>
 
       {/* Pipeline breakdowns */}
       {currentWorkspace?.id && (

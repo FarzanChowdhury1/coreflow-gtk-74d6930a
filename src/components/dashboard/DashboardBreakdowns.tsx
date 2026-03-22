@@ -11,7 +11,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { subDays, subMonths, startOfDay, format } from "date-fns";
+import { subDays, subMonths, startOfDay } from "date-fns";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import {
+  TrendingUp,
+  TrendingDown,
+  ArrowUpDown,
+  Receipt,
+  CreditCard,
+  RefreshCw,
+  Store,
+  Wallet,
+  PieChart,
+} from "lucide-react";
 
 type TimeRange = "7d" | "30d" | "90d" | "12m" | "all";
 const TIME_LABELS: Record<TimeRange, string> = {
@@ -55,11 +67,44 @@ function StatusBar({ items, total }: { items: { label: string; count: number; co
   );
 }
 
+function KpiCard({ label, value, icon: Icon, iconColor, sub }: {
+  label: string;
+  value: string | number;
+  icon: React.ElementType;
+  iconColor: string;
+  sub?: string;
+}) {
+  return (
+    <Card>
+      <CardContent className="pt-4 pb-4 px-4">
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-xs text-muted-foreground">{label}</p>
+          <Icon className={`h-4 w-4 ${iconColor}`} />
+        </div>
+        <p className="text-lg font-semibold text-foreground tabular-nums">{value}</p>
+        {sub && <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+function getMonthRange() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
+  return { start, end };
+}
+
 export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   const [range, setRange] = useState<TimeRange>("30d");
   const rangeStart = useMemo(() => getRangeStart(range), [range]);
+  const { currentRole } = useWorkspace();
+  const isAdmin = currentRole === "admin";
 
-  // Leads breakdown
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-BD", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+
+  // ── Pipeline data ──
   const { data: leads = [], isLoading: ll } = useQuery({
     queryKey: ["dash-leads", workspaceId, rangeStart],
     enabled: !!workspaceId,
@@ -72,7 +117,6 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
     },
   });
 
-  // Proposals breakdown — use latest version per proposal to avoid overcounting
   const { data: proposalVersions = [], isLoading: pl } = useQuery({
     queryKey: ["dash-proposals", workspaceId, rangeStart],
     enabled: !!workspaceId,
@@ -83,7 +127,6 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
       q = q.order("version_number", { ascending: false });
       const { data } = await q;
       if (!data) return [];
-      // Deduplicate: keep only the latest version per proposal
       const seen = new Set<string>();
       return data.filter((v: any) => {
         if (seen.has(v.proposal_id)) return false;
@@ -93,7 +136,6 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
     },
   });
 
-  // Projects breakdown
   const { data: projects = [], isLoading: prl } = useQuery({
     queryKey: ["dash-projects", workspaceId, rangeStart],
     enabled: !!workspaceId,
@@ -106,7 +148,6 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
     },
   });
 
-  // Invoices breakdown
   const { data: invoices = [], isLoading: il } = useQuery({
     queryKey: ["dash-invoices", workspaceId, rangeStart],
     enabled: !!workspaceId,
@@ -119,6 +160,114 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
     },
   });
 
+  // ── Revenue data (admin) ──
+  const { data: renewalsCount = 0 } = useQuery({
+    queryKey: ["dash-renewals-count", workspaceId],
+    enabled: !!workspaceId && isAdmin,
+    staleTime: 60000,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("renewals")
+        .select("id", { count: "exact", head: true })
+        .eq("workspace_id", workspaceId)
+        .eq("is_active", true);
+      return count || 0;
+    },
+  });
+
+  const { start: monthStart, end: monthEnd } = useMemo(getMonthRange, []);
+
+  const { data: collectedThisMonth = 0 } = useQuery({
+    queryKey: ["dash-collected-month", workspaceId, monthStart],
+    enabled: !!workspaceId && isAdmin,
+    staleTime: 60000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("payments")
+        .select("amount")
+        .eq("workspace_id", workspaceId)
+        .gte("paid_at", monthStart + "T00:00:00")
+        .lte("paid_at", monthEnd + "T23:59:59");
+      return (data || []).reduce((s: number, p: any) => s + Number(p.amount), 0);
+    },
+  });
+
+  // ── Spend data (admin) ──
+  const { data: expenseThisMonth = 0 } = useQuery({
+    queryKey: ["dashboard-expense-total", workspaceId],
+    enabled: !!workspaceId && isAdmin,
+    staleTime: 60000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("expenses")
+        .select("amount")
+        .eq("workspace_id", workspaceId)
+        .is("deleted_at", null)
+        .gte("expense_date", monthStart)
+        .lte("expense_date", monthEnd);
+      return (data || []).reduce((s: number, e: any) => s + Number(e.amount), 0);
+    },
+  });
+
+  const { data: subBurn = 0 } = useQuery({
+    queryKey: ["dashboard-sub-burn", workspaceId],
+    enabled: !!workspaceId && isAdmin,
+    staleTime: 60000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("subscriptions")
+        .select("amount, interval_months")
+        .eq("workspace_id", workspaceId)
+        .eq("is_active", true);
+      return (data || []).reduce((s: number, sub: any) => s + Number(sub.amount) / sub.interval_months, 0);
+    },
+  });
+
+  const { data: activeSubsCount = 0 } = useQuery({
+    queryKey: ["dash-active-subs", workspaceId],
+    enabled: !!workspaceId && isAdmin,
+    staleTime: 60000,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("subscriptions")
+        .select("id", { count: "exact", head: true })
+        .eq("workspace_id", workspaceId)
+        .eq("is_active", true);
+      return count || 0;
+    },
+  });
+
+  const { data: vendorsCount = 0 } = useQuery({
+    queryKey: ["dash-vendors-count", workspaceId],
+    enabled: !!workspaceId && isAdmin,
+    staleTime: 60000,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("vendors")
+        .select("id", { count: "exact", head: true })
+        .eq("workspace_id", workspaceId)
+        .is("deleted_at", null);
+      return count || 0;
+    },
+  });
+
+  const { data: budgetSummary } = useQuery({
+    queryKey: ["dash-budget-summary", workspaceId, monthStart],
+    enabled: !!workspaceId && isAdmin,
+    staleTime: 60000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("budgets")
+        .select("target_amount")
+        .eq("workspace_id", workspaceId)
+        .lte("period_start", monthEnd)
+        .gte("period_end", monthStart);
+      const totalBudget = (data || []).reduce((s: number, b: any) => s + Number(b.target_amount), 0);
+      return { totalBudget };
+    },
+  });
+
+  // ── Computed pipeline metrics ──
   const leadCounts = useMemo(() => {
     const map: Record<string, number> = {};
     leads.forEach((l: any) => { map[l.status] = (map[l.status] || 0) + 1; });
@@ -148,18 +297,19 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
     return invoices.filter((i: any) => i.due_date && new Date(i.due_date) < today && i.status !== "paid" && i.status !== "void");
   }, [invoices]);
 
-  const fmt = (n: number) =>
-    new Intl.NumberFormat("en-BD", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
-
+  const totalInvoiced = invoices.reduce((s: number, i: any) => s + Number(i.grand_total), 0);
+  const totalCollected = invoices.reduce((s: number, i: any) => s + Number(i.amount_paid), 0);
   const totalReceivable = invoices.reduce((s: number, i: any) => {
     if (i.status === "void" || i.status === "paid") return s;
     return s + (Number(i.grand_total) - Number(i.amount_paid));
   }, 0);
 
   const loading = ll || pl || prl || il;
+  const netThisMonth = collectedThisMonth - expenseThisMonth;
 
   return (
-    <div className="mt-6 space-y-4">
+    <div className="mt-6 space-y-6">
+      {/* Time range selector */}
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-medium text-foreground">Pipeline Breakdown</h2>
         <Select value={range} onValueChange={(v) => setRange(v as TimeRange)}>
@@ -182,6 +332,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
         </div>
       ) : (
         <>
+          {/* Pipeline status bars */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="pb-2 pt-4 px-4">
@@ -254,98 +405,88 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
             </Card>
           </div>
 
-          {/* Financial summary row */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardContent className="pt-4 pb-4 px-4 flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Outstanding Receivable</p>
-                  <p className="text-lg font-semibold text-foreground tabular-nums">{fmt(totalReceivable)}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 pb-4 px-4 flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Overdue Invoices</p>
-                  <p className="text-lg font-semibold text-foreground tabular-nums">{overdueInvoices.length}</p>
-                </div>
-                {overdueInvoices.length > 0 && <Badge variant="destructive" className="text-xs">Needs attention</Badge>}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 pb-4 px-4">
-                <p className="text-xs text-muted-foreground">Total Invoices</p>
-                <p className="text-lg font-semibold text-foreground tabular-nums">{invoices.length}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">{TIME_LABELS[range]}</p>
-              </CardContent>
-            </Card>
-           </div>
+          {/* ════════════════════════ REVENUE ════════════════════════ */}
+          {isAdmin && (
+            <div>
+              <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-emerald-500" />
+                Revenue
+              </h3>
+              <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
+                <KpiCard label="Total Invoiced" value={fmt(totalInvoiced)} icon={Receipt} iconColor="text-primary" sub={TIME_LABELS[range]} />
+                <KpiCard label="Total Collected" value={fmt(totalCollected)} icon={CreditCard} iconColor="text-emerald-500" sub={TIME_LABELS[range]} />
+                <KpiCard label="Outstanding Receivable" value={fmt(totalReceivable)} icon={TrendingUp} iconColor="text-amber-500" />
+                <Card>
+                  <CardContent className="pt-4 pb-4 px-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs text-muted-foreground">Overdue Invoices</p>
+                      {overdueInvoices.length > 0 && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Action needed</Badge>}
+                    </div>
+                    <p className="text-lg font-semibold text-foreground tabular-nums">{overdueInvoices.length}</p>
+                  </CardContent>
+                </Card>
+                <KpiCard label="Active Renewals" value={renewalsCount} icon={RefreshCw} iconColor="text-primary" />
+              </div>
+            </div>
+          )}
+
+          {/* ════════════════════════ SPEND ════════════════════════ */}
+          {isAdmin && (
+            <div>
+              <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                <TrendingDown className="h-4 w-4 text-rose-500" />
+                Spend
+              </h3>
+              <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
+                <KpiCard label="Expenses This Month" value={fmt(expenseThisMonth)} icon={Wallet} iconColor="text-rose-500" />
+                <KpiCard label="Monthly Subscription Burn" value={fmt(Math.round(subBurn))} icon={RefreshCw} iconColor="text-amber-500" />
+                <KpiCard label="Active Subscriptions" value={activeSubsCount} icon={CreditCard} iconColor="text-primary" />
+                <KpiCard label="Vendors" value={vendorsCount} icon={Store} iconColor="text-muted-foreground" />
+                {budgetSummary && budgetSummary.totalBudget > 0 ? (
+                  <Card>
+                    <CardContent className="pt-4 pb-4 px-4">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs text-muted-foreground">Budget vs Actual</p>
+                        <PieChart className="h-4 w-4 text-primary" />
+                      </div>
+                      <p className="text-lg font-semibold text-foreground tabular-nums">{fmt(expenseThisMonth)}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">of {fmt(budgetSummary.totalBudget)} budgeted</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <KpiCard label="Budget vs Actual" value="—" icon={PieChart} iconColor="text-muted-foreground" sub="No budget set" />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ════════════════════════ NET THIS MONTH ════════════════════════ */}
+          {isAdmin && (
+            <div>
+              <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                <ArrowUpDown className="h-4 w-4 text-primary" />
+                Net This Month
+              </h3>
+              <div className="grid gap-3 md:grid-cols-3">
+                <KpiCard label="Revenue Collected" value={fmt(collectedThisMonth)} icon={TrendingUp} iconColor="text-emerald-500" sub="This month" />
+                <KpiCard label="Total Spend" value={fmt(expenseThisMonth)} icon={TrendingDown} iconColor="text-rose-500" sub="This month" />
+                <Card>
+                  <CardContent className="pt-4 pb-4 px-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs text-muted-foreground">Net Position</p>
+                      <ArrowUpDown className={`h-4 w-4 ${netThisMonth >= 0 ? "text-emerald-500" : "text-rose-500"}`} />
+                    </div>
+                    <p className={`text-lg font-semibold tabular-nums ${netThisMonth >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                      {fmt(netThisMonth)}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">This month</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
         </>
       )}
-
-      {/* Finance Ops Summary */}
-      <FinanceOpsSummary workspaceId={workspaceId} currency={currency} />
-    </div>
-  );
-}
-
-function FinanceOpsSummary({ workspaceId, currency }: { workspaceId: string; currency: string }) {
-  const { data: expenseTotal = 0 } = useQuery({
-    queryKey: ["dashboard-expense-total", workspaceId],
-    queryFn: async () => {
-      const now = new Date();
-      const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
-      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
-      const { data, error } = await supabase
-        .from("expenses")
-        .select("amount")
-        .eq("workspace_id", workspaceId)
-        .is("deleted_at", null)
-        .gte("expense_date", start)
-        .lte("expense_date", end);
-      if (error) return 0;
-      return (data || []).reduce((s: number, e: any) => s + Number(e.amount), 0);
-    },
-    staleTime: 60000,
-  });
-
-  const { data: subBurn = 0 } = useQuery({
-    queryKey: ["dashboard-sub-burn", workspaceId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("subscriptions")
-        .select("amount, interval_months")
-        .eq("workspace_id", workspaceId)
-        .eq("is_active", true);
-      if (error) return 0;
-      return (data || []).reduce((s: number, sub: any) => s + Number(sub.amount) / sub.interval_months, 0);
-    },
-    staleTime: 60000,
-  });
-
-  const fmt = (v: number) =>
-    new Intl.NumberFormat("en-BD", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
-
-  if (expenseTotal === 0 && subBurn === 0) return null;
-
-  return (
-    <div className="mt-4">
-      <h3 className="text-sm font-medium text-foreground mb-2">Outgoing Costs</h3>
-      <div className="grid gap-3 md:grid-cols-2">
-        <Card>
-          <CardContent className="pt-4 pb-4 px-4">
-            <p className="text-xs text-muted-foreground">Expenses This Month</p>
-            <p className="text-lg font-semibold text-foreground tabular-nums">{fmt(expenseTotal)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4 px-4">
-            <p className="text-xs text-muted-foreground">Monthly Subscription Burn</p>
-            <p className="text-lg font-semibold text-foreground tabular-nums">{fmt(Math.round(subBurn))}</p>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
