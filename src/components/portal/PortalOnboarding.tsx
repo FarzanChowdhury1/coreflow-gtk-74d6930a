@@ -31,6 +31,8 @@ interface OnboardingTask {
   revision_note: string | null;
   submitted_at: string | null;
   approved_at: string | null;
+  project_id: string | null;
+  project_name: string | null;
 }
 
 const STATUS_META: Record<string, { label: string; color: string; icon: typeof Clock }> = {
