@@ -23,6 +23,7 @@ import {
   Store,
   Wallet,
   PieChart,
+  AlertCircle,
 } from "lucide-react";
 
 /* ── Time range helpers ── */
@@ -47,19 +48,28 @@ function getRangeStart(range: TimeRange): string | null {
   }
 }
 
-/** Returns timezone-safe month boundaries for both timestamp and date-only columns */
+/**
+ * Returns month boundaries for financial snapshot queries.
+ *
+ * - `tsStart` / `tsEnd`: UTC ISO-8601 strings produced by `.toISOString()`.
+ *   They represent the UTC instant corresponding to the local month start/end.
+ *   Used for filtering **timestamp** columns (e.g. `payments.paid_at`).
+ *
+ * - `dateStart` / `dateEnd`: Local `yyyy-MM-dd` strings via `date-fns/format`
+ *   (no UTC shift). Used for filtering **date-only** columns
+ *   (e.g. `expenses.expense_date`, `budgets.period_start`).
+ *
+ * - `key`: Year-month cache key so react-query invalidates on month rollover.
+ */
 function getLocalMonthBounds() {
   const now = new Date();
   const monthStart = startOfMonth(now);
   const monthEnd = endOfMonth(now);
   return {
-    // For timestamp columns (payments.paid_at) — full ISO timestamps in local tz
     tsStart: monthStart.toISOString(),
     tsEnd: monthEnd.toISOString(),
-    // For date-only columns (expenses.expense_date, budgets.period_start) — safe local YYYY-MM-DD
     dateStart: format(monthStart, "yyyy-MM-dd"),
     dateEnd: format(monthEnd, "yyyy-MM-dd"),
-    // Cache key based on year-month so it invalidates on month change
     key: format(now, "yyyy-MM"),
   };
 }
@@ -121,6 +131,15 @@ function FinanceSkeletonRow({ count = 5 }: { count?: number }) {
           </CardContent>
         </Card>
       ))}
+    </div>
+  );
+}
+
+function FinanceErrorBanner({ message }: { message: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+      <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+      <p className="text-xs text-muted-foreground">{message}</p>
     </div>
   );
 }
@@ -198,12 +217,11 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
 
   /* ══════════════ FINANCIAL QUERIES (current month — admin only) ══════════════ */
 
-  const { data: revenueData, isLoading: revenueLoading } = useQuery({
+  const { data: revenueData, isLoading: revenueLoading, isError: revenueError } = useQuery({
     queryKey: ["dash-revenue-month", workspaceId, month.key],
     enabled: !!workspaceId && isAdmin,
     staleTime: 60000,
     queryFn: async () => {
-      // Collected this month — timestamp column, use ISO bounds
       const { data: payments } = await supabase
         .from("payments")
         .select("amount")
@@ -212,14 +230,13 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
         .lte("paid_at", month.tsEnd);
       const collectedThisMonth = (payments || []).reduce((s: number, p: any) => s + Number(p.amount), 0);
 
-      // Active renewals count
       const { count: renewalsCount } = await supabase
         .from("renewals")
         .select("id", { count: "exact", head: true })
         .eq("workspace_id", workspaceId)
         .eq("is_active", true);
 
-      // Overdue invoices — independent of pipeline range, uses global workspace scope
+      // Overdue invoices — independent of pipeline range
       const today = format(new Date(), "yyyy-MM-dd");
       const { data: overdueRows } = await supabase
         .from("invoices")
@@ -228,18 +245,20 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
         .is("deleted_at", null)
         .lt("due_date", today)
         .not("status", "in", '("paid","void")');
-      const overdueCount = overdueRows?.length ?? 0;
 
-      return { collectedThisMonth, renewalsCount: renewalsCount || 0, overdueCount };
+      return {
+        collectedThisMonth,
+        renewalsCount: renewalsCount || 0,
+        overdueCount: overdueRows?.length ?? 0,
+      };
     },
   });
 
-  const { data: spendData, isLoading: spendLoading } = useQuery({
+  const { data: spendData, isLoading: spendLoading, isError: spendError } = useQuery({
     queryKey: ["dash-spend-month", workspaceId, month.key],
     enabled: !!workspaceId && isAdmin,
     staleTime: 60000,
     queryFn: async () => {
-      // Expenses this month — date-only column, use local YYYY-MM-DD
       const { data: expenses } = await supabase
         .from("expenses")
         .select("amount")
@@ -249,7 +268,6 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
         .lte("expense_date", month.dateEnd);
       const expenseThisMonth = (expenses || []).reduce((s: number, e: any) => s + Number(e.amount), 0);
 
-      // Subscription monthly burn
       const { data: subs } = await supabase
         .from("subscriptions")
         .select("amount, interval_months")
@@ -257,21 +275,24 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
         .eq("is_active", true);
       const subBurn = (subs || []).reduce((s: number, sub: any) => s + Number(sub.amount) / sub.interval_months, 0);
 
-      // Active subs count
       const { count: activeSubsCount } = await supabase
         .from("subscriptions")
         .select("id", { count: "exact", head: true })
         .eq("workspace_id", workspaceId)
         .eq("is_active", true);
 
-      // Vendors count
       const { count: vendorsCount } = await supabase
         .from("vendors")
         .select("id", { count: "exact", head: true })
         .eq("workspace_id", workspaceId)
         .is("deleted_at", null);
 
-      // Monthly budget only — date-only column, use local YYYY-MM-DD
+      /*
+       * Budget snapshot — only counts budget rows whose `period_start` falls
+       * within the current calendar month. Quarterly or yearly budgets are
+       * intentionally excluded unless represented as monthly entries. This
+       * prevents double-counting across overlapping budget periods.
+       */
       const { data: budgets } = await supabase
         .from("budgets")
         .select("target_amount")
@@ -311,12 +332,6 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   }, 0);
 
   const pipelineLoading = ll || pl || prl || il;
-  const financeLoading = revenueLoading || spendLoading;
-
-  const collectedThisMonth = revenueData?.collectedThisMonth ?? 0;
-  const expenseThisMonth = spendData?.expenseThisMonth ?? 0;
-  const netThisMonth = collectedThisMonth - expenseThisMonth;
-  const overdueCount = revenueData?.overdueCount ?? 0;
 
   return (
     <div className="mt-6 space-y-6">
@@ -352,7 +367,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
                 <StatusBar total={leads.length} items={[
                   { label: "New", count: leadCounts.new || 0, color: "bg-muted-foreground/40" },
                   { label: "Contacted", count: leadCounts.contacted || 0, color: "bg-primary/60" },
-                  { label: "Qualified", count: leadCounts.qualified || 0, color: "bg-emerald-500" },
+                  { label: "Qualified", count: leadCounts.qualified || 0, color: "bg-success" },
                   { label: "Unqualified", count: leadCounts.unqualified || 0, color: "bg-destructive/60" },
                   { label: "Converted", count: leadCounts.converted || 0, color: "bg-accent" },
                 ]} />
@@ -367,7 +382,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
                 <StatusBar total={proposalVersions.length} items={[
                   { label: "Draft", count: proposalCounts.draft || 0, color: "bg-muted-foreground/40" },
                   { label: "Sent", count: proposalCounts.sent || 0, color: "bg-primary/60" },
-                  { label: "Approved", count: proposalCounts.approved || 0, color: "bg-emerald-500" },
+                  { label: "Approved", count: proposalCounts.approved || 0, color: "bg-success" },
                   { label: "Rejected", count: proposalCounts.rejected || 0, color: "bg-destructive/60" },
                 ]} />
               </CardContent>
@@ -379,8 +394,8 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
               </CardHeader>
               <CardContent className="px-4 pb-4">
                 <StatusBar total={projects.length} items={[
-                  { label: "Active", count: projectCounts.active || 0, color: "bg-emerald-500" },
-                  { label: "On Hold", count: projectCounts.on_hold || 0, color: "bg-amber-500" },
+                  { label: "Active", count: projectCounts.active || 0, color: "bg-success" },
+                  { label: "On Hold", count: projectCounts.on_hold || 0, color: "bg-warning" },
                   { label: "Completed", count: projectCounts.completed || 0, color: "bg-primary/60" },
                   { label: "Cancelled", count: projectCounts.cancelled || 0, color: "bg-muted-foreground/40" },
                 ]} />
@@ -395,8 +410,8 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
                 <StatusBar total={invoices.length} items={[
                   { label: "Draft", count: invoiceCounts.draft || 0, color: "bg-muted-foreground/40" },
                   { label: "Issued", count: invoiceCounts.issued || 0, color: "bg-primary/60" },
-                  { label: "Partially Paid", count: invoiceCounts.partially_paid || 0, color: "bg-amber-500" },
-                  { label: "Paid", count: invoiceCounts.paid || 0, color: "bg-emerald-500" },
+                  { label: "Partially Paid", count: invoiceCounts.partially_paid || 0, color: "bg-warning" },
+                  { label: "Paid", count: invoiceCounts.paid || 0, color: "bg-success" },
                   { label: "Void", count: invoiceCounts.void || 0, color: "bg-destructive/60" },
                 ]} />
               </CardContent>
@@ -406,8 +421,8 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
           {/* Range-based invoice summary — clearly labelled with selected range */}
           <div className="grid gap-3 md:grid-cols-3">
             <KpiCard label="Total Invoiced" value={fmt(totalInvoiced)} icon={Receipt} iconColor="text-primary" sub={TIME_LABELS[range]} />
-            <KpiCard label="Total Collected" value={fmt(totalCollected)} icon={CreditCard} iconColor="text-emerald-500" sub={TIME_LABELS[range]} />
-            <KpiCard label="Outstanding Receivable" value={fmt(totalReceivable)} icon={TrendingUp} iconColor="text-amber-500" sub={TIME_LABELS[range]} />
+            <KpiCard label="Total Collected" value={fmt(totalCollected)} icon={CreditCard} iconColor="text-success" sub={TIME_LABELS[range]} />
+            <KpiCard label="Outstanding Receivable" value={fmt(totalReceivable)} icon={TrendingUp} iconColor="text-warning" sub={TIME_LABELS[range]} />
           </div>
         </>
       )}
@@ -423,21 +438,23 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
           {/* ── Revenue ── */}
           <div>
             <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-emerald-500" />
+              <TrendingUp className="h-4 w-4 text-success" />
               Revenue
             </h3>
-            {financeLoading ? (
+            {revenueLoading ? (
               <FinanceSkeletonRow count={3} />
+            ) : revenueError ? (
+              <FinanceErrorBanner message="Could not load revenue metrics. Try refreshing the page." />
             ) : (
               <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
-                <KpiCard label="Revenue Collected" value={fmt(collectedThisMonth)} icon={CreditCard} iconColor="text-emerald-500" sub="This month" />
+                <KpiCard label="Revenue Collected" value={fmt(revenueData?.collectedThisMonth ?? 0)} icon={CreditCard} iconColor="text-success" sub="This month" />
                 <Card>
                   <CardContent className="pt-4 pb-4 px-4">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-xs text-muted-foreground">Overdue Invoices</p>
-                      {overdueCount > 0 && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Action needed</Badge>}
+                      {(revenueData?.overdueCount ?? 0) > 0 && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Action needed</Badge>}
                     </div>
-                    <p className="text-lg font-semibold text-foreground tabular-nums">{overdueCount}</p>
+                    <p className="text-lg font-semibold text-foreground tabular-nums">{revenueData?.overdueCount ?? 0}</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">All time</p>
                   </CardContent>
                 </Card>
@@ -452,12 +469,14 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
               <TrendingDown className="h-4 w-4 text-destructive" />
               Spend
             </h3>
-            {financeLoading ? (
+            {spendLoading ? (
               <FinanceSkeletonRow />
+            ) : spendError ? (
+              <FinanceErrorBanner message="Could not load spend metrics. Try refreshing the page." />
             ) : (
               <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
-                <KpiCard label="Expenses This Month" value={fmt(expenseThisMonth)} icon={Wallet} iconColor="text-destructive" sub="This month" />
-                <KpiCard label="Monthly Subscription Burn" value={fmt(spendData?.subBurn ?? 0)} icon={RefreshCw} iconColor="text-amber-500" />
+                <KpiCard label="Expenses This Month" value={fmt(spendData?.expenseThisMonth ?? 0)} icon={Wallet} iconColor="text-destructive" sub="This month" />
+                <KpiCard label="Monthly Subscription Burn" value={fmt(spendData?.subBurn ?? 0)} icon={RefreshCw} iconColor="text-warning" />
                 <KpiCard label="Active Subscriptions" value={spendData?.activeSubsCount ?? "—"} icon={CreditCard} iconColor="text-primary" />
                 <KpiCard label="Vendors" value={spendData?.vendorsCount ?? "—"} icon={Store} iconColor="text-muted-foreground" />
                 {(spendData?.totalBudget ?? 0) > 0 ? (
@@ -467,7 +486,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
                         <p className="text-xs text-muted-foreground">Budget vs Actual</p>
                         <PieChart className="h-4 w-4 text-primary" />
                       </div>
-                      <p className="text-lg font-semibold text-foreground tabular-nums">{fmt(expenseThisMonth)}</p>
+                      <p className="text-lg font-semibold text-foreground tabular-nums">{fmt(spendData?.expenseThisMonth ?? 0)}</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">of {fmt(spendData!.totalBudget)} budgeted</p>
                     </CardContent>
                   </Card>
@@ -484,26 +503,33 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
               <ArrowUpDown className="h-4 w-4 text-primary" />
               Net This Month
             </h3>
-            {financeLoading ? (
+            {(revenueLoading || spendLoading) ? (
               <FinanceSkeletonRow count={3} />
-            ) : (
-              <div className="grid gap-3 md:grid-cols-3">
-                <KpiCard label="Revenue Collected" value={fmt(collectedThisMonth)} icon={TrendingUp} iconColor="text-emerald-500" sub="This month" />
-                <KpiCard label="Total Spend" value={fmt(expenseThisMonth)} icon={TrendingDown} iconColor="text-destructive" sub="This month" />
-                <Card>
-                  <CardContent className="pt-4 pb-4 px-4">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs text-muted-foreground">Net Position</p>
-                      <ArrowUpDown className={`h-4 w-4 ${netThisMonth >= 0 ? "text-emerald-500" : "text-destructive"}`} />
-                    </div>
-                    <p className={`text-lg font-semibold tabular-nums ${netThisMonth >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
-                      {fmt(netThisMonth)}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">This month</p>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+            ) : (revenueError || spendError) ? (
+              <FinanceErrorBanner message="Could not load net position. Revenue or spend data is unavailable." />
+            ) : (() => {
+              const collected = revenueData?.collectedThisMonth ?? 0;
+              const spent = spendData?.expenseThisMonth ?? 0;
+              const net = collected - spent;
+              return (
+                <div className="grid gap-3 md:grid-cols-3">
+                  <KpiCard label="Revenue Collected" value={fmt(collected)} icon={TrendingUp} iconColor="text-success" sub="This month" />
+                  <KpiCard label="Total Spend" value={fmt(spent)} icon={TrendingDown} iconColor="text-destructive" sub="This month" />
+                  <Card>
+                    <CardContent className="pt-4 pb-4 px-4">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs text-muted-foreground">Net Position</p>
+                        <ArrowUpDown className={`h-4 w-4 ${net >= 0 ? "text-success" : "text-destructive"}`} />
+                      </div>
+                      <p className={`text-lg font-semibold tabular-nums ${net >= 0 ? "text-success" : "text-destructive"}`}>
+                        {fmt(net)}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">This month</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            })()}
           </div>
         </>
       )}
