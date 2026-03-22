@@ -2620,6 +2620,14 @@ export type Database = {
       sweep_overdue_invoices: { Args: never; Returns: Json }
       sweep_renewal_reminders: { Args: never; Returns: Json }
       validate_portal_token: { Args: { _token: string }; Returns: Json }
+      void_invoice: {
+        Args: { _invoice_id: string; _workspace_id: string }
+        Returns: Json
+      }
+      void_proposal_version: {
+        Args: { _version_id: string; _workspace_id: string }
+        Returns: Json
+      }
       workspace_has_members: {
         Args: { _workspace_id: string }
         Returns: boolean
