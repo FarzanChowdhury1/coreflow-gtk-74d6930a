@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
       entityType = "workspace_invite";
       entityId = invite_id;
     } else if (type === "portal") {
-      const { contact_id, portal_token } = body;
+      const { contact_id } = body;
       if (!contact_id) {
         return jsonResponse(
           { success: false, error: "Missing contact_id" },
@@ -206,20 +206,14 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Resolve active token server-side — portal_token is optional (legacy callers may still pass it)
-      let tokenQuery = adminClient
+      // Resolve active, non-expired token server-side — latest wins
+      const { data: tokenRow } = await adminClient
         .from("portal_tokens")
         .select("id, token, company_id, contact_id")
         .eq("workspace_id", workspace_id)
         .eq("contact_id", contact_id)
-        .is("revoked_at", null);
-
-      if (portal_token) {
-        // If caller provided a specific token, validate it
-        tokenQuery = tokenQuery.eq("token", portal_token);
-      }
-
-      const { data: tokenRow } = await tokenQuery
+        .is("revoked_at", null)
+        .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: false })
         .limit(1)
         .single();
