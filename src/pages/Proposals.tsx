@@ -93,8 +93,8 @@ export default function Proposals() {
             note="Non-admin members see only proposals they own or are linked to."
           />
         </div>
-        {isAdmin && (
-          <div className="flex gap-2">
+        <div className="flex gap-2">
+          {isAdmin && (
             <Button
               size="sm"
               variant="outline"
@@ -120,11 +120,11 @@ export default function Proposals() {
             >
               <Download className="h-4 w-4 mr-1" /> Export
             </Button>
-            <Button size="sm" onClick={() => setCreateOpen(true)}>
-              <Plus className="h-4 w-4 mr-1" /> New Proposal
-            </Button>
-          </div>
-        )}
+          )}
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> New Proposal
+          </Button>
+        </div>
       </div>
       <p className="mb-5 text-sm text-muted-foreground max-w-2xl">
         {isAdmin
