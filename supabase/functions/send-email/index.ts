@@ -199,26 +199,34 @@ Deno.serve(async (req) => {
       entityId = invite_id;
     } else if (type === "portal") {
       const { contact_id, portal_token } = body;
-      if (!contact_id || !portal_token) {
+      if (!contact_id) {
         return jsonResponse(
-          { success: false, error: "Missing contact_id or portal_token" },
+          { success: false, error: "Missing contact_id" },
           400
         );
       }
 
-      // Validate portal_token exists in DB for this workspace + contact
-      const { data: tokenRow } = await adminClient
+      // Resolve active token server-side — portal_token is optional (legacy callers may still pass it)
+      let tokenQuery = adminClient
         .from("portal_tokens")
         .select("id, token, company_id, contact_id")
         .eq("workspace_id", workspace_id)
         .eq("contact_id", contact_id)
-        .eq("token", portal_token)
-        .is("revoked_at", null)
+        .is("revoked_at", null);
+
+      if (portal_token) {
+        // If caller provided a specific token, validate it
+        tokenQuery = tokenQuery.eq("token", portal_token);
+      }
+
+      const { data: tokenRow } = await tokenQuery
+        .order("created_at", { ascending: false })
+        .limit(1)
         .single();
 
       if (!tokenRow) {
         return jsonResponse(
-          { success: false, error: "Portal token not found or revoked" },
+          { success: false, error: "No active portal token found for this contact" },
           404
         );
       }
