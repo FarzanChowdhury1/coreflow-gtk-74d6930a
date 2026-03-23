@@ -59,6 +59,7 @@ const navItems: NavItem[] = [
   { label: "Digest Inspector", icon: FileSearch, path: "/digest-inspector", section: "Workspace", adminOnly: true },
   { label: "Ops / Health", icon: Activity, path: "/ops", section: "Workspace", adminOnly: true },
   { label: "Beta Feedback", icon: MessageSquarePlus, path: "/beta-feedback", section: "Workspace", adminOnly: true },
+  { label: "Email Health", icon: Mail, path: "/email-health", section: "Workspace", adminOnly: true },
   { label: "Audit Log", icon: Shield, path: "/audit", section: "Workspace", adminOnly: true },
   { label: "Settings", icon: Settings, path: "/settings", section: "Workspace" },
 ];
