@@ -49,7 +49,39 @@ Deno.serve(async (req) => {
     return json({ error: "Admin access required" }, 403);
   }
 
-  // Return config status — never expose secret values
+  const listParam = url.searchParams.get("list");
+
+  // --- List contacts with active portal tokens (no raw tokens exposed) ---
+  if (listParam === "portal_contacts") {
+    const { data: tokens } = await adminClient
+      .from("portal_tokens")
+      .select("contact_id")
+      .eq("workspace_id", workspaceId)
+      .is("revoked_at", null)
+      .order("created_at", { ascending: false });
+
+    if (!tokens || tokens.length === 0) {
+      return json({ contacts: [] });
+    }
+
+    // Deduplicate contact IDs
+    const contactIds = [...new Set(tokens.map((t: any) => t.contact_id))];
+
+    const { data: contacts } = await adminClient
+      .from("contacts")
+      .select("id, full_name, email")
+      .in("id", contactIds);
+
+    return json({
+      contacts: (contacts || []).map((c: any) => ({
+        contact_id: c.id,
+        full_name: c.full_name,
+        email: c.email,
+      })),
+    });
+  }
+
+  // --- Default: return config status (never expose secret values) ---
   const config = {
     RESEND_API_KEY: !!Deno.env.get("RESEND_API_KEY"),
     APP_BASE_URL: !!Deno.env.get("APP_BASE_URL"),

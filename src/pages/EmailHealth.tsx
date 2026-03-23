@@ -55,13 +55,6 @@ export default function EmailHealth() {
   const configQuery = useQuery({
     queryKey: ["email-health-config", wsId],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("email-health", {
-        body: null,
-        method: "GET",
-        headers: {},
-      });
-      // supabase.functions.invoke sends POST by default; use query params
-      // Actually, we need to use fetch directly for GET with query params
       const session = (await supabase.auth.getSession()).data.session;
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/email-health?workspace_id=${wsId}`,
@@ -122,18 +115,25 @@ export default function EmailHealth() {
   const [sendingPortal, setSendingPortal] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState("");
 
-  const portalTokensQuery = useQuery({
-    queryKey: ["email-health-portal-tokens", wsId],
+  // Query contacts who have active portal tokens via the email-health edge function
+  // (portal_tokens has deny-all RLS — raw tokens must never reach the browser)
+  const portalContactsQuery = useQuery({
+    queryKey: ["email-health-portal-contacts", wsId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("portal_tokens")
-        .select("id, token, contact_id, company_id, expires_at, revoked_at, contacts!portal_tokens_contact_id_fkey(full_name, email)")
-        .eq("workspace_id", wsId!)
-        .is("revoked_at", null)
-        .order("created_at", { ascending: false })
-        .limit(20);
-      if (error) throw error;
-      return data;
+      const session = (await supabase.auth.getSession()).data.session;
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/email-health?workspace_id=${wsId}&list=portal_contacts`,
+        {
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+        }
+      );
+      if (!res.ok) throw new Error(`Failed to load portal contacts: ${res.status}`);
+      return (await res.json()) as {
+        contacts: Array<{ contact_id: string; full_name: string; email: string }>;
+      };
     },
     enabled: !!wsId,
   });
@@ -167,20 +167,12 @@ export default function EmailHealth() {
     if (!wsId || !selectedContactId) return;
     setSendingPortal(true);
     try {
-      const token = portalTokensQuery.data?.find(
-        (t) => t.contact_id === selectedContactId
-      );
-      if (!token) {
-        toast.error("No active portal token found for this contact");
-        setSendingPortal(false);
-        return;
-      }
+      // Only pass contact_id — the backend resolves the active token server-side
       const { data, error } = await supabase.functions.invoke("send-email", {
         body: {
           type: "portal",
           workspace_id: wsId,
           contact_id: selectedContactId,
-          portal_token: token.token,
         },
       });
       if (error) throw error;
@@ -314,20 +306,14 @@ export default function EmailHealth() {
                     <SelectValue placeholder="Select contact with token…" />
                   </SelectTrigger>
                   <SelectContent>
-                    {portalTokensQuery.data?.length === 0 && (
+                    {portalContactsQuery.data?.contacts?.length === 0 && (
                       <SelectItem value="__none" disabled>No active tokens</SelectItem>
                     )}
-                    {portalTokensQuery.data?.map((t) => {
-                      const contact = t.contacts as any;
-                      const label = contact?.email
-                        ? `${contact.full_name || "?"} <${contact.email}>`
-                        : contact?.full_name || t.contact_id;
-                      return (
-                        <SelectItem key={t.id} value={t.contact_id}>
-                          {label}
-                        </SelectItem>
-                      );
-                    })}
+                    {portalContactsQuery.data?.contacts?.map((c) => (
+                      <SelectItem key={c.contact_id} value={c.contact_id}>
+                        {c.email ? `${c.full_name || "?"} <${c.email}>` : c.full_name || c.contact_id}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <Button
