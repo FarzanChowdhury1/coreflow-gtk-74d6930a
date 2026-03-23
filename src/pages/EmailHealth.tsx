@@ -306,20 +306,14 @@ export default function EmailHealth() {
                     <SelectValue placeholder="Select contact with token…" />
                   </SelectTrigger>
                   <SelectContent>
-                    {portalTokensQuery.data?.length === 0 && (
+                    {portalContactsQuery.data?.contacts?.length === 0 && (
                       <SelectItem value="__none" disabled>No active tokens</SelectItem>
                     )}
-                    {portalTokensQuery.data?.map((t) => {
-                      const contact = t.contacts as any;
-                      const label = contact?.email
-                        ? `${contact.full_name || "?"} <${contact.email}>`
-                        : contact?.full_name || t.contact_id;
-                      return (
-                        <SelectItem key={t.id} value={t.contact_id}>
-                          {label}
-                        </SelectItem>
-                      );
-                    })}
+                    {portalContactsQuery.data?.contacts?.map((c) => (
+                      <SelectItem key={c.contact_id} value={c.contact_id}>
+                        {c.email ? `${c.full_name || "?"} <${c.email}>` : c.full_name || c.contact_id}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <Button
