@@ -167,20 +167,12 @@ export default function EmailHealth() {
     if (!wsId || !selectedContactId) return;
     setSendingPortal(true);
     try {
-      const token = portalTokensQuery.data?.find(
-        (t) => t.contact_id === selectedContactId
-      );
-      if (!token) {
-        toast.error("No active portal token found for this contact");
-        setSendingPortal(false);
-        return;
-      }
+      // Only pass contact_id — the backend resolves the active token server-side
       const { data, error } = await supabase.functions.invoke("send-email", {
         body: {
           type: "portal",
           workspace_id: wsId,
           contact_id: selectedContactId,
-          portal_token: token.token,
         },
       });
       if (error) throw error;
