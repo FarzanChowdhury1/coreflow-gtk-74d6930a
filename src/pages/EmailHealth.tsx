@@ -115,18 +115,25 @@ export default function EmailHealth() {
   const [sendingPortal, setSendingPortal] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState("");
 
-  const portalTokensQuery = useQuery({
-    queryKey: ["email-health-portal-tokens", wsId],
+  // Query contacts who have active portal tokens via the email-health edge function
+  // (portal_tokens has deny-all RLS — raw tokens must never reach the browser)
+  const portalContactsQuery = useQuery({
+    queryKey: ["email-health-portal-contacts", wsId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("portal_tokens")
-        .select("id, token, contact_id, company_id, expires_at, revoked_at, contacts!portal_tokens_contact_id_fkey(full_name, email)")
-        .eq("workspace_id", wsId!)
-        .is("revoked_at", null)
-        .order("created_at", { ascending: false })
-        .limit(20);
-      if (error) throw error;
-      return data;
+      const session = (await supabase.auth.getSession()).data.session;
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/email-health?workspace_id=${wsId}&list=portal_contacts`,
+        {
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+        }
+      );
+      if (!res.ok) throw new Error(`Failed to load portal contacts: ${res.status}`);
+      return (await res.json()) as {
+        contacts: Array<{ contact_id: string; full_name: string; email: string }>;
+      };
     },
     enabled: !!wsId,
   });
