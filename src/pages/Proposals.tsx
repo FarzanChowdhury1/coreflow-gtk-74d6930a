@@ -27,6 +27,7 @@ export default function Proposals() {
         .from("proposals")
         .select("*, companies(legal_name)")
         .eq("workspace_id", workspaceId)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
