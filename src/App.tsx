@@ -39,6 +39,7 @@ const Vendors = lazy(() => import("@/pages/Vendors"));
 const Expenses = lazy(() => import("@/pages/Expenses"));
 const Subscriptions = lazy(() => import("@/pages/Subscriptions"));
 const BudgetActual = lazy(() => import("@/pages/BudgetActual"));
+const EmailHealth = lazy(() => import("@/pages/EmailHealth"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const PageFallback = () => (
