@@ -2282,6 +2282,7 @@ export type Database = {
           trigger_source: string
           triggered_by: string | null
           worker_name: string
+          workspace_id: string | null
         }
         Insert: {
           created_at?: string
@@ -2295,6 +2296,7 @@ export type Database = {
           trigger_source?: string
           triggered_by?: string | null
           worker_name: string
+          workspace_id?: string | null
         }
         Update: {
           created_at?: string
@@ -2308,8 +2310,17 @@ export type Database = {
           trigger_source?: string
           triggered_by?: string | null
           worker_name?: string
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "worker_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workspace_invites: {
         Row: {
@@ -2547,6 +2558,10 @@ export type Database = {
       is_project_member: {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
+      }
+      issue_invoice: {
+        Args: { _invoice_id: string; _line_items: Json; _workspace_id: string }
+        Returns: Json
       }
       manage_renewal: {
         Args: {

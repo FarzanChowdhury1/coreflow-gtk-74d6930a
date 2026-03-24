@@ -117,20 +117,37 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
   };
 
   const markIssued = async () => {
+    if (!currentWorkspace) return;
     if (lineItems.length === 0) {
       toast.error("Add at least one line item before issuing");
       return;
     }
-    await saveLineItems();
-    const { error } = await supabase
-      .from("invoices")
-      .update({ status: "issued" as any, issue_date: new Date().toISOString().split("T")[0] })
-      .eq("id", invoice.id);
-    if (error) toast.error(error.message);
-    else {
+    setSaving(true);
+    try {
+      const { data, error } = await supabase.rpc("issue_invoice", {
+        _workspace_id: currentWorkspace.id,
+        _invoice_id: invoice.id,
+        _line_items: lineItems.map((l, i) => ({
+          description: l.description,
+          quantity: l.quantity,
+          unit_price: l.unit_price,
+          amount: l.amount,
+          sort_order: i,
+        })),
+      });
+      if (error) throw error;
+      const result = data as any;
+      if (!result?.success) {
+        toast.error(result?.error || "Failed to issue invoice");
+        return;
+      }
       toast.success("Invoice issued");
       onUpdated();
       onBack();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
     }
   };
 

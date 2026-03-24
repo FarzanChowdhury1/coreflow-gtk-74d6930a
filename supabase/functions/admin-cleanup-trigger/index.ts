@@ -124,6 +124,7 @@ Deno.serve(async (req) => {
       .select("started_at")
       .eq("worker_name", "asset_cleanup")
       .eq("status", "success")
+      .eq("workspace_id", workspace_id)
       .order("started_at", { ascending: false })
       .limit(1);
 
@@ -144,7 +145,8 @@ Deno.serve(async (req) => {
             duration_ms: 0,
             trigger_source: "manual",
             triggered_by: user.id,
-            summary: { cooldown_remaining_sec: retryAfter, workspace_id },
+            workspace_id,
+            summary: { cooldown_remaining_sec: retryAfter },
           });
         } catch (_) { /* best-effort */ }
 
@@ -216,6 +218,7 @@ Deno.serve(async (req) => {
           duration_ms: durationMs,
           trigger_source: "manual",
           triggered_by: user.id,
+          workspace_id,
           summary: resultSummary,
         });
       } catch (_) { /* best-effort */ }
@@ -237,8 +240,9 @@ Deno.serve(async (req) => {
           duration_ms: durationMs,
           trigger_source: "manual",
           triggered_by: user.id,
+          workspace_id,
           error_message: errMsg,
-          summary: { workspace_id },
+          summary: {},
         });
       } catch (_e) { /* best-effort */ }
 
