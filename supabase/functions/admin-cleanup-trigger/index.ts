@@ -145,7 +145,8 @@ Deno.serve(async (req) => {
             duration_ms: 0,
             trigger_source: "manual",
             triggered_by: user.id,
-            summary: { cooldown_remaining_sec: retryAfter, workspace_id },
+            workspace_id,
+            summary: { cooldown_remaining_sec: retryAfter },
           });
         } catch (_) { /* best-effort */ }
 
