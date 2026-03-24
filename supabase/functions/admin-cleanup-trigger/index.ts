@@ -240,8 +240,9 @@ Deno.serve(async (req) => {
           duration_ms: durationMs,
           trigger_source: "manual",
           triggered_by: user.id,
+          workspace_id,
           error_message: errMsg,
-          summary: { workspace_id },
+          summary: {},
         });
       } catch (_e) { /* best-effort */ }
 
