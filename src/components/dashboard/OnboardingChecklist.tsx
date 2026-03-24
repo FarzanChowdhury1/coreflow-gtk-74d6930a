@@ -119,7 +119,7 @@ export function OnboardingChecklist() {
   // Don't block LCP: return null while loading (no skeleton, no spinner)
   if (currentRole !== "admin" || isLoading || !counts) return null;
 
-  const completed = items.filter((i) => i.check(counts)).length;
+  const completed = items.filter((i) => i.check(counts as Record<string, number>)).length;
   const total = items.length;
   const progress = Math.round((completed / total) * 100);
 
