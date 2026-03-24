@@ -75,6 +75,7 @@ export function AppSidebar({ mobileOpen, onClose }: Props) {
   const location = useLocation();
   const { signOut, user } = useAuth();
   const { currentWorkspace, currentRole, workspaces, setCurrentWorkspaceId } = useWorkspace();
+  const { isPlatformAdmin } = usePlatformAdmin();
   const [showWorkspacePicker, setShowWorkspacePicker] = useState(false);
 
   const filteredItems = navItems.filter(
