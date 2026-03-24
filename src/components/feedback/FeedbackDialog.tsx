@@ -111,6 +111,23 @@ export function FeedbackDialog() {
             </Select>
           </div>
           <div className="space-y-2">
+            <Label htmlFor="fb-priority">Priority</Label>
+            <Select value={priority} onValueChange={setPriority}>
+              <SelectTrigger id="fb-priority">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PRIORITIES.map((p) => (
+                  <SelectItem key={p.value} value={p.value}>
+                    {p.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {PRIORITIES.find((p) => p.value === priority)?.description}
+            </p>
+          <div className="space-y-2">
             <Label htmlFor="fb-title">Title</Label>
             <Input
               id="fb-title"
