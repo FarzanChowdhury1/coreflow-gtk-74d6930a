@@ -60,7 +60,7 @@ export function RenewalFormDialog({ open, onOpenChange, renewal, companies, proj
       _renewal_id: renewal?.id ?? undefined,
       _label: label.trim(),
       _company_id: companyId,
-      _project_id: projectId || null,
+      _project_id: projectId || undefined,
       _amount: parseFloat(amount),
       _currency: currency,
       _interval_months: parseInt(intervalMonths),
