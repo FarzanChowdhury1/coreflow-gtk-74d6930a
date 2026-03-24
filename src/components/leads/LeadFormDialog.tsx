@@ -107,7 +107,7 @@ export function LeadFormDialog({ open, onOpenChange, lead, companies, contacts }
         onOpenChange(false);
       }
     } else {
-      const { error } = await supabase.from("leads").insert(payload);
+      const { error } = await supabase.from("leads").insert({ ...basePayload, owner_id: user.id });
       if (error) {
         toast({ title: "Creation failed", description: error.message, variant: "destructive" });
       } else {
