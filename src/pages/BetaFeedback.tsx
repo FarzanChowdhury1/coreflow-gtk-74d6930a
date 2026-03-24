@@ -151,6 +151,17 @@ export default function BetaFeedback() {
             <SelectItem value="other">Other</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={filterPriority} onValueChange={setFilterPriority}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Priority" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Priorities</SelectItem>
+            <SelectItem value="p0">P0 — Blocker</SelectItem>
+            <SelectItem value="p1">P1 — Serious</SelectItem>
+            <SelectItem value="p2">P2 — Polish</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="Status" />
@@ -178,6 +189,7 @@ export default function BetaFeedback() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Priority</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Title</TableHead>
                 <TableHead>Submitted By</TableHead>
@@ -189,6 +201,11 @@ export default function BetaFeedback() {
             <TableBody>
               {feedback.map((f) => (
                 <TableRow key={f.id}>
+                  <TableCell>
+                    <Badge variant="outline" className={PRIORITY_COLORS[f.priority] || ""}>
+                      {(f.priority || "p2").toUpperCase()}
+                    </Badge>
+                  </TableCell>
                   <TableCell>
                     <Badge variant="secondary">{CATEGORY_LABELS[f.category] || f.category}</Badge>
                   </TableCell>
