@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useLatestProposalVersions } from "@/hooks/use-workspace-queries";
 import { ProposalFormDialog } from "@/components/proposals/ProposalFormDialog";
 import { ProposalDetail } from "@/components/proposals/ProposalDetail";
 
@@ -36,21 +37,7 @@ export default function Proposals() {
     staleTime: 30000,
   });
 
-  const { data: latestVersions = [] } = useQuery({
-    queryKey: ["proposal_versions_latest", workspaceId],
-    queryFn: async () => {
-      if (!workspaceId) return [];
-      const { data, error } = await supabase
-        .from("proposal_versions")
-        .select("*")
-        .eq("workspace_id", workspaceId)
-        .order("version_number", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!workspaceId,
-    staleTime: 30000,
-  });
+  const { data: latestVersions = [] } = useLatestProposalVersions(workspaceId);
 
   const getLatestVersion = (proposalId: string) =>
     latestVersions.find((v) => v.proposal_id === proposalId);
