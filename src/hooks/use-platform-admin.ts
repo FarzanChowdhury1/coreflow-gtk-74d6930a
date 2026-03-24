@@ -6,16 +6,19 @@ export function usePlatformAdmin() {
   const { user } = useAuth();
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [checkedUserId, setCheckedUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
       setIsPlatformAdmin(false);
+      setCheckedUserId(null);
       setLoading(false);
       return;
     }
 
     // Reset loading when user changes to prevent premature redirect
     setLoading(true);
+    setCheckedUserId(null);
     let cancelled = false;
 
     (async () => {
@@ -27,6 +30,7 @@ export function usePlatformAdmin() {
 
       if (!cancelled) {
         setIsPlatformAdmin(!error && !!data);
+        setCheckedUserId(user.id);
         setLoading(false);
       }
     })();
@@ -34,5 +38,8 @@ export function usePlatformAdmin() {
     return () => { cancelled = true; };
   }, [user?.id]);
 
-  return { isPlatformAdmin, loading };
+  return {
+    isPlatformAdmin,
+    loading: loading || (!!user && checkedUserId !== user.id),
+  };
 }
