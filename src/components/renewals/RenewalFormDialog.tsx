@@ -57,15 +57,15 @@ export function RenewalFormDialog({ open, onOpenChange, renewal, companies, proj
     const { data, error } = await supabase.rpc("manage_renewal", {
       _action: renewal ? "update" : "create",
       _workspace_id: currentWorkspace.id,
-      _renewal_id: renewal?.id || null,
+      _renewal_id: renewal?.id ?? undefined,
       _label: label.trim(),
       _company_id: companyId,
-      _project_id: projectId || null,
+      _project_id: projectId || undefined,
       _amount: parseFloat(amount),
       _currency: currency,
       _interval_months: parseInt(intervalMonths),
       _next_billing_date: nextBillingDate,
-      _notes: notes.trim() || null,
+      _notes: notes.trim() || undefined,
       _is_active: renewal?.is_active ?? true,
     });
     const result = data as unknown as { success: boolean; error?: string };

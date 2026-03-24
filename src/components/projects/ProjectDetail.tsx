@@ -135,7 +135,7 @@ export function ProjectDetail({ projectId, onBack }: Props) {
         onSaved={() => setMeetingOpen(false)}
         defaultContext={{
           project_id: projectId,
-          company_id: project.company_id,
+          company_id: project.company_id ?? undefined,
         }}
       />
     </div>

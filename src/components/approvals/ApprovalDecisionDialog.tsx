@@ -26,7 +26,7 @@ export function ApprovalDecisionDialog({ open, onOpenChange, requestId, onDecide
       const { data, error } = await supabase.rpc("process_approval_decision", {
         _request_id: requestId,
         _decision: decision,
-        _comment: comment || null,
+        _comment: comment || undefined,
       });
       if (error) throw error;
       const result = data as any;
