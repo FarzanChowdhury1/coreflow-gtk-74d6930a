@@ -127,6 +127,7 @@ export function FeedbackDialog() {
             <p className="text-xs text-muted-foreground">
               {PRIORITIES.find((p) => p.value === priority)?.description}
             </p>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="fb-title">Title</Label>
             <Input
