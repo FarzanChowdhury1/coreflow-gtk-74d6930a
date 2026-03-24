@@ -144,7 +144,7 @@ export function OnboardingChecklist() {
       {!collapsed && (
         <div className="space-y-1">
           {items.map((item) => {
-            const done = item.check(counts);
+            const done = item.check(counts as Record<string, number>);
             return (
               <button
                 key={item.key}

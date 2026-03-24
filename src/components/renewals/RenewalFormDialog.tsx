@@ -65,7 +65,7 @@ export function RenewalFormDialog({ open, onOpenChange, renewal, companies, proj
       _currency: currency,
       _interval_months: parseInt(intervalMonths),
       _next_billing_date: nextBillingDate,
-      _notes: notes.trim() || null,
+      _notes: notes.trim() || undefined,
       _is_active: renewal?.is_active ?? true,
     });
     const result = data as unknown as { success: boolean; error?: string };

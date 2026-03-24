@@ -106,7 +106,7 @@ export function TeamManagementTab() {
       const enriched: MemberRow[] = memberships.map((m: any) => ({
         ...m,
         full_name: profileMap.get(m.user_id) || null,
-        email: m.user_id === user?.id ? user.email ?? null : null,
+        email: m.user_id === user?.id ? user?.email ?? null : null,
         department_id: m.department_id || null,
         department_name: m.department_id ? deptMap.get(m.department_id) || null : null,
         team_names: userTeams[m.user_id] || [],
