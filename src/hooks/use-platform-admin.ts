@@ -14,6 +14,8 @@ export function usePlatformAdmin() {
       return;
     }
 
+    // Reset loading when user changes to prevent premature redirect
+    setLoading(true);
     let cancelled = false;
 
     (async () => {
