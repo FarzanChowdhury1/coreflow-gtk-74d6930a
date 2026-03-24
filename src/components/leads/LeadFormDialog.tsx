@@ -84,7 +84,7 @@ export function LeadFormDialog({ open, onOpenChange, lead, companies, contacts }
     if (!currentWorkspace || !user) return;
     setLoading(true);
 
-    const payload = {
+    const basePayload = {
       title: result.data.title,
       status: result.data.status as any,
       source: result.data.source || null,
@@ -94,11 +94,11 @@ export function LeadFormDialog({ open, onOpenChange, lead, companies, contacts }
       notes: result.data.notes || null,
       next_follow_up: result.data.next_follow_up || null,
       workspace_id: currentWorkspace.id,
-      owner_id: user.id,
     };
 
     if (lead) {
-      const { error } = await supabase.from("leads").update(payload).eq("id", lead.id);
+      // Do NOT overwrite owner_id on update — preserve original owner
+      const { error } = await supabase.from("leads").update(basePayload).eq("id", lead.id);
       if (error) {
         toast({ title: "Update failed", description: error.message, variant: "destructive" });
       } else {
