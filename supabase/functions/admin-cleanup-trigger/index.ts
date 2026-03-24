@@ -124,6 +124,7 @@ Deno.serve(async (req) => {
       .select("started_at")
       .eq("worker_name", "asset_cleanup")
       .eq("status", "success")
+      .eq("workspace_id", workspace_id)
       .order("started_at", { ascending: false })
       .limit(1);
 
