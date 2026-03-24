@@ -16,46 +16,16 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
 // --------------- URL trust boundary ---------------
 
 /**
- * Resolve the trusted application base URL.
- * Priority: APP_BASE_URL env var > validated Origin header.
- * Rejects untrusted origins to prevent phishing links in emails.
+ * HARDENED: Resolve the trusted application base URL.
+ * ONLY uses the APP_BASE_URL env var — never derives from request Origin.
+ * This prevents phishing-prone link generation via spoofed Origin headers.
  */
-function resolveBaseUrl(req: Request): string | null {
-  // 1. Explicit server-side config (highest trust)
+function resolveBaseUrl(): string | null {
   const configured = Deno.env.get("APP_BASE_URL");
   if (configured) {
     return configured.replace(/\/+$/, "");
   }
-
-  // 2. Derive from request Origin header with strict validation
-  const origin = req.headers.get("origin");
-  if (origin && isAllowedOrigin(origin)) {
-    return origin.replace(/\/+$/, "");
-  }
-
   return null;
-}
-
-const ALLOWED_ORIGIN_PATTERNS = [
-  // Lovable preview/published domains
-  /^https:\/\/[a-z0-9-]+\.lovable\.app$/,
-  // Custom domains (must be HTTPS)
-  /^https:\/\/[a-z0-9][a-z0-9.-]+\.[a-z]{2,}$/,
-  // Local development
-  /^http:\/\/localhost(:\d+)?$/,
-  /^http:\/\/127\.0\.0\.1(:\d+)?$/,
-];
-
-function isAllowedOrigin(origin: string): boolean {
-  try {
-    const url = new URL(origin);
-    // Must be http or https
-    if (!["http:", "https:"].includes(url.protocol)) return false;
-    // Must match at least one pattern
-    return ALLOWED_ORIGIN_PATTERNS.some((p) => p.test(origin));
-  } catch {
-    return false;
-  }
 }
 
 // --------------- Main handler ---------------
@@ -102,8 +72,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ---- Resolve trusted base URL ----
-    const baseUrl = resolveBaseUrl(req);
+    // ---- Resolve trusted base URL (HARDENED: env-only, no Origin fallback) ----
+    const baseUrl = resolveBaseUrl();
     if (!baseUrl) {
       return jsonResponse(
         {
@@ -183,7 +153,6 @@ Deno.serve(async (req) => {
       }
 
       recipientEmail = invite.email;
-      // URL constructed server-side from trusted base + DB token
       const inviteUrl = `${baseUrl}/invite?token=${encodeURIComponent(invite.token)}`;
       const roleName = invite.role === "admin" ? "Admin" : "Team Member";
 
@@ -206,13 +175,13 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Resolve active, non-expired token server-side — latest wins
       const { data: tokenRow } = await adminClient
         .from("portal_tokens")
         .select("id, token, company_id, contact_id")
         .eq("workspace_id", workspace_id)
         .eq("contact_id", contact_id)
         .is("revoked_at", null)
+        .is("consumed_at", null)
         .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: false })
         .limit(1)
@@ -256,7 +225,6 @@ Deno.serve(async (req) => {
       }
 
       recipientEmail = contact.email;
-      // URL constructed server-side from trusted base + validated DB token
       const portalUrl = `${baseUrl}/portal?token=${encodeURIComponent(tokenRow.token)}`;
 
       subject = `Your client portal access${companyName ? ` — ${companyName}` : ""}`;
