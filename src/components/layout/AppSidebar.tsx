@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { usePlatformAdmin } from "@/hooks/use-platform-admin";
 
 interface NavItem {
   label: string;
