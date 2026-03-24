@@ -137,7 +137,7 @@ describe("Lead owner_id integrity (unit)", () => {
   it("spread of basePayload never leaks owner_id into update", () => {
     // Simulates actual LeadFormDialog update path
     const formData = { title: "Deal", status: "qualified", source: "web" };
-    const basePayload = {
+    const basePayload: Record<string, unknown> = {
       ...formData,
       workspace_id: "ws-1",
       company_id: null,
