@@ -1091,6 +1091,13 @@ export type Database = {
             foreignKeyName: "invoices_proposal_version_id_fkey"
             columns: ["proposal_version_id"]
             isOneToOne: false
+            referencedRelation: "latest_proposal_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_proposal_version_id_fkey"
+            columns: ["proposal_version_id"]
+            isOneToOne: false
             referencedRelation: "proposal_versions"
             referencedColumns: ["id"]
           },
@@ -1636,6 +1643,13 @@ export type Database = {
             foreignKeyName: "projects_proposal_version_id_fkey"
             columns: ["proposal_version_id"]
             isOneToOne: false
+            referencedRelation: "latest_proposal_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_proposal_version_id_fkey"
+            columns: ["proposal_version_id"]
+            isOneToOne: false
             referencedRelation: "proposal_versions"
             referencedColumns: ["id"]
           },
@@ -1686,6 +1700,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "proposal_line_items_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "latest_proposal_versions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "proposal_line_items_version_id_fkey"
             columns: ["version_id"]
@@ -2449,7 +2470,35 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      latest_proposal_versions: {
+        Row: {
+          created_at: string | null
+          currency: string | null
+          grand_total: number | null
+          id: string | null
+          proposal_id: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["proposal_version_status"] | null
+          version_number: number | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_versions_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_versions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       _generate_renewal_invoice_internal: {

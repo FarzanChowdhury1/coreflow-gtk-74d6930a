@@ -59,31 +59,20 @@ export function useWorkspaceMembers(workspaceId: string | undefined) {
 }
 
 /**
- * Fetch the latest version per proposal in a single query.
- * Uses DISTINCT ON via ordering — returns one row per proposal_id (the highest version_number).
+ * Fetch the latest version per proposal using the DB view `latest_proposal_versions`.
+ * DISTINCT ON runs server-side — no client-side dedup, scales with data.
  */
 export function useLatestProposalVersions(workspaceId: string | undefined) {
   return useQuery({
     queryKey: ["proposal_versions_latest", workspaceId],
     queryFn: async () => {
       if (!workspaceId) return [];
-      // Fetch all versions ordered by proposal_id + version_number desc,
-      // then deduplicate client-side to get latest per proposal.
       const { data, error } = await supabase
-        .from("proposal_versions")
+        .from("latest_proposal_versions" as "proposal_versions")
         .select("id, proposal_id, version_number, status, grand_total, currency")
-        .eq("workspace_id", workspaceId)
-        .order("version_number", { ascending: false });
+        .eq("workspace_id", workspaceId);
       if (error) throw error;
-      if (!data) return [];
-
-      // Deduplicate: keep first occurrence per proposal_id (highest version_number)
-      const seen = new Set<string>();
-      return data.filter((v) => {
-        if (seen.has(v.proposal_id)) return false;
-        seen.add(v.proposal_id);
-        return true;
-      });
+      return data ?? [];
     },
     enabled: !!workspaceId,
     staleTime: 30_000,

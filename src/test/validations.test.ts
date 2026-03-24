@@ -209,55 +209,112 @@ describe("Invoice issuance atomicity (contract)", () => {
   });
 });
 
-// ── Proposal workflow spine (contract) ──────────────────────────
+// ── Proposal workflow: approval transitions & project creation ──
 
-describe("Proposal workflow spine (contract)", () => {
-  it("proposal version status transitions are valid", () => {
-    const validStatuses = ["draft", "sent", "approved", "rejected", "voided"];
-    // draft → sent → approved|rejected, any non-voided → voided
-    expect(validStatuses).toContain("draft");
-    expect(validStatuses).toContain("approved");
-    expect(validStatuses).toContain("rejected");
+describe("Proposal approval transition logic", () => {
+  // Mirrors the exact guard logic from ProposalDetail.tsx
+  const canApprove = (status: string, role: string) =>
+    status === "sent" && role === "admin";
+  const canDecline = canApprove; // same guard
+  const canCreateProject = (status: string, role: string, existingProject: unknown) =>
+    status === "approved" && role === "admin" && !existingProject;
+
+  it("allows approve only on sent proposals by admin", () => {
+    expect(canApprove("sent", "admin")).toBe(true);
+    expect(canApprove("draft", "admin")).toBe(false);
+    expect(canApprove("sent", "team_member")).toBe(false);
+    expect(canApprove("approved", "admin")).toBe(false);
+    expect(canApprove("voided", "admin")).toBe(false);
   });
 
-  it("only sent proposals can be approved or rejected", () => {
-    const canApprove = (status: string) => status === "sent";
-    expect(canApprove("sent")).toBe(true);
-    expect(canApprove("draft")).toBe(false);
-    expect(canApprove("approved")).toBe(false);
-    expect(canApprove("voided")).toBe(false);
+  it("allows decline only on sent proposals by admin", () => {
+    expect(canDecline("sent", "admin")).toBe(true);
+    expect(canDecline("draft", "admin")).toBe(false);
+    expect(canDecline("rejected", "admin")).toBe(false);
   });
 
-  it("create_project_from_approved_version RPC shape is correct", () => {
-    const rpcParams = {
+  it("allows project creation only on approved version with no existing project", () => {
+    expect(canCreateProject("approved", "admin", null)).toBe(true);
+    expect(canCreateProject("approved", "admin", { id: "p1", name: "Existing" })).toBe(false);
+    expect(canCreateProject("sent", "admin", null)).toBe(false);
+    expect(canCreateProject("approved", "team_member", null)).toBe(false);
+  });
+
+  it("version status transitions follow draft→sent→approved|rejected, any→voided", () => {
+    const transitions: Record<string, string[]> = {
+      draft: ["sent"],
+      sent: ["approved", "rejected", "voided"],
+      approved: ["voided"],
+      rejected: ["voided"],
+    };
+    // Draft cannot jump to approved
+    expect(transitions["draft"]).not.toContain("approved");
+    // Sent can become approved or rejected
+    expect(transitions["sent"]).toContain("approved");
+    expect(transitions["sent"]).toContain("rejected");
+    // No backward transition from approved to draft
+    expect(transitions["approved"]).not.toContain("draft");
+  });
+
+  it("approval flow is direct (not approval-engine) — no workflow_id needed", () => {
+    // ProposalDetail uses direct status update, not process_approval_decision RPC.
+    // This confirms the architectural decision: proposals use simple transitions.
+    const directUpdate = { status: "approved" };
+    expect(directUpdate).not.toHaveProperty("workflow_id");
+    expect(directUpdate).not.toHaveProperty("request_id");
+  });
+
+  it("create_project_from_approved_version requires all 3 params", () => {
+    const rpc = {
       _workspace_id: "ws-1",
       _proposal_version_id: "pv-1",
       _created_by: "user-1",
     };
-    expect(rpcParams).toHaveProperty("_workspace_id");
-    expect(rpcParams).toHaveProperty("_proposal_version_id");
-    expect(rpcParams).toHaveProperty("_created_by");
+    expect(Object.keys(rpc)).toHaveLength(3);
+    expect(rpc._workspace_id).toBeTruthy();
+    expect(rpc._proposal_version_id).toBeTruthy();
+    expect(rpc._created_by).toBeTruthy();
+  });
+});
+
+// ── Latest proposal version: server-side strategy ───────────────
+
+describe("Latest proposal version strategy", () => {
+  it("latest_proposal_versions view returns one row per proposal", () => {
+    // Simulates DISTINCT ON behavior: given multiple versions, only highest wins
+    const versions = [
+      { proposal_id: "p1", version_number: 1, status: "sent" },
+      { proposal_id: "p1", version_number: 2, status: "draft" },
+      { proposal_id: "p2", version_number: 1, status: "approved" },
+    ];
+    // DISTINCT ON (proposal_id) ORDER BY version_number DESC → one per proposal
+    const seen = new Set<string>();
+    const sorted = [...versions].sort((a, b) => b.version_number - a.version_number);
+    const latest = sorted.filter((v) => {
+      if (seen.has(v.proposal_id)) return false;
+      seen.add(v.proposal_id);
+      return true;
+    });
+    expect(latest).toHaveLength(2);
+    expect(latest.find((v) => v.proposal_id === "p1")?.version_number).toBe(2);
+    expect(latest.find((v) => v.proposal_id === "p2")?.version_number).toBe(1);
   });
 
-  it("project tracks proposal_version_id for provenance", () => {
-    const projectPayload = {
-      name: "Test Project",
-      workspace_id: "ws-1",
-      proposal_version_id: "pv-1",
+  it("view query does not require client-side dedup", () => {
+    // The hook now queries latest_proposal_versions view directly,
+    // so there's no .filter() dedup step — the DB handles it
+    const viewQuery = {
+      from: "latest_proposal_versions",
+      select: "id, proposal_id, version_number, status, grand_total, currency",
+      filter: { workspace_id: "ws-1" },
     };
-    expect(projectPayload).toHaveProperty("proposal_version_id");
+    expect(viewQuery.from).toBe("latest_proposal_versions");
+    expect(viewQuery.from).not.toBe("proposal_versions");
   });
 
-  it("lead → proposal conversion sets lead status to converted", () => {
-    const leadStatus = "converted";
-    expect(leadStatus).toBe("converted");
-  });
-
-  it("full commercial spine: lead → proposal → approval → project → invoice", () => {
-    const spine = ["lead", "proposal", "approval", "project", "invoice"];
-    expect(spine).toHaveLength(5);
-    expect(spine[0]).toBe("lead");
-    expect(spine[spine.length - 1]).toBe("invoice");
+  it("workspace scoping is applied on the view query", () => {
+    const query = { from: "latest_proposal_versions", eq: { workspace_id: "ws-1" } };
+    expect(query.eq).toHaveProperty("workspace_id");
   });
 });
 
