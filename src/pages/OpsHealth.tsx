@@ -42,13 +42,18 @@ function StatusBadge({ status }: { status: string }) {
 /* ------------------------------------------------------------------ */
 
 function WorkerRunsSection() {
+  const { currentWorkspace } = useWorkspace();
+  const wsId = currentWorkspace?.id;
   const { data: runs = [], isLoading } = useQuery({
-    queryKey: ["worker-runs"],
+    queryKey: ["worker-runs", wsId],
     staleTime: 30000,
+    enabled: !!wsId,
     queryFn: async () => {
+      if (!wsId) return [];
       const { data, error } = await supabase
         .from("worker_runs")
         .select("*")
+        .eq("workspace_id", wsId)
         .order("started_at", { ascending: false })
         .limit(30);
       if (error) throw error;

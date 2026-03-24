@@ -8,6 +8,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useWorkspaceCompanies, useWorkspaceContacts } from "@/hooks/use-workspace-queries";
 import { LeadFormDialog } from "@/components/leads/LeadFormDialog";
 import { ProposalFormDialog } from "@/components/proposals/ProposalFormDialog";
 import type { ProposalFormPrefill } from "@/components/proposals/ProposalFormDialog";
@@ -64,35 +65,8 @@ export default function Leads() {
     staleTime: 30000,
   });
 
-  const { data: companies = [] } = useQuery({
-    queryKey: ["companies", workspaceId],
-    queryFn: async () => {
-      if (!workspaceId) return [];
-      const { data, error } = await supabase
-        .from("companies")
-        .select("*")
-        .eq("workspace_id", workspaceId);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!workspaceId,
-    staleTime: 60000,
-  });
-
-  const { data: contacts = [] } = useQuery({
-    queryKey: ["contacts", workspaceId],
-    queryFn: async () => {
-      if (!workspaceId) return [];
-      const { data, error } = await supabase
-        .from("contacts")
-        .select("*")
-        .eq("workspace_id", workspaceId);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!workspaceId,
-    staleTime: 60000,
-  });
+  const { data: companies = [] } = useWorkspaceCompanies(workspaceId);
+  const { data: contacts = [] } = useWorkspaceContacts(workspaceId);
 
   const filteredLeads = leads.filter((l) =>
     l.title.toLowerCase().includes(searchTerm.toLowerCase())

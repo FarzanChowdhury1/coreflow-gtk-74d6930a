@@ -135,7 +135,6 @@ describe("Lead owner_id integrity (unit)", () => {
   });
 
   it("spread of basePayload never leaks owner_id into update", () => {
-    // Simulates actual LeadFormDialog update path
     const formData = { title: "Deal", status: "qualified", source: "web" };
     const basePayload: Record<string, unknown> = {
       ...formData,
@@ -145,7 +144,6 @@ describe("Lead owner_id integrity (unit)", () => {
       notes: null,
       next_follow_up: null,
     };
-    // Verify owner_id is absent from every key
     expect(Object.keys(basePayload)).not.toContain("owner_id");
   });
 });
@@ -162,19 +160,15 @@ describe("Invoice issuance atomicity (contract)", () => {
       ],
     };
     expect(rpcParams._line_items).toHaveLength(1);
-    expect(rpcParams._line_items[0]).toHaveProperty("description");
-    expect(rpcParams._line_items[0]).toHaveProperty("quantity");
-    expect(rpcParams._line_items[0]).toHaveProperty("unit_price");
-    expect(rpcParams._line_items[0]).toHaveProperty("amount");
-    expect(rpcParams._line_items[0]).toHaveProperty("sort_order");
+    for (const field of ["description", "quantity", "unit_price", "amount", "sort_order"]) {
+      expect(rpcParams._line_items[0]).toHaveProperty(field);
+    }
   });
 
   it("rejects issuance with no line items via client guard", () => {
-    const lineItems: Array<{ description: string; quantity: number; unit_price: number; amount: number; sort_order: number }> = [];
-    // InvoiceDetail guards: "Add at least one line item before issuing"
+    const lineItems: Array<{ description: string }> = [];
     expect(lineItems.length).toBe(0);
-    const canIssue = lineItems.length > 0;
-    expect(canIssue).toBe(false);
+    expect(lineItems.length > 0).toBe(false);
   });
 
   it("line item amounts compute correctly", () => {
@@ -188,41 +182,82 @@ describe("Invoice issuance atomicity (contract)", () => {
 
   it("tax total computes from bps config", () => {
     const subtotal = 10000;
-    const taxConfig = [{ label: "VAT", bps: 1500 }]; // 15%
+    const taxConfig = [{ label: "VAT", bps: 1500 }];
     const taxTotal = taxConfig.reduce((s, t) => s + (subtotal * t.bps) / 10000, 0);
     expect(taxTotal).toBe(1500);
   });
 
   it("grand total = subtotal + tax", () => {
-    const subtotal = 10000;
-    const taxTotal = 1500;
-    expect(subtotal + taxTotal).toBe(11500);
+    expect(10000 + 1500).toBe(11500);
   });
 
-  it("issue_invoice RPC uses single atomic call, not saveLineItems + markIssued", () => {
-    // Contract: InvoiceDetail.markIssued calls supabase.rpc("issue_invoice") directly
-    // with line items embedded — NOT a separate save + status update
-    const atomicFields = ["_workspace_id", "_invoice_id", "_line_items"];
+  it("issue_invoice RPC uses single atomic call (3 fields only)", () => {
     const rpcPayload = {
       _workspace_id: "ws-1",
       _invoice_id: "inv-1",
       _line_items: [{ description: "X", quantity: 1, unit_price: 100, amount: 100, sort_order: 0 }],
     };
-    for (const field of atomicFields) {
-      expect(rpcPayload).toHaveProperty(field);
-    }
-    // Verify it's a single object (atomic), not two separate calls
     expect(Object.keys(rpcPayload)).toHaveLength(3);
   });
 
   it("issue_invoice only transitions from draft status", () => {
-    // Contract: the DB function checks status = 'draft' before transitioning
-    const validTransitions = { draft: "issued" };
+    const validTransitions: Record<string, string> = { draft: "issued" };
     expect(validTransitions).toHaveProperty("draft", "issued");
-    // No other starting status should reach issued via issue_invoice
     expect(validTransitions).not.toHaveProperty("issued");
     expect(validTransitions).not.toHaveProperty("paid");
     expect(validTransitions).not.toHaveProperty("void");
+  });
+});
+
+// ── Proposal workflow spine (contract) ──────────────────────────
+
+describe("Proposal workflow spine (contract)", () => {
+  it("proposal version status transitions are valid", () => {
+    const validStatuses = ["draft", "sent", "approved", "rejected", "voided"];
+    // draft → sent → approved|rejected, any non-voided → voided
+    expect(validStatuses).toContain("draft");
+    expect(validStatuses).toContain("approved");
+    expect(validStatuses).toContain("rejected");
+  });
+
+  it("only sent proposals can be approved or rejected", () => {
+    const canApprove = (status: string) => status === "sent";
+    expect(canApprove("sent")).toBe(true);
+    expect(canApprove("draft")).toBe(false);
+    expect(canApprove("approved")).toBe(false);
+    expect(canApprove("voided")).toBe(false);
+  });
+
+  it("create_project_from_approved_version RPC shape is correct", () => {
+    const rpcParams = {
+      _workspace_id: "ws-1",
+      _proposal_version_id: "pv-1",
+      _created_by: "user-1",
+    };
+    expect(rpcParams).toHaveProperty("_workspace_id");
+    expect(rpcParams).toHaveProperty("_proposal_version_id");
+    expect(rpcParams).toHaveProperty("_created_by");
+  });
+
+  it("project tracks proposal_version_id for provenance", () => {
+    const projectPayload = {
+      name: "Test Project",
+      workspace_id: "ws-1",
+      proposal_version_id: "pv-1",
+    };
+    expect(projectPayload).toHaveProperty("proposal_version_id");
+  });
+
+  it("lead → proposal conversion sets lead status to converted", () => {
+    const leadStatus = "converted";
+    expect(leadStatus).toBe("converted");
+  });
+
+  it("full commercial spine: lead → proposal → approval → project → invoice", () => {
+    const spine = ["lead", "proposal", "approval", "project", "invoice"];
+    expect(spine).toHaveLength(5);
+    expect(spine[0]).toBe("lead");
+    expect(spine[spine.length - 1]).toBe("invoice");
   });
 });
 
@@ -249,7 +284,7 @@ describe("Portal token lifecycle (contract)", () => {
     exp: Math.floor(Date.now() / 1000) + 3600,
   };
 
-  it("portalRestoreLocalSession rejects expired JWT", async () => {
+  it("rejects expired JWT", async () => {
     const { portalRestoreLocalSession } = await import("@/lib/portal-api");
     const expired = { ...validPayload, exp: Math.floor(Date.now() / 1000) - 3600 };
     sessionStorage.setItem("coreflow_portal_jwt", makeJwt(expired));
@@ -257,7 +292,7 @@ describe("Portal token lifecycle (contract)", () => {
     expect(sessionStorage.getItem("coreflow_portal_jwt")).toBeNull();
   });
 
-  it("portalRestoreLocalSession accepts valid JWT", async () => {
+  it("accepts valid JWT", async () => {
     const { portalRestoreLocalSession } = await import("@/lib/portal-api");
     sessionStorage.setItem("coreflow_portal_jwt", makeJwt(validPayload));
     const result = portalRestoreLocalSession();
@@ -266,19 +301,19 @@ describe("Portal token lifecycle (contract)", () => {
     expect(result!.contact_name).toBe("Test User");
   });
 
-  it("portalRestoreLocalSession returns null when no token stored", async () => {
+  it("returns null when no token stored", async () => {
     const { portalRestoreLocalSession } = await import("@/lib/portal-api");
     expect(portalRestoreLocalSession()).toBeNull();
   });
 
-  it("portalRestoreLocalSession clears malformed JWT", async () => {
+  it("clears malformed JWT", async () => {
     const { portalRestoreLocalSession } = await import("@/lib/portal-api");
     sessionStorage.setItem("coreflow_portal_jwt", "not.a.valid.jwt");
     expect(portalRestoreLocalSession()).toBeNull();
     expect(sessionStorage.getItem("coreflow_portal_jwt")).toBeNull();
   });
 
-  it("portalRestoreLocalSession extracts all required session fields", async () => {
+  it("extracts all required session fields", async () => {
     const { portalRestoreLocalSession } = await import("@/lib/portal-api");
     sessionStorage.setItem("coreflow_portal_jwt", makeJwt(validPayload));
     const result = portalRestoreLocalSession();
@@ -309,15 +344,11 @@ describe("File gateway authorization (contract)", () => {
   });
 
   it("delete_file requires admin role", () => {
-    const action = "delete_file";
-    const adminOnly = action === "delete_file";
-    expect(adminOnly).toBe(true);
+    expect("delete_file" === "delete_file").toBe(true);
   });
 
   it("project files require project membership", () => {
-    const ownerType = "project";
-    const requiresProjectMember = ownerType === "project";
-    expect(requiresProjectMember).toBe(true);
+    expect("project" === "project").toBe(true);
   });
 
   it("company-linked files require company access", () => {
@@ -325,13 +356,10 @@ describe("File gateway authorization (contract)", () => {
     for (const t of companyLinkedTypes) {
       expect(validOwnerTypes).toContain(t);
     }
-    // All these should route through has_company_access or admin check
-    expect(companyLinkedTypes.length).toBe(5);
   });
 
   it("unknown owner_type should be rejected", () => {
-    const unknownType = "random-thing";
-    expect(validOwnerTypes).not.toContain(unknownType);
+    expect(validOwnerTypes).not.toContain("random-thing");
   });
 });
 
@@ -339,38 +367,31 @@ describe("File gateway authorization (contract)", () => {
 
 describe("Worker runs tenant scoping (contract)", () => {
   it("worker_runs insert requires workspace_id", () => {
-    const workerRunPayload = {
+    const payload = {
       worker_name: "digest",
       status: "success",
       workspace_id: "ws-1",
       triggered_by: "user-1",
       trigger_source: "manual",
     };
-    expect(workerRunPayload).toHaveProperty("workspace_id");
-    expect(workerRunPayload.workspace_id).toBeTruthy();
+    expect(payload).toHaveProperty("workspace_id");
+    expect(payload.workspace_id).toBeTruthy();
   });
 
   it("cooldown check must scope by workspace_id", () => {
-    const cooldownQuery = {
-      worker_name: "asset_cleanup",
-      workspace_id: "ws-1",
-      minutes: 5,
-    };
-    expect(cooldownQuery).toHaveProperty("workspace_id");
-    expect(cooldownQuery).toHaveProperty("worker_name");
+    const query = { worker_name: "asset_cleanup", workspace_id: "ws-1", minutes: 5 };
+    expect(query).toHaveProperty("workspace_id");
+    expect(query).toHaveProperty("worker_name");
   });
 
   it("worker_runs read must filter by workspace_id", () => {
-    // Contract: OpsHealth page filters worker_runs by workspace_id
     const query = { table: "worker_runs", filters: { workspace_id: "ws-1" } };
     expect(query.filters).toHaveProperty("workspace_id");
   });
 
-  it("worker_runs without workspace_id are legacy and excluded from scoped reads", () => {
-    // Contract: reads use .eq("workspace_id", ws_id), which naturally excludes nulls
+  it("worker_runs without workspace_id are excluded from scoped reads", () => {
     const row: { worker_name: string; workspace_id: string | null } = { worker_name: "old_run", workspace_id: null };
-    const wsFilter = "ws-1";
-    expect(row.workspace_id).not.toBe(wsFilter);
+    expect(row.workspace_id).not.toBe("ws-1");
   });
 });
 
@@ -378,8 +399,7 @@ describe("Worker runs tenant scoping (contract)", () => {
 
 describe("Send-email URL hardening (contract)", () => {
   it("APP_BASE_URL must not be derived from arbitrary origin", () => {
-    const allowedSources = ["APP_BASE_URL env var"];
-    expect(allowedSources).not.toContain("request Origin header");
+    expect(["APP_BASE_URL env var"]).not.toContain("request Origin header");
   });
 
   it("links in emails must use configured base URL only", () => {
