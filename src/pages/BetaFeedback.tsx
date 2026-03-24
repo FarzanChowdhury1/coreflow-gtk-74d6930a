@@ -24,6 +24,7 @@ import { Loader2 } from "lucide-react";
 interface FeedbackRow {
   id: string;
   category: string;
+  priority: string;
   title: string;
   description: string | null;
   status: string;
@@ -37,6 +38,12 @@ const STATUS_COLORS: Record<string, string> = {
   reviewed: "secondary",
   accepted: "outline",
   closed: "destructive",
+};
+
+const PRIORITY_COLORS: Record<string, string> = {
+  p0: "bg-destructive/10 text-destructive border-destructive/30",
+  p1: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  p2: "bg-muted text-muted-foreground",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -53,6 +60,7 @@ export default function BetaFeedback() {
   const [feedback, setFeedback] = useState<FeedbackRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState("all");
+  const [filterPriority, setFilterPriority] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
 
   const fetchFeedback = async () => {
@@ -67,6 +75,9 @@ export default function BetaFeedback() {
 
     if (filterCategory !== "all") {
       query = query.eq("category", filterCategory);
+    }
+    if (filterPriority !== "all") {
+      query = query.eq("priority", filterPriority);
     }
     if (filterStatus !== "all") {
       query = query.eq("status", filterStatus);
@@ -101,7 +112,7 @@ export default function BetaFeedback() {
 
   useEffect(() => {
     fetchFeedback();
-  }, [currentWorkspace?.id, filterCategory, filterStatus]);
+  }, [currentWorkspace?.id, filterCategory, filterPriority, filterStatus]);
 
   const updateStatus = async (id: string, newStatus: string) => {
     const { error } = await supabase
@@ -140,6 +151,17 @@ export default function BetaFeedback() {
             <SelectItem value="other">Other</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={filterPriority} onValueChange={setFilterPriority}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Priority" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Priorities</SelectItem>
+            <SelectItem value="p0">P0 — Blocker</SelectItem>
+            <SelectItem value="p1">P1 — Serious</SelectItem>
+            <SelectItem value="p2">P2 — Polish</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="Status" />
@@ -167,6 +189,7 @@ export default function BetaFeedback() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Priority</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Title</TableHead>
                 <TableHead>Submitted By</TableHead>
@@ -178,6 +201,11 @@ export default function BetaFeedback() {
             <TableBody>
               {feedback.map((f) => (
                 <TableRow key={f.id}>
+                  <TableCell>
+                    <Badge variant="outline" className={PRIORITY_COLORS[f.priority] || ""}>
+                      {(f.priority || "p2").toUpperCase()}
+                    </Badge>
+                  </TableCell>
                   <TableCell>
                     <Badge variant="secondary">{CATEGORY_LABELS[f.category] || f.category}</Badge>
                   </TableCell>

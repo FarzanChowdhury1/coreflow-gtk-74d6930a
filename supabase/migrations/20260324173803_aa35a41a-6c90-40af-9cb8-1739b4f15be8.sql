@@ -1,0 +1,1 @@
+ALTER TABLE public.beta_feedback ADD COLUMN IF NOT EXISTS priority text NOT NULL DEFAULT 'p2' CHECK (priority IN ('p0', 'p1', 'p2'));

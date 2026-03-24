@@ -250,6 +250,7 @@ export type Database = {
           description: string | null
           file_id: string | null
           id: string
+          priority: string
           status: Database["public"]["Enums"]["feedback_status"]
           submitted_by: string
           title: string
@@ -262,6 +263,7 @@ export type Database = {
           description?: string | null
           file_id?: string | null
           id?: string
+          priority?: string
           status?: Database["public"]["Enums"]["feedback_status"]
           submitted_by: string
           title: string
@@ -274,6 +276,7 @@ export type Database = {
           description?: string | null
           file_id?: string | null
           id?: string
+          priority?: string
           status?: Database["public"]["Enums"]["feedback_status"]
           submitted_by?: string
           title?: string
