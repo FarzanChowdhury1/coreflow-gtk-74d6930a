@@ -38,48 +38,72 @@ Deno.serve(async (req) => {
     });
   }
 
-  // --- Verify admin role ---
+  // --- HARDENED: Require explicit workspace_id ---
+  const url = new URL(req.url);
+  const mode = url.searchParams.get("mode") || "preview";
+
+  let workspace_id: string | null = null;
+  if (req.method === "POST") {
+    try {
+      const body = await req.json();
+      workspace_id = body.workspace_id || null;
+    } catch {
+      // GET request or no body — try query param
+    }
+  }
+  if (!workspace_id) {
+    workspace_id = url.searchParams.get("workspace_id");
+  }
+
+  if (!workspace_id) {
+    return new Response(
+      JSON.stringify({ error: "workspace_id is required" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  // --- Verify admin role in the SPECIFIC workspace ---
   const serviceClient = createClient(supabaseUrl, serviceKey);
   const { data: membership } = await serviceClient
     .from("workspace_memberships")
     .select("role")
     .eq("user_id", user.id)
+    .eq("workspace_id", workspace_id)
     .eq("role", "admin")
     .limit(1)
     .maybeSingle();
 
   if (!membership) {
-    return new Response(JSON.stringify({ error: "Admin access required" }), {
+    return new Response(JSON.stringify({ error: "Admin access required for this workspace" }), {
       status: 403,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  // --- Parse mode ---
-  const url = new URL(req.url);
-  const mode = url.searchParams.get("mode") || "preview";
-
   // ======================== PREVIEW ========================
   if (mode === "preview") {
     try {
-      const [
-        { data: candidates, error: candErr },
-        { data: notifCounts, error: notifErr },
-        { data: opsCounts, error: opsErr },
-      ] = await Promise.all([
-        serviceClient.rpc("select_retention_candidates"),
-        serviceClient.rpc("count_retention_candidates_notifications"),
-        serviceClient.rpc("count_retention_candidates_ops_logs"),
+      // Workspace-scoped preview
+      const [filesResult, notifResult] = await Promise.all([
+        serviceClient
+          .from("files")
+          .select("id, storage_path, file_name, deleted_at")
+          .eq("workspace_id", workspace_id)
+          .not("deleted_at", "is", null)
+          .limit(100),
+        serviceClient
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("workspace_id", workspace_id)
+          .eq("is_read", true),
       ]);
-      if (candErr) throw candErr;
-      if (notifErr) throw notifErr;
-      if (opsErr) throw opsErr;
+
       return new Response(
         JSON.stringify({
           mode: "preview",
-          candidates,
-          notification_candidates: notifCounts,
-          ops_log_candidates: opsCounts,
+          workspace_id,
+          stale_files_count: filesResult.data?.length ?? 0,
+          read_notifications_count: notifResult.count ?? 0,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -87,17 +111,14 @@ Deno.serve(async (req) => {
       console.error("Cleanup preview error:", err);
       return new Response(
         JSON.stringify({ error: "Failed to load preview. Please try again." }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
   }
 
   // ======================== RUN ========================
   if (mode === "run") {
-    // Cooldown: no successful run within 5 minutes
+    // Cooldown: no successful run within 5 minutes for THIS workspace
     const { data: recentRuns } = await serviceClient
       .from("worker_runs")
       .select("started_at")
@@ -114,7 +135,6 @@ Deno.serve(async (req) => {
           (cooldownMs - (Date.now() - lastRun)) / 1000
         );
 
-        // Log the cooldown rejection
         try {
           await serviceClient.from("worker_runs").insert({
             worker_name: "asset_cleanup",
@@ -124,7 +144,7 @@ Deno.serve(async (req) => {
             duration_ms: 0,
             trigger_source: "manual",
             triggered_by: user.id,
-            summary: { cooldown_remaining_sec: retryAfter },
+            summary: { cooldown_remaining_sec: retryAfter, workspace_id },
           });
         } catch (_) { /* best-effort */ }
 
@@ -133,52 +153,57 @@ Deno.serve(async (req) => {
             error: "Cooldown active",
             retry_after_seconds: retryAfter,
           }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
 
     const startTime = Date.now();
     try {
-      // 1. Get retention candidates
-      const { data: candidates, error: candErr } = await serviceClient.rpc(
-        "select_retention_candidates"
-      );
-      if (candErr) throw candErr;
+      // WORKSPACE-SCOPED cleanup: only touch data belonging to this workspace
 
-      // 2. Delete physical storage blobs
-      const staleFiles = candidates?.stale_files || [];
+      // 1. Get stale files for this workspace
+      const { data: staleFiles } = await serviceClient
+        .from("files")
+        .select("id, storage_path")
+        .eq("workspace_id", workspace_id)
+        .not("deleted_at", "is", null)
+        .lt("deleted_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+
+      // 2. Delete storage blobs
       let blobsDeleted = 0;
-      for (const file of staleFiles) {
+      for (const file of staleFiles || []) {
         const { error: storageErr } = await serviceClient.storage
           .from("workspace-files")
           .remove([file.storage_path]);
         if (!storageErr) blobsDeleted++;
       }
 
-      // 3–7. Purge rows
-      const { data: purgedFiles } = await serviceClient.rpc("purge_stale_file_rows");
-      const { data: purgedTokens } = await serviceClient.rpc("purge_expired_portal_tokens");
-      const { data: purgedLinks } = await serviceClient.rpc("purge_expired_short_links");
-      const { data: purgedOpsLogs } = await serviceClient.rpc("purge_operational_logs");
-      const { data: purgedNotifications } = await serviceClient.rpc("purge_old_notifications");
+      // 3. Hard-delete stale file rows for this workspace
+      let fileRowsPurged = 0;
+      if (staleFiles && staleFiles.length > 0) {
+        const ids = staleFiles.map(f => f.id);
+        const { count } = await serviceClient
+          .from("files")
+          .delete({ count: "exact" })
+          .in("id", ids);
+        fileRowsPurged = count ?? 0;
+      }
+
+      // 4. Purge read notifications for this workspace (30+ days old)
+      const { count: notifsPurged } = await serviceClient
+        .from("notifications")
+        .delete({ count: "exact" })
+        .eq("workspace_id", workspace_id)
+        .eq("is_read", true)
+        .lt("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
 
       const durationMs = Date.now() - startTime;
       const resultSummary = {
+        workspace_id,
         storage_blobs_deleted: blobsDeleted,
-        file_rows_purged: purgedFiles?.purged_files || 0,
-        portal_tokens_purged: purgedTokens?.purged_tokens || 0,
-        short_links_purged: purgedLinks?.purged_short_links || 0,
-        ops_logs_purged: purgedOpsLogs || {},
-        notifications_purged: purgedNotifications || {},
-        candidates_found: {
-          stale_files: staleFiles.length,
-          expired_tokens: (candidates?.expired_portal_tokens || []).length,
-          expired_short_links: (candidates?.expired_short_links || []).length,
-        },
+        file_rows_purged: fileRowsPurged,
+        notifications_purged: notifsPurged ?? 0,
       };
 
       // Log success
@@ -213,24 +238,19 @@ Deno.serve(async (req) => {
           trigger_source: "manual",
           triggered_by: user.id,
           error_message: errMsg,
+          summary: { workspace_id },
         });
       } catch (_e) { /* best-effort */ }
 
       return new Response(
         JSON.stringify({ error: "Cleanup failed. Please try again." }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
   }
 
   return new Response(
     JSON.stringify({ error: "Invalid mode. Use 'preview' or 'run'." }),
-    {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    }
+    { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
   );
 });

@@ -162,12 +162,133 @@ async function checkProjectMember(
   return !!data;
 }
 
-// --------------- Storage verification helpers ---------------
+/**
+ * Check if user has access to a company via:
+ * - admin role in the company's workspace
+ * - company_access grant
+ * - project membership on a project linked to the company
+ * - company owner_id
+ */
+async function checkCompanyAccess(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  companyId: string,
+  workspaceId: string
+): Promise<boolean> {
+  // Admin shortcut
+  const isAdmin = await checkWorkspaceRole(supabase, userId, workspaceId, "admin");
+  if (isAdmin) return true;
+
+  // Company owner
+  const { data: ownedCompany } = await supabase
+    .from("companies")
+    .select("id")
+    .eq("id", companyId)
+    .eq("owner_id", userId)
+    .is("deleted_at", null)
+    .limit(1)
+    .maybeSingle();
+  if (ownedCompany) return true;
+
+  // Explicit company_access grant
+  const { data: grant } = await supabase
+    .from("company_access")
+    .select("id")
+    .eq("company_id", companyId)
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
+  if (grant) return true;
+
+  // Project member on a project linked to this company
+  const { data: projectLink } = await supabase
+    .from("projects")
+    .select("id, project_members!inner(user_id)")
+    .eq("company_id", companyId)
+    .eq("project_members.user_id", userId)
+    .is("deleted_at", null)
+    .limit(1)
+    .maybeSingle();
+  if (projectLink) return true;
+
+  return false;
+}
 
 /**
- * Verify that an uploaded object actually exists in storage and return its authoritative metadata.
- * Uses the storage admin API to list the folder and find the file by name.
+ * Enforce owner-type authorization for internal users.
+ * Returns null if authorized, or an error string if not.
  */
+async function enforceOwnerTypeAccess(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  workspaceId: string,
+  ownerType: string,
+  ownerId: string
+): Promise<string | null> {
+  const isAdmin = await checkWorkspaceRole(supabase, userId, workspaceId, "admin");
+  if (isAdmin) return null; // admins can access everything
+
+  switch (ownerType) {
+    case "project": {
+      const isMember = await checkProjectMember(supabase, userId, ownerId);
+      if (!isMember) return "Forbidden: not a member of this project";
+      return null;
+    }
+    case "meeting": {
+      // Meetings are linked to projects — check if user is member of the meeting's project
+      const { data: meeting } = await supabase
+        .from("meetings")
+        .select("project_id")
+        .eq("id", ownerId)
+        .eq("workspace_id", workspaceId)
+        .maybeSingle();
+      if (!meeting) return "Forbidden: meeting not found";
+      if (meeting.project_id) {
+        const isMember = await checkProjectMember(supabase, userId, meeting.project_id);
+        if (!isMember) return "Forbidden: not a member of this meeting's project";
+      }
+      // Meetings without project_id are workspace-level; workspace access already verified
+      return null;
+    }
+    case "company":
+    case "invoice":
+    case "payment_proof":
+    case "client_update": {
+      // Resolve the company_id from the owner
+      let companyId: string | null = null;
+      if (ownerType === "company") {
+        companyId = ownerId;
+      } else if (ownerType === "invoice" || ownerType === "payment_proof") {
+        const { data: invoice } = await supabase
+          .from("invoices")
+          .select("company_id")
+          .eq("id", ownerId)
+          .eq("workspace_id", workspaceId)
+          .is("deleted_at", null)
+          .maybeSingle();
+        companyId = invoice?.company_id || null;
+      } else if (ownerType === "client_update") {
+        const { data: update } = await supabase
+          .from("client_updates")
+          .select("company_id")
+          .eq("id", ownerId)
+          .eq("workspace_id", workspaceId)
+          .is("deleted_at", null)
+          .maybeSingle();
+        companyId = update?.company_id || null;
+      }
+      if (!companyId) return "Forbidden: entity not found";
+      const hasAccess = await checkCompanyAccess(supabase, userId, companyId, workspaceId);
+      if (!hasAccess) return "Forbidden: no access to this company's files";
+      return null;
+    }
+    default:
+      return "Forbidden: unknown owner type";
+  }
+}
+
+// --------------- Storage verification helpers ---------------
+
 async function getStorageObjectMeta(
   supabase: ReturnType<typeof createClient>,
   storagePath: string
@@ -185,7 +306,6 @@ async function getStorageObjectMeta(
   }
 
   const obj = objects[0];
-  // obj.metadata contains { size, mimetype, ... } from storage
   const meta = obj.metadata as Record<string, unknown> | undefined;
   const size = (meta?.size as number) ?? (obj as any).size ?? 0;
   const mimeType = (meta?.mimetype as string) ?? (meta?.mimeType as string) ?? "application/octet-stream";
@@ -251,7 +371,6 @@ Deno.serve(async (req) => {
             return jsonResponse({ error: "Access denied" }, 403, hdrs);
           }
 
-          // CRITICAL: Validate owner_id belongs to an invoice scoped to this portal session's company
           const { data: invoice } = await supabase
             .from("invoices")
             .select("id")
@@ -266,19 +385,22 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Internal: verify workspace access
+        // Internal: verify workspace access + owner-type authorization
         if (auth.type === "internal") {
           auth.workspaceId = workspace_id;
           const access = await checkWorkspaceAccess(supabase, auth.userId!, workspace_id);
           if (!access) {
             return jsonResponse({ error: "Access denied" }, 403, hdrs);
           }
+          // Enforce owner-type scoping
+          const ownerErr = await enforceOwnerTypeAccess(supabase, auth.userId!, workspace_id, owner_type, owner_id);
+          if (ownerErr) {
+            return jsonResponse({ error: ownerErr }, 403, hdrs);
+          }
         }
 
-        // Deterministic storage path
         const storagePath = `${workspace_id}/${owner_type}/${owner_id}/${crypto.randomUUID()}_${file_name}`;
 
-        // Generate signed upload URL (2-hour expiry)
         const { data: uploadData, error: uploadErr } = await supabase.storage
           .from("workspace-files")
           .createSignedUploadUrl(storagePath);
@@ -306,7 +428,7 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "Invalid owner_type" }, 400, hdrs);
         }
 
-        // Portal users: strict scoping — same guards as get_upload_url
+        // Portal users: strict scoping
         if (auth.type === "portal") {
           if (workspace_id !== auth.workspaceId) {
             return jsonResponse({ error: "Access denied" }, 403, hdrs);
@@ -327,7 +449,18 @@ Deno.serve(async (req) => {
           }
         }
 
-        // CRITICAL: Verify the uploaded object exists in storage and get authoritative metadata
+        // Internal: verify workspace access + owner-type authorization
+        if (auth.type === "internal") {
+          const access = await checkWorkspaceAccess(supabase, auth.userId!, workspace_id);
+          if (!access) {
+            return jsonResponse({ error: "Access denied" }, 403, hdrs);
+          }
+          const ownerErr = await enforceOwnerTypeAccess(supabase, auth.userId!, workspace_id, owner_type, owner_id);
+          if (ownerErr) {
+            return jsonResponse({ error: ownerErr }, 403, hdrs);
+          }
+        }
+
         const storageMeta = await getStorageObjectMeta(supabase, storage_path);
         if (!storageMeta) {
           return jsonResponse({
@@ -335,10 +468,8 @@ Deno.serve(async (req) => {
           }, 400, hdrs);
         }
 
-        // Use authoritative size and mime_type from storage, NOT client-provided values
         const authoritativeSize = storageMeta.size;
         const authoritativeMimeType = storageMeta.mimeType;
-
         const uploadedBy = auth.type === "internal" ? auth.userId : null;
 
         const { data: fileRecord, error: insertErr } = await supabase
@@ -396,12 +527,10 @@ Deno.serve(async (req) => {
             return jsonResponse({ error: "Access denied" }, 403, hdrs);
           }
 
-          // Portal can only access payment_proof and client_update files
           if (file.owner_type !== "payment_proof" && file.owner_type !== "client_update") {
             return jsonResponse({ error: "Access denied" }, 403, hdrs);
           }
 
-          // For payment_proof: verify the invoice belongs to this portal session's company
           if (file.owner_type === "payment_proof") {
             const { data: invoice } = await supabase
               .from("invoices")
@@ -417,7 +546,6 @@ Deno.serve(async (req) => {
             }
           }
 
-          // For client_update: verify the update is published and belongs to this company
           if (file.owner_type === "client_update") {
             const { data: update } = await supabase
               .from("client_updates")
@@ -435,17 +563,21 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Internal: verify workspace
+        // Internal: verify workspace access + owner-type authorization
         if (auth.type === "internal") {
           const access = await checkWorkspaceAccess(supabase, auth.userId!, file.workspace_id);
           if (!access) {
             return jsonResponse({ error: "Access denied" }, 403, hdrs);
           }
+          const ownerErr = await enforceOwnerTypeAccess(supabase, auth.userId!, file.workspace_id, file.owner_type, file.owner_id);
+          if (ownerErr) {
+            return jsonResponse({ error: ownerErr }, 403, hdrs);
+          }
         }
 
         const { data: urlData, error: urlErr } = await supabase.storage
           .from("workspace-files")
-          .createSignedUrl(file.storage_path, 3600); // 1 hour download URL
+          .createSignedUrl(file.storage_path, 3600);
 
         if (urlErr || !urlData) {
           return jsonResponse({ error: "Failed to generate download URL" }, 500, hdrs);
@@ -472,7 +604,6 @@ Deno.serve(async (req) => {
           if (owner_type !== "payment_proof" && owner_type !== "client_update") {
             return jsonResponse({ error: "Access denied" }, 403, hdrs);
           }
-          // Verify owner_id belongs to this company
           if (owner_type === "payment_proof") {
             const { data: invoice } = await supabase
               .from("invoices")
@@ -500,10 +631,15 @@ Deno.serve(async (req) => {
           }
         }
 
+        // Internal: verify workspace access + owner-type authorization
         if (auth.type === "internal") {
           const access = await checkWorkspaceAccess(supabase, auth.userId!, workspace_id);
           if (!access) {
             return jsonResponse({ error: "Access denied" }, 403, hdrs);
+          }
+          const ownerErr = await enforceOwnerTypeAccess(supabase, auth.userId!, workspace_id, owner_type, owner_id);
+          if (ownerErr) {
+            return jsonResponse({ error: ownerErr }, 403, hdrs);
           }
         }
 
@@ -520,7 +656,7 @@ Deno.serve(async (req) => {
       }
 
       case "delete_file": {
-        // Soft-delete a file (internal users only, workspace-scoped)
+        // Soft-delete a file (internal users only, ADMIN only)
         const { file_id } = body;
         if (!file_id) {
           return jsonResponse({ error: "file_id required" }, 400, hdrs);
@@ -532,7 +668,7 @@ Deno.serve(async (req) => {
 
         const { data: file } = await supabase
           .from("files")
-          .select("workspace_id")
+          .select("workspace_id, owner_type, owner_id")
           .eq("id", file_id)
           .is("deleted_at", null)
           .single();
@@ -541,9 +677,10 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "File not found" }, 404, hdrs);
         }
 
-        const access = await checkWorkspaceAccess(supabase, auth.userId!, file.workspace_id);
-        if (!access) {
-          return jsonResponse({ error: "Access denied" }, 403, hdrs);
+        // HARDENED: Only admins can delete files
+        const isAdmin = await checkWorkspaceRole(supabase, auth.userId!, file.workspace_id, "admin");
+        if (!isAdmin) {
+          return jsonResponse({ error: "Forbidden: admin access required to delete files" }, 403, hdrs);
         }
 
         const { error: delErr } = await supabase
@@ -570,13 +707,11 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "workspace_id, project_id, title required" }, 400, hdrs);
         }
 
-        // Verify workspace access
         const access = await checkWorkspaceAccess(supabase, auth.userId!, workspace_id);
         if (!access) {
           return jsonResponse({ error: "Access denied" }, 403, hdrs);
         }
 
-        // Verify project membership (team members) or admin role
         const isAdmin = await checkWorkspaceRole(supabase, auth.userId!, workspace_id, "admin");
 
         if (!isAdmin) {
@@ -586,7 +721,6 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Get project to find company_id
         const { data: project } = await supabase
           .from("projects")
           .select("company_id")
@@ -632,7 +766,6 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "update_id required" }, 400, hdrs);
         }
 
-        // Fetch the update
         const { data: existing } = await supabase
           .from("client_updates")
           .select("workspace_id, project_id, is_published, author_id")
@@ -644,7 +777,6 @@ Deno.serve(async (req) => {
           return jsonResponse({ error: "Update not found" }, 404, hdrs);
         }
 
-        // Verify access: admin can toggle any, team member can toggle their own if project member
         const isAdmin = await checkWorkspaceRole(supabase, auth.userId!, existing.workspace_id, "admin");
 
         if (!isAdmin) {
