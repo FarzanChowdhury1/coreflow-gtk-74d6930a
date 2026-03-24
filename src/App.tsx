@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminGuard } from "@/components/auth/AdminGuard";
+import { PlatformAdminGuard } from "@/components/auth/PlatformAdminGuard";
 import { AppLayout } from "@/components/layout/AppLayout";
 
 // Critical path – loaded eagerly
@@ -41,6 +42,7 @@ const Subscriptions = lazy(() => import("@/pages/Subscriptions"));
 const BudgetActual = lazy(() => import("@/pages/BudgetActual"));
 const EmailHealth = lazy(() => import("@/pages/EmailHealth"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
+const PlatformFeedback = lazy(() => import("@/pages/platform/PlatformFeedback"));
 
 const PageFallback = () => (
   <div className="flex min-h-[50vh] items-center justify-center">
@@ -66,6 +68,9 @@ const App = () => (
 
               {/* External client portal */}
               <Route path="/portal/*" element={<PortalEntry />} />
+
+              {/* Platform admin routes (cross-workspace, no workspace context needed) */}
+              <Route path="/platform/feedback" element={<PlatformAdminGuard><PlatformFeedback /></PlatformAdminGuard>} />
 
               {/* Internal authenticated routes */}
               <Route

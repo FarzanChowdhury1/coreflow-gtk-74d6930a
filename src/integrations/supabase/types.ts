@@ -247,12 +247,15 @@ export type Database = {
         Row: {
           category: Database["public"]["Enums"]["feedback_category"]
           created_at: string
+          current_route: string | null
           description: string | null
           file_id: string | null
+          founder_notes: string | null
           id: string
           priority: string
           status: Database["public"]["Enums"]["feedback_status"]
           submitted_by: string
+          submitter_role: string | null
           title: string
           updated_at: string
           workspace_id: string
@@ -260,12 +263,15 @@ export type Database = {
         Insert: {
           category?: Database["public"]["Enums"]["feedback_category"]
           created_at?: string
+          current_route?: string | null
           description?: string | null
           file_id?: string | null
+          founder_notes?: string | null
           id?: string
           priority?: string
           status?: Database["public"]["Enums"]["feedback_status"]
           submitted_by: string
+          submitter_role?: string | null
           title: string
           updated_at?: string
           workspace_id: string
@@ -273,12 +279,15 @@ export type Database = {
         Update: {
           category?: Database["public"]["Enums"]["feedback_category"]
           created_at?: string
+          current_route?: string | null
           description?: string | null
           file_id?: string | null
+          founder_notes?: string | null
           id?: string
           priority?: string
           status?: Database["public"]["Enums"]["feedback_status"]
           submitted_by?: string
+          submitter_role?: string | null
           title?: string
           updated_at?: string
           workspace_id?: string
@@ -1449,6 +1458,24 @@ export type Database = {
           },
         ]
       }
+      platform_admins: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       portal_failed_attempts: {
         Row: {
           attempted_at: string
@@ -2607,6 +2634,7 @@ export type Database = {
       }
       invoke_asset_cleanup: { Args: never; Returns: undefined }
       invoke_daily_digest: { Args: never; Returns: undefined }
+      is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
       is_project_member: {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
