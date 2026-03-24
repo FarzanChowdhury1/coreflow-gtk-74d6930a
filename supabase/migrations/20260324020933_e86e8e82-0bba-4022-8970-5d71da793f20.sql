@@ -1,0 +1,1 @@
+ALTER TABLE public.companies DROP CONSTRAINT companies_bin_length;
