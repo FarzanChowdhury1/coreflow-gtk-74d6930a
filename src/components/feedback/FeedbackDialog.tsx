@@ -31,9 +31,16 @@ const CATEGORIES = [
   { value: "other", label: "Other" },
 ] as const;
 
+const PRIORITIES = [
+  { value: "p0", label: "P0 — Blocker", description: "Data loss, security, or workflow blocked" },
+  { value: "p1", label: "P1 — Serious", description: "Serious friction, workaround exists" },
+  { value: "p2", label: "P2 — Polish", description: "Confusion, cosmetic, or minor" },
+] as const;
+
 export function FeedbackDialog() {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<string>("bug");
+  const [priority, setPriority] = useState<string>("p2");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -50,6 +57,7 @@ export function FeedbackDialog() {
         workspace_id: currentWorkspace.id,
         submitted_by: user.id,
         category,
+        priority,
         title: title.trim(),
         description: description.trim() || null,
       } as any);
@@ -60,6 +68,7 @@ export function FeedbackDialog() {
       setTitle("");
       setDescription("");
       setCategory("bug");
+      setPriority("p2");
       setOpen(false);
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
