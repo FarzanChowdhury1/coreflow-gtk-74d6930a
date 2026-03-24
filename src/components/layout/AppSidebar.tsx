@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { usePlatformAdmin } from "@/hooks/use-platform-admin";
 
 interface NavItem {
   label: string;
@@ -74,6 +75,7 @@ export function AppSidebar({ mobileOpen, onClose }: Props) {
   const location = useLocation();
   const { signOut, user } = useAuth();
   const { currentWorkspace, currentRole, workspaces, setCurrentWorkspaceId } = useWorkspace();
+  const { isPlatformAdmin } = usePlatformAdmin();
   const [showWorkspacePicker, setShowWorkspacePicker] = useState(false);
 
   const filteredItems = navItems.filter(
@@ -185,6 +187,26 @@ export function AppSidebar({ mobileOpen, onClose }: Props) {
             })}
           </div>
         ))}
+        {isPlatformAdmin && (
+          <div className="mb-4">
+            <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-sidebar-muted">
+              Platform
+            </p>
+            <NavLink
+              to="/platform/feedback"
+              onClick={handleNavClick}
+              className={cn(
+                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                location.pathname.startsWith("/platform/feedback")
+                  ? "bg-sidebar-accent text-sidebar-primary"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              )}
+            >
+              <MessageSquarePlus className="h-4 w-4 shrink-0" />
+              <span>Feedback Inbox</span>
+            </NavLink>
+          </div>
+        )}
       </nav>
 
       {/* Footer */}
