@@ -368,7 +368,7 @@ describe("Worker runs tenant scoping (contract)", () => {
 
   it("worker_runs without workspace_id are legacy and excluded from scoped reads", () => {
     // Contract: reads use .eq("workspace_id", ws_id), which naturally excludes nulls
-    const row = { worker_name: "old_run", workspace_id: null };
+    const row: { worker_name: string; workspace_id: string | null } = { worker_name: "old_run", workspace_id: null };
     const wsFilter = "ws-1";
     expect(row.workspace_id).not.toBe(wsFilter);
   });
