@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useLocation } from "react-router-dom";
 
 const CATEGORIES = [
   { value: "bug", label: "Bug Report" },
@@ -46,7 +47,8 @@ export function FeedbackDialog() {
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, currentRole } = useWorkspace();
+  const location = useLocation();
 
   const handleSubmit = async () => {
     if (!title.trim() || !user || !currentWorkspace) return;
@@ -60,6 +62,8 @@ export function FeedbackDialog() {
         priority,
         title: title.trim(),
         description: description.trim() || null,
+        current_route: location.pathname,
+        submitter_role: currentRole || "unknown",
       } as any);
 
       if (error) throw error;
