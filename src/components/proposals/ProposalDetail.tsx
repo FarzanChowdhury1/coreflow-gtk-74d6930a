@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { ArrowLeft, Send, Copy, Download } from "lucide-react";
+import { ArrowLeft, Send, Copy, Download, Check, XCircle, FolderPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { exportProposalPdf } from "@/lib/proposal-pdf";
 import { Badge } from "@/components/ui/badge";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -24,9 +25,11 @@ const statusColors: Record<string, string> = {
 
 export function ProposalDetail({ proposalId, onBack }: Props) {
   const { currentWorkspace, currentRole } = useWorkspace();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const workspaceId = currentWorkspace?.id;
+  const isAdmin = currentRole === "admin";
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
@@ -56,11 +59,33 @@ export function ProposalDetail({ proposalId, onBack }: Props) {
     },
   });
 
+  // Check if a project already exists for the active version
   const activeVersion = selectedVersionId
     ? versions.find((v) => v.id === selectedVersionId)
     : versions[0];
 
+  const { data: existingProject } = useQuery({
+    queryKey: ["project_for_version", activeVersion?.id],
+    queryFn: async () => {
+      if (!activeVersion) return null;
+      const { data } = await supabase
+        .from("projects")
+        .select("id, name")
+        .eq("proposal_version_id", activeVersion.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!activeVersion && activeVersion.status === "approved",
+  });
+
   const isDraft = activeVersion?.status === "draft";
+  const isSent = activeVersion?.status === "sent";
+  const isApproved = activeVersion?.status === "approved";
+
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ["proposal_versions", proposalId] });
+    queryClient.invalidateQueries({ queryKey: ["proposal_versions_latest"] });
+  };
 
   const handleMarkSent = async () => {
     if (!activeVersion) return;
@@ -72,16 +97,64 @@ export function ProposalDetail({ proposalId, onBack }: Props) {
       toast({ title: "Failed", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Version marked as sent — now immutable" });
-      queryClient.invalidateQueries({ queryKey: ["proposal_versions", proposalId] });
-      queryClient.invalidateQueries({ queryKey: ["proposal_versions_latest"] });
+      invalidateAll();
     }
+  };
+
+  const handleMarkApproved = async () => {
+    if (!activeVersion || !isAdmin) return;
+    const { error } = await supabase
+      .from("proposal_versions")
+      .update({ status: "approved" })
+      .eq("id", activeVersion.id);
+    if (error) {
+      toast({ title: "Failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Proposal approved — you can now create a project from it" });
+      invalidateAll();
+    }
+  };
+
+  const handleMarkRejected = async () => {
+    if (!activeVersion || !isAdmin) return;
+    const { error } = await supabase
+      .from("proposal_versions")
+      .update({ status: "rejected" })
+      .eq("id", activeVersion.id);
+    if (error) {
+      toast({ title: "Failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Proposal rejected" });
+      invalidateAll();
+    }
+  };
+
+  const handleCreateProject = async () => {
+    if (!activeVersion || !workspaceId || !user || !isAdmin) return;
+    const { data, error } = await supabase.rpc("create_project_from_approved_version", {
+      _workspace_id: workspaceId,
+      _proposal_version_id: activeVersion.id,
+      _created_by: user.id,
+    });
+    if (error) {
+      toast({ title: "Failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    const result = data as unknown as { success?: boolean; error?: string };
+    if (result && !result.success) {
+      toast({ title: "Failed", description: result.error || "Could not create project", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Project created from approved proposal" });
+    queryClient.invalidateQueries({ queryKey: ["projects"] });
+    queryClient.invalidateQueries({ queryKey: ["project_for_version", activeVersion.id] });
+    queryClient.invalidateQueries({ queryKey: ["approved_versions_available"] });
   };
 
   const handleNewVersion = async () => {
     if (!workspaceId || !activeVersion) return;
     const nextNumber = Math.max(...versions.map((v) => v.version_number)) + 1;
 
-    // Create new version
     const { data: newVersion, error } = await supabase
       .from("proposal_versions")
       .insert({
@@ -121,12 +194,11 @@ export function ProposalDetail({ proposalId, onBack }: Props) {
 
     toast({ title: `Version ${nextNumber} created as draft` });
     setSelectedVersionId(newVersion.id);
-    queryClient.invalidateQueries({ queryKey: ["proposal_versions", proposalId] });
-    queryClient.invalidateQueries({ queryKey: ["proposal_versions_latest"] });
+    invalidateAll();
   };
 
   const handleVoidVersion = async () => {
-    if (!activeVersion || !workspaceId || currentRole !== "admin") return;
+    if (!activeVersion || !workspaceId || !isAdmin) return;
     const { data, error } = await supabase.rpc("void_proposal_version", {
       _workspace_id: workspaceId,
       _version_id: activeVersion.id,
@@ -135,14 +207,13 @@ export function ProposalDetail({ proposalId, onBack }: Props) {
       toast({ title: "Failed", description: error.message, variant: "destructive" });
       return;
     }
-    const result = data as any;
-    if (!result?.success) {
-      toast({ title: "Failed", description: result?.error || "Could not void version", variant: "destructive" });
+    const result = data as unknown as { success?: boolean; error?: string };
+    if (result && !result.success) {
+      toast({ title: "Failed", description: result.error || "Could not void version", variant: "destructive" });
       return;
     }
     toast({ title: "Version voided" });
-    queryClient.invalidateQueries({ queryKey: ["proposal_versions", proposalId] });
-    queryClient.invalidateQueries({ queryKey: ["proposal_versions_latest"] });
+    invalidateAll();
   };
 
   const handleExportPdf = async () => {
@@ -156,8 +227,9 @@ export function ProposalDetail({ proposalId, onBack }: Props) {
         workspaceCurrency: currentWorkspace.currency,
       });
       toast({ title: "PDF downloaded" });
-    } catch (err: any) {
-      toast({ title: "Export failed", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Export failed";
+      toast({ title: "Export failed", description: msg, variant: "destructive" });
     } finally {
       setExporting(false);
     }
@@ -175,14 +247,14 @@ export function ProposalDetail({ proposalId, onBack }: Props) {
         >
           <ArrowLeft className="h-4 w-4" /> Back to Proposals
         </button>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-semibold text-foreground">{proposal.title}</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {(proposal.companies as any)?.legal_name} · BIN: {(proposal.companies as any)?.bin}
+              {(proposal.companies as Record<string, unknown>)?.legal_name as string} · BIN: {(proposal.companies as Record<string, unknown>)?.bin as string}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {activeVersion && (
               <Button size="sm" variant="outline" onClick={handleExportPdf} disabled={exporting}>
                 <Download className="h-4 w-4 mr-1" /> {exporting ? "Exporting…" : "Download PDF"}
@@ -193,12 +265,34 @@ export function ProposalDetail({ proposalId, onBack }: Props) {
                 <Send className="h-4 w-4 mr-1" /> Mark as Sent
               </Button>
             )}
+            {/* Approve / Reject — admin only, on sent proposals */}
+            {isSent && isAdmin && (
+              <>
+                <Button size="sm" className="bg-success hover:bg-success/90 text-success-foreground" onClick={handleMarkApproved}>
+                  <Check className="h-4 w-4 mr-1" /> Approve
+                </Button>
+                <Button size="sm" variant="destructive" onClick={handleMarkRejected}>
+                  <XCircle className="h-4 w-4 mr-1" /> Decline
+                </Button>
+              </>
+            )}
+            {/* Create Project — admin only, on approved proposals without existing project */}
+            {isApproved && isAdmin && !existingProject && (
+              <Button size="sm" onClick={handleCreateProject}>
+                <FolderPlus className="h-4 w-4 mr-1" /> Create Project
+              </Button>
+            )}
+            {isApproved && existingProject && (
+              <Badge variant="secondary" className="bg-success/10 text-success text-xs py-1.5 px-3">
+                Project: {existingProject.name}
+              </Badge>
+            )}
             {!isDraft && activeVersion?.status !== "voided" && (
               <Button size="sm" variant="outline" onClick={handleNewVersion}>
                 <Copy className="h-4 w-4 mr-1" /> New Version
               </Button>
             )}
-            {!isDraft && activeVersion?.status !== "voided" && currentRole === "admin" && (
+            {!isDraft && activeVersion?.status !== "voided" && isAdmin && (
               <Button size="sm" variant="destructive" onClick={handleVoidVersion}>
                 Void
               </Button>
