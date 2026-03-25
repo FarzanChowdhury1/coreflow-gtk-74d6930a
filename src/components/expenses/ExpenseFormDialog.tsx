@@ -31,6 +31,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, cu
   const [vendorId, setVendorId] = useState("none");
   const [projectId, setProjectId] = useState("none");
   const [paymentMethod, setPaymentMethod] = useState("bank_transfer");
+  const [paymentStatus, setPaymentStatus] = useState("paid");
+  const [paidDate, setPaidDate] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -43,6 +45,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, cu
       setVendorId(expense?.vendor_id || "none");
       setProjectId(expense?.project_id || "none");
       setPaymentMethod(expense?.payment_method || "bank_transfer");
+      setPaymentStatus((expense as any)?.payment_status || "paid");
+      setPaidDate((expense as any)?.paid_date || "");
       setNotes(expense?.notes || "");
       setSaving(false);
     }
@@ -77,6 +81,8 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, cu
       vendor_id: vendorId === "none" ? null : vendorId,
       project_id: projectId === "none" ? null : projectId,
       payment_method: paymentMethod,
+      payment_status: paymentStatus,
+      paid_date: paymentStatus === "paid" ? (paidDate || expenseDate) : null,
       notes: notes || null,
       recorded_by: user!.id,
       updated_at: new Date().toISOString(),
@@ -135,6 +141,20 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, cu
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Payment Status</Label>
+              <Select value={paymentStatus} onValueChange={(v) => { setPaymentStatus(v); if (v === "unpaid") setPaidDate(""); }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="unpaid">Unpaid (Payable)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {paymentStatus === "paid" && (
+              <div><Label>Paid Date</Label><Input type="date" value={paidDate || expenseDate} onChange={(e) => setPaidDate(e.target.value)} /></div>
+            )}
           </div>
           <div><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></div>
           <div className="flex justify-end gap-2 pt-2">
