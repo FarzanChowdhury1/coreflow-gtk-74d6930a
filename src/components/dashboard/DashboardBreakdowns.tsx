@@ -107,14 +107,14 @@ function KpiCard({ label, value, icon: Icon, iconColor, sub }: {
   sub?: string;
 }) {
   return (
-    <Card>
-      <CardContent className="pt-4 pb-4 px-4">
-        <div className="flex items-center justify-between mb-1">
-          <p className="text-xs text-muted-foreground">{label}</p>
-          <Icon className={`h-4 w-4 ${iconColor}`} />
+    <Card className="overflow-hidden">
+      <CardContent className="pt-4 pb-4 px-4 min-w-0">
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <p className="text-xs text-muted-foreground truncate">{label}</p>
+          <Icon className={`h-4 w-4 shrink-0 ${iconColor}`} />
         </div>
-        <p className="text-lg font-semibold text-foreground tabular-nums">{value}</p>
-        {sub && <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>}
+        <p className="text-lg font-semibold text-foreground tabular-nums truncate" title={String(value)}>{value}</p>
+        {sub && <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{sub}</p>}
       </CardContent>
     </Card>
   );
@@ -490,11 +490,11 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
                 <KpiCard label="Total Invoiced" value={fmt(revenueData?.invoicedThisMonth ?? 0)} icon={DollarSign} iconColor="text-primary" sub="This month" />
                 <KpiCard label="Total Collected" value={fmt(revenueData?.collectedThisMonth ?? 0)} icon={CreditCard} iconColor="text-success" sub="This month" />
                 <KpiCard label="Outstanding Receivable" value={fmt(revenueData?.outstandingReceivable ?? 0)} icon={Receipt} iconColor="text-warning" sub="All open invoices" />
-                <Card>
-                  <CardContent className="pt-4 pb-4 px-4">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs text-muted-foreground">Overdue Invoices</p>
-                      {(revenueData?.overdueCount ?? 0) > 0 && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Action needed</Badge>}
+                <Card className="overflow-hidden">
+                  <CardContent className="pt-4 pb-4 px-4 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <p className="text-xs text-muted-foreground truncate">Overdue Invoices</p>
+                      {(revenueData?.overdueCount ?? 0) > 0 && <Badge variant="destructive" className="text-[10px] px-1.5 py-0 shrink-0 whitespace-nowrap">Action needed</Badge>}
                     </div>
                     <p className="text-lg font-semibold text-foreground tabular-nums">{revenueData?.overdueCount ?? 0}</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">All time</p>
@@ -522,14 +522,14 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
                 <KpiCard label="Active Subscriptions" value={spendData?.activeSubsCount ?? "—"} icon={CreditCard} iconColor="text-primary" />
                 <KpiCard label="Vendors" value={spendData?.vendorsCount ?? "—"} icon={Store} iconColor="text-muted-foreground" />
                 {(spendData?.totalBudget ?? 0) > 0 ? (
-                  <Card>
-                    <CardContent className="pt-4 pb-4 px-4">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs text-muted-foreground">Budget vs Actual</p>
-                        <PieChart className="h-4 w-4 text-primary" />
+                  <Card className="overflow-hidden">
+                    <CardContent className="pt-4 pb-4 px-4 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <p className="text-xs text-muted-foreground truncate">Budget vs Actual</p>
+                        <PieChart className="h-4 w-4 shrink-0 text-primary" />
                       </div>
-                      <p className="text-lg font-semibold text-foreground tabular-nums">{fmt(spendData?.expenseThisMonth ?? 0)}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">of {fmt(spendData!.totalBudget)} budgeted</p>
+                      <p className="text-lg font-semibold text-foreground tabular-nums truncate" title={fmt(spendData?.expenseThisMonth ?? 0)}>{fmt(spendData?.expenseThisMonth ?? 0)}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 truncate">of {fmt(spendData!.totalBudget)} budgeted</p>
                     </CardContent>
                   </Card>
                 ) : (
@@ -557,13 +557,13 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
                 <div className="grid gap-3 md:grid-cols-3">
                   <KpiCard label="Revenue Collected" value={fmt(collected)} icon={TrendingUp} iconColor="text-success" sub="This month" />
                   <KpiCard label="Total Spend" value={fmt(spent)} icon={TrendingDown} iconColor="text-destructive" sub="This month" />
-                  <Card>
-                    <CardContent className="pt-4 pb-4 px-4">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs text-muted-foreground">Net Position</p>
-                        <ArrowUpDown className={`h-4 w-4 ${net >= 0 ? "text-success" : "text-destructive"}`} />
+                  <Card className="overflow-hidden">
+                    <CardContent className="pt-4 pb-4 px-4 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <p className="text-xs text-muted-foreground truncate">Net Position</p>
+                        <ArrowUpDown className={`h-4 w-4 shrink-0 ${net >= 0 ? "text-success" : "text-destructive"}`} />
                       </div>
-                      <p className={`text-lg font-semibold tabular-nums ${net >= 0 ? "text-success" : "text-destructive"}`}>
+                      <p className={`text-lg font-semibold tabular-nums truncate ${net >= 0 ? "text-success" : "text-destructive"}`} title={fmt(net)}>
                         {fmt(net)}
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">This month</p>

@@ -322,16 +322,16 @@ function SummaryCard({
   return (
     <button
       onClick={onClick}
-      className="rounded-lg border bg-card p-4 text-left hover:border-primary/40 hover:shadow-sm transition-all group"
+      className="rounded-lg border bg-card p-4 text-left hover:border-primary/40 hover:shadow-sm transition-all group overflow-hidden min-w-0"
     >
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide group-hover:text-foreground transition-colors">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide group-hover:text-foreground transition-colors truncate">
           {label}
         </span>
-        {icon}
+        <span className="shrink-0">{icon}</span>
       </div>
-      <p className="text-2xl font-semibold text-foreground">{value}</p>
-      <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
+      <p className="text-2xl font-semibold text-foreground tabular-nums truncate" title={String(value)}>{value}</p>
+      <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>
     </button>
   );
 }
