@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Shield } from "lucide-react";
+import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Badge } from "@/components/ui/badge";
