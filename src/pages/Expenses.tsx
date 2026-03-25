@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Receipt, Plus, Archive, ArchiveRestore, Pencil, Download } from "lucide-react";
+import { Receipt, Plus, Archive, ArchiveRestore, Pencil, Download, CheckCircle2 } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
 import { supabase } from "@/integrations/supabase/client";
@@ -163,6 +163,14 @@ export default function Expenses() {
             {EXPENSE_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1).replace("_", " ")}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[130px]"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="paid">Paid</SelectItem>
+            <SelectItem value="unpaid">Unpaid</SelectItem>
+          </SelectContent>
+        </Select>
         <Button size="sm" onClick={() => { setEditing(null); setFormOpen(true); }}>
           <Plus className="mr-1 h-4 w-4" /> Add Expense
         </Button>
@@ -176,8 +184,9 @@ export default function Expenses() {
       </div>
 
       {filtered.length > 0 && (
-        <div className="mb-3 text-sm text-muted-foreground">
-          {filtered.length} expense{filtered.length !== 1 ? "s" : ""} · Total: <span className="font-medium text-foreground">{formatCurrency(totalFiltered, currency)}</span>
+        <div className="mb-3 text-sm text-muted-foreground flex flex-wrap gap-x-4">
+          <span>{filtered.length} expense{filtered.length !== 1 ? "s" : ""} · Total: <span className="font-medium text-foreground">{formatCurrency(totalFiltered, currency)}</span></span>
+          {totalUnpaid > 0 && <span>Outstanding payables: <span className="font-medium text-warning">{formatCurrency(totalUnpaid, currency)}</span></span>}
         </div>
       )}
 
@@ -191,10 +200,11 @@ export default function Expenses() {
         <div className="rounded-md border">
           <Table>
             <TableHeader>
-              <TableRow>
+             <TableRow>
                 <TableHead>Date</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Category</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Vendor</TableHead>
                 <TableHead>Project</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
@@ -207,11 +217,24 @@ export default function Expenses() {
                   <TableCell className="whitespace-nowrap text-xs">{format(new Date(e.expense_date), "dd MMM yyyy")}</TableCell>
                   <TableCell className="font-medium">{e.description}</TableCell>
                   <TableCell><Badge variant="secondary" className="text-[10px]">{e.category || "general"}</Badge></TableCell>
+                  <TableCell>
+                    <Badge variant={e.payment_status === "unpaid" ? "destructive" : "secondary"} className="text-[10px]">
+                      {e.payment_status === "unpaid" ? "Unpaid" : "Paid"}
+                    </Badge>
+                    {e.paid_date && e.payment_status === "paid" && e.paid_date !== e.expense_date && (
+                      <span className="ml-1 text-[10px] text-muted-foreground">{format(new Date(e.paid_date), "dd MMM")}</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{e.vendors?.name || "—"}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{e.projects?.name || "—"}</TableCell>
                   <TableCell className="text-right font-medium whitespace-nowrap">{formatCurrency(Number(e.amount), e.currency)}</TableCell>
                   <TableCell>
                     <div className="flex gap-1 justify-end">
+                      {e.payment_status === "unpaid" && !e.deleted_at && (
+                        <Button variant="ghost" size="sm" className="h-7 px-2 text-primary" onClick={() => markAsPaid(e)} title="Mark as paid">
+                          <CheckCircle2 className="h-3 w-3" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => { setEditing(e); setFormOpen(true); }}>
                         <Pencil className="h-3 w-3" />
                       </Button>
