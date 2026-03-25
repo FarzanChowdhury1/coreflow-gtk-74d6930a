@@ -42,12 +42,15 @@ function resolveBaseUrl(): string | null {
 // --------------- Main handler ---------------
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get("Origin");
+  const corsHeaders = makeCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   if (req.method !== "POST") {
-    return jsonResponse({ success: false, error: "Method not allowed" }, 405);
+    return jsonResponse({ success: false, error: "Method not allowed" }, 405, corsHeaders);
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
