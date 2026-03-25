@@ -13,9 +13,28 @@ Lovable supports version-based rollback via the project history. To roll back:
 
 ---
 
+## Edge Function Rollback
+
+Edge Functions are deployed independently of the frontend. If a bad deploy happens:
+
+1. **Identify the broken function** from Edge Function logs
+2. **Roll back the app** to a version where the function code was correct
+3. **Redeploy** the function from the restored code
+
+Edge Functions that are deployed but not referenced in the current app version remain live. Always redeploy after rolling back app code.
+
+**Critical functions** (do not rename or remove):
+- `auth-email-hook` — auth email delivery
+- `process-email-queue` — email queue dispatcher
+- `portal-verify` — portal session creation
+- `portal-data` — portal data API
+- `file-gateway` — file upload/download
+
+---
+
 ## Database Migration Safety
 
-All migrations are forward-only. Supabase Cloud does not support automatic rollback of applied migrations.
+All migrations are forward-only. Lovable Cloud does not support automatic rollback of applied migrations.
 
 ### Migration Classification
 
@@ -31,11 +50,13 @@ All migrations are forward-only. Supabase Cloud does not support automatic rollb
 
 ### Recent Migrations Audit
 
-| File | Operations | Reversible? |
+| Migration | Operations | Reversible? |
 |---|---|---|
-| Indexes migration | `CREATE INDEX IF NOT EXISTS` × 5 | ✅ `DROP INDEX` |
+| Performance indexes | `CREATE INDEX IF NOT EXISTS` × 8 | ✅ `DROP INDEX` |
 | Expense payables | `ADD COLUMN payment_status`, `ADD COLUMN paid_date` | ✅ `DROP COLUMN` |
 | Onboarding counts RPC | `CREATE FUNCTION get_onboarding_counts` | ✅ `DROP FUNCTION` |
+| System alerts table | `CREATE TABLE system_alerts` + RLS policies | ✅ `DROP TABLE` |
+| Dashboard metrics RPC | `CREATE FUNCTION get_dashboard_metrics` | ✅ `DROP FUNCTION` |
 
 All recent migrations are additive and safely reversible.
 
@@ -48,26 +69,50 @@ Before any destructive migration:
 3. **Confirm with team** before applying
 4. **Never** run `DROP COLUMN` or `DROP TABLE` without the above steps
 
-### Incident Recovery Steps
+---
 
-1. **If a bad migration breaks the app**:
-   - Roll back the frontend code to the previous version
-   - Apply a corrective migration to reverse the schema change
-   - Re-deploy
+## Incident Response by Type
 
-2. **If a bad migration loses data**:
-   - Check if Supabase point-in-time recovery is available (depends on plan)
-   - Otherwise, restore from most recent backup
+### 1. Bad Frontend Deploy
+- **Detection**: Visual bugs, console errors, user reports
+- **Response**: Roll back via Lovable version history (< 1 minute)
+- **Risk**: None — frontend is stateless
 
-3. **If an edge function fails**:
-   - Redeploy the previous version of the function code
-   - Check edge function logs for the error
+### 2. Bad Edge Function Deploy
+- **Detection**: Edge function logs show errors, features stop working
+- **Response**: Roll back app code, redeploy function, verify via logs
+- **Risk**: Low — functions are stateless; queue-based email system retries automatically
+
+### 3. Bad Additive Migration (new table/column/index)
+- **Detection**: App errors, unexpected data behavior
+- **Response**: Apply corrective migration (`DROP INDEX`, `DROP TABLE`, etc.)
+- **Risk**: Low — no data loss for additive changes
+
+### 4. Bad Destructive Migration (dropped column/table)
+- **Detection**: Missing data, broken queries
+- **Response**: 
+  - Check if Lovable Cloud has point-in-time recovery
+  - Otherwise, restore from most recent backup
+  - Apply corrective migration to recreate the schema
+- **Risk**: HIGH — data may be permanently lost
+- **Prevention**: Always query live data before destructive changes
+
+### 5. Email Pipeline Failure
+- **Detection**: `email_send_log` shows `dlq` entries, system alerts on dashboard
+- **Response**: Check Edge Function logs for `process-email-queue`, verify cron job exists
+- **Recovery**: Messages in DLQ need manual re-queuing or re-triggering
+
+### 6. Auth System Failure
+- **Detection**: Users cannot sign up/in, password reset fails
+- **Response**: Check `auth-email-hook` logs, verify domain status in Cloud → Emails
+- **Recovery**: If hook is broken, redeploy; if domain issue, check DNS
 
 ---
 
 ## What Remains Manual
 
-- Database backups: rely on Supabase automatic daily backups
-- Point-in-time recovery: available on Pro plan and above
-- Service role key rotation: must be done in Supabase dashboard
-- No automated migration rollback tooling exists — all rollbacks are manual SQL
+- Database backups: rely on Lovable Cloud automatic daily backups
+- Point-in-time recovery: depends on plan
+- Service role key rotation: must be done in Cloud settings
+- No automated migration rollback tooling — all rollbacks are manual SQL
+- Edge Function log access: via Cloud → Edge Function Logs
