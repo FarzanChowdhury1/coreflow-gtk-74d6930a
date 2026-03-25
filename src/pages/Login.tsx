@@ -76,6 +76,8 @@ export default function Login() {
     setLoading(false);
   };
 
+  const [formKey, setFormKey] = useState(0);
+
   const toggleMode = () => {
     setIsSignUp(!isSignUp);
     setSignUpSuccess(false);
@@ -86,6 +88,7 @@ export default function Login() {
     setFullName("");
     setShowPassword(false);
     setShowConfirmPassword(false);
+    setFormKey((k) => k + 1);
   };
 
   const [forgotMode, setForgotMode] = useState(false);

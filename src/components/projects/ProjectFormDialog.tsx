@@ -266,4 +266,4 @@ export const ProjectFormDialog = forwardRef<HTMLDivElement, Props>(function Proj
       </DialogContent>
     </Dialog>
   );
-}
+});
