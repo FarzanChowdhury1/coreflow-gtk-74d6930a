@@ -109,7 +109,7 @@ export function GlobalSearch() {
       const items: SearchResult[] = [];
 
       (companies.data ?? []).forEach((c) =>
-        items.push({ id: c.id, type: "company", title: c.legal_name, href: "/clients" })
+        items.push({ id: c.id, type: "company", title: c.legal_name, href: `/clients?highlight=${c.id}` })
       );
       (contacts.data ?? []).forEach((c) =>
         items.push({
@@ -117,7 +117,7 @@ export function GlobalSearch() {
           type: "contact",
           title: c.full_name,
           subtitle: c.email ?? undefined,
-          href: "/clients",
+          href: `/clients?tab=contacts&highlight=${c.id}`,
         })
       );
       (leads.data ?? []).forEach((l) =>
@@ -126,11 +126,11 @@ export function GlobalSearch() {
           type: "lead",
           title: l.title,
           subtitle: l.status,
-          href: "/leads",
+          href: `/leads?highlight=${l.id}`,
         })
       );
       (proposals.data ?? []).forEach((p) =>
-        items.push({ id: p.id, type: "proposal", title: p.title, href: "/proposals" })
+        items.push({ id: p.id, type: "proposal", title: p.title, href: `/proposals?open=${p.id}` })
       );
       (projects.data ?? []).forEach((p) =>
         items.push({
@@ -138,7 +138,7 @@ export function GlobalSearch() {
           type: "project",
           title: p.name,
           subtitle: p.status,
-          href: "/projects",
+          href: `/projects?open=${p.id}`,
         })
       );
       (invoices.data ?? []).forEach((inv) =>
@@ -147,7 +147,7 @@ export function GlobalSearch() {
           type: "invoice",
           title: inv.invoice_number,
           subtitle: `${inv.currency} ${inv.grand_total?.toLocaleString() ?? 0}`,
-          href: "/invoices",
+          href: `/invoices?open=${inv.id}`,
         })
       );
 
