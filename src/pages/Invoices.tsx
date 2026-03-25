@@ -92,6 +92,16 @@ export default function Invoices() {
   const fetchData = () => {
     queryClient.invalidateQueries({ queryKey: ["invoices", workspaceId] });
   };
+
+  // Auto-open invoice from deep-link once data loads
+  useEffect(() => {
+    if (pendingOpenId && invoices.length > 0) {
+      const match = invoices.find((inv) => inv.id === pendingOpenId);
+      if (match) setSelectedInvoice(match);
+      setPendingOpenId(null);
+    }
+  }, [pendingOpenId, invoices]);
+
   if (selectedInvoice) {
     return (
       <InvoiceDetail
