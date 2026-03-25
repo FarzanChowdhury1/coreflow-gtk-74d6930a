@@ -96,13 +96,13 @@ export default function Dashboard() {
               <button
                 key={key}
                 onClick={() => navigate(href)}
-                className="rounded-lg border bg-card p-5 text-left hover:border-primary/50 hover:shadow-sm transition-all group"
+                className="rounded-lg border bg-card p-5 text-left hover:border-primary/50 hover:shadow-sm transition-all group overflow-hidden min-w-0"
               >
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">{label}</p>
-                  <Icon className={`h-5 w-5 ${color}`} />
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors truncate">{label}</p>
+                  <Icon className={`h-5 w-5 shrink-0 ${color}`} />
                 </div>
-                <p className="mt-2 text-2xl font-semibold text-card-foreground">
+                <p className="mt-2 text-2xl font-semibold text-card-foreground tabular-nums truncate">
                   {metrics?.[key] ?? 0}
                 </p>
               </button>
