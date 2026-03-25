@@ -164,7 +164,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   const { data: leads = [], isLoading: ll } = useQuery({
     queryKey: ["dash-leads", workspaceId, rangeStart],
     enabled: !!workspaceId,
-    staleTime: 30000,
+    staleTime: 60_000,
     queryFn: async () => {
       let q = supabase.from("leads").select("status").eq("workspace_id", workspaceId).is("deleted_at", null);
       if (rangeStart) q = q.gte("created_at", rangeStart);
@@ -177,7 +177,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   const { data: proposalVersions = [], isLoading: pl } = useQuery({
     queryKey: ["dash-proposals", workspaceId, rangeStart],
     enabled: !!workspaceId,
-    staleTime: 30000,
+    staleTime: 60_000,
     queryFn: async () => {
       let q = supabase.from("proposal_versions").select("status, proposal_id, version_number").eq("workspace_id", workspaceId);
       if (rangeStart) q = q.gte("created_at", rangeStart);
@@ -197,7 +197,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   const { data: projects = [], isLoading: prl } = useQuery({
     queryKey: ["dash-projects", workspaceId, rangeStart],
     enabled: !!workspaceId,
-    staleTime: 30000,
+    staleTime: 60_000,
     queryFn: async () => {
       let q = supabase.from("projects").select("status").eq("workspace_id", workspaceId).is("deleted_at", null);
       if (rangeStart) q = q.gte("created_at", rangeStart);
@@ -210,7 +210,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   const { data: invoices = [], isLoading: il } = useQuery({
     queryKey: ["dash-invoices", workspaceId, rangeStart],
     enabled: !!workspaceId,
-    staleTime: 30000,
+    staleTime: 60_000,
     queryFn: async () => {
       let q = supabase.from("invoices").select("status, grand_total, amount_paid").eq("workspace_id", workspaceId).is("deleted_at", null);
       if (rangeStart) q = q.gte("created_at", rangeStart);
@@ -225,7 +225,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   const { data: revenueData, isLoading: revenueLoading, isError: revenueError } = useQuery({
     queryKey: ["dash-revenue-month", workspaceId, month.key],
     enabled: !!workspaceId && isAdmin,
-    staleTime: 60000,
+    staleTime: 120_000,
     queryFn: async () => {
       // Total collected this month from payments ledger
       const { data: payments, error: paymentsErr } = await supabase
@@ -292,7 +292,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   const { data: spendData, isLoading: spendLoading, isError: spendError } = useQuery({
     queryKey: ["dash-spend-month", workspaceId, month.key],
     enabled: !!workspaceId && isAdmin,
-    staleTime: 60000,
+    staleTime: 120_000,
     queryFn: async () => {
       const { data: expenses, error: expErr } = await supabase
         .from("expenses")

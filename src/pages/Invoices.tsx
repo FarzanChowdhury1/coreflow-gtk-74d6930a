@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { Receipt, Plus, Download } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
@@ -11,9 +11,9 @@ import {
 } from "@/components/ui/table";
 import { InvoiceFormDialog } from "@/components/invoices/InvoiceFormDialog";
 import { InvoiceDetail } from "@/components/invoices/InvoiceDetail";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
-
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
   issued: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -24,44 +24,63 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function Invoices() {
   const { currentWorkspace } = useWorkspace();
-  const [invoices, setInvoices] = useState<(Tables<"invoices"> & { companies: { legal_name: string } | null })[]>([]);
-  const [companies, setCompanies] = useState<Tables<"companies">[]>([]);
-  const [projects, setProjects] = useState<Tables<"projects">[]>([]);
+  const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Tables<"invoices"> | null>(null);
-  const [loading, setLoading] = useState(true);
+  const workspaceId = currentWorkspace?.id;
 
-  const fetchData = useCallback(async () => {
-    if (!currentWorkspace) return;
-    setLoading(true);
-
-    const [invRes, compRes, projRes] = await Promise.all([
-      supabase
+  const { data: invoices = [], isLoading: loading } = useQuery({
+    queryKey: ["invoices", workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return [];
+      const { data, error } = await supabase
         .from("invoices")
         .select("*, companies(legal_name)")
-        .eq("workspace_id", currentWorkspace.id)
+        .eq("workspace_id", workspaceId)
         .is("deleted_at", null)
-        .order("created_at", { ascending: false }),
-      supabase
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as (Tables<"invoices"> & { companies: { legal_name: string } | null })[];
+    },
+    enabled: !!workspaceId,
+    staleTime: 30_000,
+  });
+
+  const { data: companies = [] } = useQuery({
+    queryKey: ["companies", workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return [];
+      const { data, error } = await supabase
         .from("companies")
         .select("*")
-        .eq("workspace_id", currentWorkspace.id)
-        .is("deleted_at", null),
-      supabase
+        .eq("workspace_id", workspaceId)
+        .is("deleted_at", null);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!workspaceId,
+    staleTime: 60_000,
+  });
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ["projects-list", workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return [];
+      const { data, error } = await supabase
         .from("projects")
         .select("*")
-        .eq("workspace_id", currentWorkspace.id)
-        .is("deleted_at", null),
-    ]);
+        .eq("workspace_id", workspaceId)
+        .is("deleted_at", null);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!workspaceId,
+    staleTime: 60_000,
+  });
 
-    if (invRes.data) setInvoices(invRes.data as any);
-    if (compRes.data) setCompanies(compRes.data);
-    if (projRes.data) setProjects(projRes.data);
-    setLoading(false);
-  }, [currentWorkspace]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
-
+  const fetchData = () => {
+    queryClient.invalidateQueries({ queryKey: ["invoices", workspaceId] });
+  };
   if (selectedInvoice) {
     return (
       <InvoiceDetail
