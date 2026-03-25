@@ -196,7 +196,7 @@ export default function Login() {
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="rounded-lg border bg-card p-6">
+          <form key={formKey} onSubmit={handleSubmit} className="rounded-lg border bg-card p-6" autoComplete={isSignUp ? "off" : "on"}>
             <div className="space-y-4">
               {isSignUp && (
                 <div>
@@ -214,13 +214,14 @@ export default function Login() {
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@company.com"
-                  required
-                  className={inputClass}
-                />
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@company.com"
+                    required
+                    autoComplete={isSignUp ? "off" : "username"}
+                    className={inputClass}
+                  />
               </div>
 
               <div>
@@ -235,6 +236,7 @@ export default function Login() {
                     }}
                     placeholder="••••••••"
                     required
+                    autoComplete={isSignUp ? "new-password" : "current-password"}
                     className={`${inputClass} pr-10`}
                   />
                   <button
