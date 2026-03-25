@@ -97,6 +97,15 @@ export default function Clients() {
     staleTime: 60_000,
   });
 
+  // Scroll to highlighted row when data loads
+  useEffect(() => {
+    if (highlightId && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      const t = setTimeout(() => setHighlightId(null), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [highlightId, companies, contacts]);
+
   const activeCompanies = companies.filter((c) => !c.deleted_at);
   const archivedCompanies = companies.filter((c) => c.deleted_at);
   const activeContacts = contacts.filter((c) => !c.deleted_at);
