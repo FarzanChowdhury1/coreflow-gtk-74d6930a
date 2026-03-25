@@ -57,16 +57,6 @@ export default function Leads() {
     }
   }, []);
 
-  // Scroll to highlighted lead when data loads
-  useEffect(() => {
-    if (highlightId && highlightRef.current) {
-      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-      // Clear highlight after 3s
-      const t = setTimeout(() => setHighlightId(null), 3000);
-      return () => clearTimeout(t);
-    }
-  }, [highlightId, leads]);
-
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ["leads", workspaceId, showArchived],
     queryFn: async () => {
