@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
-export function ProjectFormDialog({ open, onOpenChange }: Props) {
+export const ProjectFormDialog = forwardRef<HTMLDivElement, Props>(function ProjectFormDialog({ open, onOpenChange }, _ref) {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -266,4 +266,4 @@ export function ProjectFormDialog({ open, onOpenChange }: Props) {
       </DialogContent>
     </Dialog>
   );
-}
+});
