@@ -101,7 +101,6 @@ export default function Expenses() {
     queryClient.invalidateQueries({ queryKey: ["expenses"] });
   };
 
-  const totalFiltered = filtered.reduce((s, e) => s + Number(e.amount), 0);
 
   const toggleArchive = async (e: Expense) => {
     const { error } = await supabase
