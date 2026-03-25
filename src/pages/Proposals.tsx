@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FileText, Plus, Search, Download } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
@@ -18,6 +18,16 @@ export default function Proposals() {
   const [selectedProposalId, setSelectedProposalId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const workspaceId = currentWorkspace?.id;
+
+  // Deep-link from search: ?open=<id>
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const openId = params.get("open");
+    if (openId) {
+      setSelectedProposalId(openId);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
   const isAdmin = currentRole === "admin";
 
   const { data: proposals = [], isLoading } = useQuery({

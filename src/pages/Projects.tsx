@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FolderKanban, Plus, Search, Building2, Wrench, Download } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
@@ -25,6 +25,16 @@ export default function Projects() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<"all" | "client" | "internal">("all");
   const workspaceId = currentWorkspace?.id;
+
+  // Deep-link from search: ?open=<id>
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const openId = params.get("open");
+    if (openId) {
+      setSelectedProjectId(openId);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["projects", workspaceId],

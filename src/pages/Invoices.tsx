@@ -27,7 +27,18 @@ export default function Invoices() {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Tables<"invoices"> | null>(null);
+  const [pendingOpenId, setPendingOpenId] = useState<string | null>(null);
   const workspaceId = currentWorkspace?.id;
+
+  // Deep-link from search: ?open=<id>
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const openId = params.get("open");
+    if (openId) {
+      setPendingOpenId(openId);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   const { data: invoices = [], isLoading: loading } = useQuery({
     queryKey: ["invoices", workspaceId],
