@@ -906,7 +906,9 @@ export type Database = {
           expense_date: string
           id: string
           notes: string | null
+          paid_date: string | null
           payment_method: string | null
+          payment_status: string
           project_id: string | null
           recorded_by: string
           updated_at: string
@@ -923,7 +925,9 @@ export type Database = {
           expense_date?: string
           id?: string
           notes?: string | null
+          paid_date?: string | null
           payment_method?: string | null
+          payment_status?: string
           project_id?: string | null
           recorded_by: string
           updated_at?: string
@@ -940,7 +944,9 @@ export type Database = {
           expense_date?: string
           id?: string
           notes?: string | null
+          paid_date?: string | null
           payment_method?: string | null
+          payment_status?: string
           project_id?: string | null
           recorded_by?: string
           updated_at?: string

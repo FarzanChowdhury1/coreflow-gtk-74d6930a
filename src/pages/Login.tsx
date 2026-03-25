@@ -12,6 +12,7 @@ export default function Login() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const [signUpSuccess, setSignUpSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -60,7 +61,7 @@ export default function Login() {
       if (error) {
         toast({ title: "Sign up failed", description: error.message, variant: "destructive" });
       } else {
-        toast({ title: "Check your email", description: "We sent you a confirmation link." });
+        setSignUpSuccess(true);
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -77,8 +78,14 @@ export default function Login() {
 
   const toggleMode = () => {
     setIsSignUp(!isSignUp);
+    setSignUpSuccess(false);
     setFieldErrors({});
+    setEmail("");
+    setPassword("");
     setConfirmPassword("");
+    setFullName("");
+    setShowPassword(false);
+    setShowConfirmPassword(false);
   };
 
   const [forgotMode, setForgotMode] = useState(false);
@@ -164,6 +171,27 @@ export default function Login() {
               </div>
             </form>
           )
+        ) : signUpSuccess ? (
+          <div className="rounded-lg border bg-card p-6 text-center space-y-4">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <span className="text-2xl">✉️</span>
+            </div>
+            <h2 className="text-lg font-semibold text-foreground">Verify your email</h2>
+            <p className="text-sm text-muted-foreground">
+              We sent a verification link to <strong className="text-foreground">{email}</strong>.
+              Click the link in the email to activate your account.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Didn't receive it? Check your spam folder or try signing up again.
+            </p>
+            <button
+              type="button"
+              onClick={toggleMode}
+              className="text-sm text-primary hover:underline"
+            >
+              Go to Sign In
+            </button>
+          </div>
         ) : (
           <form onSubmit={handleSubmit} className="rounded-lg border bg-card p-6">
             <div className="space-y-4">

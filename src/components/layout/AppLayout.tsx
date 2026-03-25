@@ -9,17 +9,6 @@ export function AppLayout() {
   const { loading } = useWorkspace();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Loading workspace...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex min-h-screen bg-background">
       {/* Mobile overlay */}
@@ -36,7 +25,16 @@ export function AppLayout() {
         <AppTopBar onMenuClick={() => setSidebarOpen(true)} />
         <PendingInviteBanner />
         <main className="flex-1 p-4 sm:p-6 animate-fade-in">
-          <Outlet />
+          {loading ? (
+            <div className="flex min-h-[50vh] items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                <p className="text-sm text-muted-foreground">Loading workspace…</p>
+              </div>
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
     </div>

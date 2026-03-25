@@ -33,18 +33,59 @@ const COUNTRY_CODES = [
 
 function parsePhoneCountryCode(phone: string): { countryCode: string; localNumber: string } {
   if (!phone) return { countryCode: "+880", localNumber: "" };
-  // Try matching longest codes first
   const sorted = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
   for (const cc of sorted) {
     if (phone.startsWith(cc.code)) {
       return { countryCode: cc.code, localNumber: phone.slice(cc.code.length) };
     }
   }
-  // Fallback: if starts with +, take first few digits as code
   if (phone.startsWith("+")) {
     return { countryCode: "+880", localNumber: phone.replace(/^\+\d{1,3}/, "") };
   }
   return { countryCode: "+880", localNumber: phone };
+}
+
+// Extracted to module level so React keeps a stable component reference
+// and does NOT unmount/remount the input on every parent re-render.
+function PhoneInput({
+  codeValue,
+  localValue,
+  onCodeChange,
+  onLocalChange,
+  label,
+  error,
+}: {
+  codeValue: string;
+  localValue: string;
+  onCodeChange: (v: string) => void;
+  onLocalChange: (v: string) => void;
+  label: string;
+  error?: string;
+}) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-foreground">{label}</label>
+      <div className="flex gap-2">
+        <select
+          value={codeValue}
+          onChange={(e) => onCodeChange(e.target.value)}
+          className="h-10 w-[120px] shrink-0 rounded-md border bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          {COUNTRY_CODES.map((cc) => (
+            <option key={cc.code} value={cc.code}>{cc.label}</option>
+          ))}
+        </select>
+        <input
+          type="tel"
+          value={localValue}
+          onChange={(e) => onLocalChange(e.target.value.replace(/[^0-9]/g, ""))}
+          className="h-10 flex-1 rounded-md border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          placeholder="1712345678"
+        />
+      </div>
+      {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
+    </div>
+  );
 }
 
 interface Props {
@@ -180,45 +221,6 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
 
     setLoading(false);
   };
-
-  const PhoneInput = ({
-    codeValue,
-    localValue,
-    onCodeChange,
-    onLocalChange,
-    label,
-    error,
-  }: {
-    codeValue: string;
-    localValue: string;
-    onCodeChange: (v: string) => void;
-    onLocalChange: (v: string) => void;
-    label: string;
-    error?: string;
-  }) => (
-    <div>
-      <label className="mb-1.5 block text-sm font-medium text-foreground">{label}</label>
-      <div className="flex gap-2">
-        <select
-          value={codeValue}
-          onChange={(e) => onCodeChange(e.target.value)}
-          className="h-10 w-[120px] shrink-0 rounded-md border bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          {COUNTRY_CODES.map((cc) => (
-            <option key={cc.code} value={cc.code}>{cc.label}</option>
-          ))}
-        </select>
-        <input
-          type="tel"
-          value={localValue}
-          onChange={(e) => onLocalChange(e.target.value.replace(/[^0-9]/g, ""))}
-          className="h-10 flex-1 rounded-md border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          placeholder="1712345678"
-        />
-      </div>
-      {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
-    </div>
-  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
