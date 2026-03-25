@@ -77,6 +77,15 @@ export default function Leads() {
     staleTime: 30000,
   });
 
+  // Scroll to highlighted lead when data loads
+  useEffect(() => {
+    if (highlightId && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      const t = setTimeout(() => setHighlightId(null), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [highlightId, leads]);
+
   const { data: companies = [] } = useWorkspaceCompanies(workspaceId);
   const { data: contacts = [] } = useWorkspaceContacts(workspaceId);
 
