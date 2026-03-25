@@ -267,6 +267,7 @@ export default function Login() {
                       }}
                       placeholder="••••••••"
                       required
+                      autoComplete="new-password"
                       className={`${inputClass} pr-10`}
                     />
                     <button
