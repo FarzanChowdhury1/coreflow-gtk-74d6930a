@@ -17,10 +17,10 @@ function makeCorsHeaders(origin: string | null): Record<string, string> {
   };
 }
 
-function jsonResponse(body: Record<string, unknown>, status = 200) {
+function jsonResponse(body: Record<string, unknown>, status = 200, hdrs?: Record<string, string>) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...(hdrs || {}), "Content-Type": "application/json" },
   });
 }
 
