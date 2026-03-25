@@ -1,21 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-function getAllowedOrigin(origin: string | null): string {
-  if (!origin) return "";
-  if (origin.endsWith(".lovable.app")) return origin;
-  if (origin.endsWith(".lovableproject.com")) return origin;
-  if (origin === "http://localhost:8080" || origin === "http://localhost:5173") return origin;
-  return "";
-}
-
-function makeCorsHeaders(origin: string | null): Record<string, string> {
-  return {
-    "Access-Control-Allow-Origin": getAllowedOrigin(origin),
-    "Access-Control-Allow-Headers":
-      "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-    Vary: "Origin",
-  };
-}
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
 
 function json(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
