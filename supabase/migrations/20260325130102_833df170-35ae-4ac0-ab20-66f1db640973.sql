@@ -1,0 +1,1 @@
+UPDATE workspaces SET deleted_at = now() WHERE id = '3f9c83f5-ae12-4fa8-8fa0-105f0d9e06f6';
