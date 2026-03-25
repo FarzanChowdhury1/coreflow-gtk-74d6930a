@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Inbox, Plus, Search, FileText, Calendar, Archive, RotateCcw, Download } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
@@ -44,6 +44,18 @@ export default function Leads() {
 
   const workspaceId = currentWorkspace?.id;
   const isAdmin = currentRole === "admin";
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const highlightRef = useRef<HTMLTableRowElement>(null);
+
+  // Deep-link from search: ?highlight=<id>
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hId = params.get("highlight");
+    if (hId) {
+      setHighlightId(hId);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ["leads", workspaceId, showArchived],
@@ -64,6 +76,15 @@ export default function Leads() {
     enabled: !!workspaceId,
     staleTime: 30000,
   });
+
+  // Scroll to highlighted lead when data loads
+  useEffect(() => {
+    if (highlightId && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      const t = setTimeout(() => setHighlightId(null), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [highlightId, leads]);
 
   const { data: companies = [] } = useWorkspaceCompanies(workspaceId);
   const { data: contacts = [] } = useWorkspaceContacts(workspaceId);
@@ -123,7 +144,11 @@ export default function Leads() {
   const renderLeadRow = (lead: Lead) => {
     const isArchived = !!lead.deleted_at;
     return (
-      <tr key={lead.id} className={`border-b last:border-0 hover:bg-muted/30 transition-colors ${isArchived ? "opacity-60" : ""}`}>
+      <tr
+        key={lead.id}
+        ref={lead.id === highlightId ? highlightRef : undefined}
+        className={`border-b last:border-0 hover:bg-muted/30 transition-colors ${isArchived ? "opacity-60" : ""} ${lead.id === highlightId ? "ring-2 ring-primary/50 bg-primary/5" : ""}`}
+      >
         <td className="px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="font-medium text-foreground">{lead.title}</span>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Building2, Plus, Search, Link2, User, Calendar, Shield, Archive, RotateCcw, Download, ClipboardList } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
@@ -36,9 +36,24 @@ export default function Clients() {
   const [showArchivedCompanies, setShowArchivedCompanies] = useState(false);
   const [showArchivedContacts, setShowArchivedContacts] = useState(false);
   const [onboardingCompany, setOnboardingCompany] = useState<Company | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [initialTab, setInitialTab] = useState<string | null>(null);
+  const highlightRef = useRef<HTMLTableRowElement>(null);
 
   const workspaceId = currentWorkspace?.id;
   const isAdmin = currentRole === "admin";
+
+  // Deep-link from search: ?highlight=<id>&tab=contacts
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hId = params.get("highlight");
+    const tab = params.get("tab");
+    if (hId) {
+      setHighlightId(hId);
+      if (tab) setInitialTab(tab);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   // For archived companies, admin needs a broader query
   const { data: companies = [], isLoading: loadingCompanies } = useQuery({
@@ -81,6 +96,15 @@ export default function Clients() {
     enabled: !!workspaceId,
     staleTime: 60_000,
   });
+
+  // Scroll to highlighted row when data loads
+  useEffect(() => {
+    if (highlightId && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      const t = setTimeout(() => setHighlightId(null), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [highlightId, companies, contacts]);
 
   const activeCompanies = companies.filter((c) => !c.deleted_at);
   const archivedCompanies = companies.filter((c) => c.deleted_at);

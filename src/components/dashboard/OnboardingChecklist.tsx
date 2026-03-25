@@ -118,29 +118,23 @@ export function OnboardingChecklist() {
       if (!workspaceId) return {};
       // Small delay to yield to LCP-critical queries
       await new Promise((r) => setTimeout(r, 1500));
-      const [companies, contacts, leads, proposals, portal_tokens, invoices, members, projects, meetings, vendors] = await Promise.all([
-        supabase.from("companies").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).is("deleted_at", null),
-        supabase.from("contacts").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).is("deleted_at", null),
-        supabase.from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).is("deleted_at", null),
-        supabase.from("proposals").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).is("deleted_at", null),
-        supabase.rpc("count_portal_tokens", { _workspace_id: workspaceId }),
-        supabase.from("invoices").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).is("deleted_at", null),
-        supabase.from("workspace_memberships").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
-        supabase.from("projects").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).is("deleted_at", null),
-        supabase.from("meetings").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
-        supabase.from("vendors").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).is("deleted_at", null),
-      ]);
+      // Single RPC replaces 10 separate HEAD count queries
+      const { data, error } = await supabase.rpc("get_onboarding_counts", {
+        _workspace_id: workspaceId,
+      });
+      if (error) throw error;
+      const counts = data as Record<string, number>;
       return {
-        companies: companies.count ?? 0,
-        contacts: contacts.count ?? 0,
-        leads: leads.count ?? 0,
-        proposals: proposals.count ?? 0,
-        portal_tokens: (portal_tokens.data as number) ?? 0,
-        invoices: invoices.count ?? 0,
-        members: members.count ?? 0,
-        projects: projects.count ?? 0,
-        meetings: meetings.count ?? 0,
-        vendors: vendors.count ?? 0,
+        companies: counts.companies ?? 0,
+        contacts: counts.contacts ?? 0,
+        leads: counts.leads ?? 0,
+        proposals: counts.proposals ?? 0,
+        portal_tokens: counts.portal_tokens ?? 0,
+        invoices: counts.invoices ?? 0,
+        members: counts.members ?? 0,
+        projects: counts.projects ?? 0,
+        meetings: counts.meetings ?? 0,
+        vendors: counts.vendors ?? 0,
       };
     },
     staleTime: 5 * 60 * 1000,

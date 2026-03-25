@@ -2735,6 +2735,7 @@ export type Database = {
         Returns: Json
       }
       get_dashboard_metrics: { Args: { _workspace_id: string }; Returns: Json }
+      get_onboarding_counts: { Args: { _workspace_id: string }; Returns: Json }
       has_company_access: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
