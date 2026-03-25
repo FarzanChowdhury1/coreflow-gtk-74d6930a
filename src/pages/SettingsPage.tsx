@@ -1,4 +1,5 @@
 import { Settings, Building2, UserCircle } from "lucide-react";
+import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkspaceSettingsTab } from "@/components/settings/WorkspaceSettingsTab";
 import { ProfileSettingsTab } from "@/components/settings/ProfileSettingsTab";
@@ -13,6 +14,12 @@ export default function SettingsPage() {
       <div className="mb-6 flex items-center gap-3">
         <Settings className="h-6 w-6 text-primary" />
         <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
+        <PageInfoButton
+          title="Settings"
+          description="Manage your profile and workspace configuration. Update your name, change workspace details, and control workspace-level preferences."
+          actions={["Update your display name and profile", "Rename your workspace (admin)", "Configure workspace currency and preferences (admin)"]}
+          audience="All members can update profile. Admins can manage workspace settings."
+        />
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">

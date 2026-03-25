@@ -41,6 +41,12 @@ export default function AuditLog() {
       <div className="mb-6 flex items-center gap-3">
         <Shield className="h-6 w-6 text-primary" />
         <h1 className="text-2xl font-semibold text-foreground">Audit Log</h1>
+        <PageInfoButton
+          title="Audit Log"
+          description="A chronological record of important actions taken in your workspace — approvals, status changes, and system events."
+          actions={["Review who did what and when", "Filter by action type or entity", "Use for compliance and accountability tracking"]}
+          audience="Admins monitoring workspace activity."
+        />
         <Badge variant="secondary">{logs.length} records</Badge>
       </div>
 
