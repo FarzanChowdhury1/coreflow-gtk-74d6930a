@@ -76,6 +76,16 @@ async function moveToDlq(
   if (error) {
     console.error('Failed to move message to DLQ', { queue, msg_id: msg.msg_id, reason, error })
   }
+
+  // Best-effort: create a system alert for DLQ'd emails so admins see it on dashboard
+  try {
+    await supabase.rpc('create_worker_failure_alert', {
+      _worker_name: `email_pipeline (${queue})`,
+      _error_summary: `Email to ${payload.to} moved to DLQ: ${reason}`,
+    })
+  } catch (_alertErr) {
+    console.warn('Failed to create email DLQ alert:', _alertErr)
+  }
 }
 
 Deno.serve(async (req) => {
