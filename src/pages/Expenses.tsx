@@ -29,6 +29,8 @@ export interface Expense {
   vendor_id: string | null;
   project_id: string | null;
   payment_method: string | null;
+  payment_status: string;
+  paid_date: string | null;
   notes: string | null;
   recorded_by: string;
   deleted_at: string | null;
@@ -51,6 +53,7 @@ export default function Expenses() {
   const [editing, setEditing] = useState<Expense | null>(null);
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [showArchived, setShowArchived] = useState(false);
   const currency = currentWorkspace?.currency || "BDT";
 
@@ -73,6 +76,7 @@ export default function Expenses() {
   const filtered = useMemo(() => {
     let list = expenses;
     if (catFilter !== "all") list = list.filter((e) => e.category === catFilter);
+    if (statusFilter !== "all") list = list.filter((e) => e.payment_status === statusFilter);
     if (search) {
       const s = search.toLowerCase();
       list = list.filter((e) =>
@@ -82,7 +86,20 @@ export default function Expenses() {
       );
     }
     return list;
-  }, [expenses, search, catFilter]);
+  }, [expenses, search, catFilter, statusFilter]);
+
+  const totalFiltered = filtered.reduce((s, e) => s + Number(e.amount), 0);
+  const totalUnpaid = filtered.filter((e) => e.payment_status === "unpaid").reduce((s, e) => s + Number(e.amount), 0);
+
+  const markAsPaid = async (exp: Expense) => {
+    const { error } = await supabase
+      .from("expenses")
+      .update({ payment_status: "paid", paid_date: new Date().toISOString().split("T")[0], updated_at: new Date().toISOString() })
+      .eq("id", exp.id);
+    if (error) { toast.error("Failed to mark as paid"); return; }
+    toast.success("Expense marked as paid");
+    queryClient.invalidateQueries({ queryKey: ["expenses"] });
+  };
 
   const totalFiltered = filtered.reduce((s, e) => s + Number(e.amount), 0);
 
