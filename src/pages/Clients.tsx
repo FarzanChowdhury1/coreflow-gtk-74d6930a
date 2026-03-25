@@ -59,6 +59,7 @@ export default function Clients() {
       return data;
     },
     enabled: !!workspaceId,
+    staleTime: 60_000,
   });
 
   const { data: contacts = [], isLoading: loadingContacts } = useQuery({
