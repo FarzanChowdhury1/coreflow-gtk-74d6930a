@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { MessageSquare, Plus, Search, Send, EyeOff, Paperclip } from "lucide-react";
+import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -122,6 +123,12 @@ export default function ClientUpdates() {
         <div className="flex items-center gap-3">
           <MessageSquare className="h-6 w-6 text-primary" />
           <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Client Updates</h1>
+          <PageInfoButton
+            title="Client Updates"
+            description="Share project progress with clients. Publish updates that appear in their portal, or keep drafts private until ready."
+            actions={["Create updates for specific projects", "Publish or unpublish updates to the client portal", "Attach files to updates"]}
+            audience="Team members and admins managing client communication."
+          />
         </div>
         <Button size="sm" onClick={() => setCreateOpen(true)}>
           <Plus className="h-4 w-4 mr-1" /> New Update

@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { Bell, Menu, Search, AlertTriangle, AlertCircle } from "lucide-react";
+import { Bell, Menu, AlertTriangle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
+import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -74,15 +75,7 @@ export function AppTopBar({ onMenuClick }: Props) {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <div className="relative hidden sm:block">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search..."
-            aria-label="Search"
-            className="h-9 w-48 md:w-64 rounded-md border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
+        <GlobalSearch />
       </div>
       <div className="flex items-center gap-2">
         <FeedbackDialog />

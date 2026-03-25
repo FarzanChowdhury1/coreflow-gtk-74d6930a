@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useState } from "react";
 import {
-  Building2, User, Inbox, FileText, Link2, Receipt, Users, Check, ChevronDown, ChevronUp, Rocket,
+  Building2, User, Inbox, FileText, Link2, Receipt, Users, FolderKanban, CalendarDays, Store,
+  Check, ChevronDown, ChevronUp, Rocket,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -22,56 +23,80 @@ interface ChecklistItem {
 const items: ChecklistItem[] = [
   {
     key: "company",
-    label: "Add your first company",
-    description: "Add a client company to your directory so you can link leads, proposals, and invoices to them.",
+    label: "Add your first client company",
+    description: "Add a client to your directory — you'll link leads, proposals, invoices, and projects to them.",
     icon: Building2,
     path: "/clients",
     check: (c) => (c.companies ?? 0) > 0,
   },
   {
     key: "contact",
-    label: "Add your first contact",
-    description: "Create a contact person at your client company. You'll use contacts for portal links and communication.",
+    label: "Add a contact person",
+    description: "Create a contact at your client company. Contacts are used for portal access and communication.",
     icon: User,
     path: "/clients",
     check: (c) => (c.contacts ?? 0) > 0,
   },
   {
     key: "lead",
-    label: "Create your first lead",
-    description: "Capture a new business opportunity. Track its status and follow-up dates in the Lead Inbox.",
+    label: "Capture your first lead",
+    description: "Log a new business opportunity. Track its status, follow-up dates, and estimated value.",
     icon: Inbox,
     path: "/leads",
     check: (c) => (c.leads ?? 0) > 0,
   },
   {
     key: "proposal",
-    label: "Create your first proposal",
-    description: "Build a proposal with line items, pricing, and tax. Send it to your client for approval.",
+    label: "Create a proposal",
+    description: "Build a proposal with line items, pricing, and tax. Send it to your client for review.",
     icon: FileText,
     path: "/proposals",
     check: (c) => (c.proposals ?? 0) > 0,
   },
   {
-    key: "portal",
-    label: "Send a portal link",
-    description: "Generate a secure portal link so your client can view proposals, invoices, and updates online.",
-    icon: Link2,
-    path: "/clients",
-    check: (c) => (c.portal_tokens ?? 0) > 0,
+    key: "project",
+    label: "Start a project",
+    description: "Create a project to track deliverables, tasks, and milestones — for clients or internal work.",
+    icon: FolderKanban,
+    path: "/projects",
+    check: (c) => (c.projects ?? 0) > 0,
   },
   {
     key: "invoice",
-    label: "Create your first invoice",
-    description: "Issue an invoice to a client. CoreFlow tracks payments and calculates outstanding balances automatically.",
+    label: "Issue your first invoice",
+    description: "Create an invoice for a client. CoreFlow tracks payments and outstanding balances automatically.",
     icon: Receipt,
     path: "/invoices",
     check: (c) => (c.invoices ?? 0) > 0,
   },
   {
+    key: "portal",
+    label: "Send a portal link",
+    description: "Generate a secure link so your client can view proposals, invoices, onboarding tasks, and updates.",
+    icon: Link2,
+    path: "/clients",
+    check: (c) => (c.portal_tokens ?? 0) > 0,
+  },
+  {
+    key: "meeting",
+    label: "Schedule a meeting",
+    description: "Log a client or internal meeting with attendees, time, and location. Add minutes afterward.",
+    icon: CalendarDays,
+    path: "/meetings",
+    check: (c) => (c.meetings ?? 0) > 0,
+  },
+  {
+    key: "vendor",
+    label: "Add a vendor (optional)",
+    description: "Track vendors you pay for services. Link them to expenses and subscriptions for cost tracking.",
+    icon: Store,
+    path: "/vendors",
+    check: (c) => (c.vendors ?? 0) > 0,
+  },
+  {
     key: "team",
-    label: "Invite your first team member",
-    description: "Add a colleague to your workspace so they can manage projects, leads, and more alongside you.",
+    label: "Invite a team member",
+    description: "Add a colleague so they can manage projects, leads, and client work alongside you.",
     icon: Users,
     path: "/team",
     check: (c) => (c.members ?? 0) > 1,
@@ -93,14 +118,17 @@ export function OnboardingChecklist() {
       if (!workspaceId) return {};
       // Small delay to yield to LCP-critical queries
       await new Promise((r) => setTimeout(r, 1500));
-      const [companies, contacts, leads, proposals, portal_tokens, invoices, members] = await Promise.all([
-        supabase.from("companies").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
-        supabase.from("contacts").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
-        supabase.from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
-        supabase.from("proposals").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+      const [companies, contacts, leads, proposals, portal_tokens, invoices, members, projects, meetings, vendors] = await Promise.all([
+        supabase.from("companies").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).is("deleted_at", null),
+        supabase.from("contacts").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).is("deleted_at", null),
+        supabase.from("leads").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).is("deleted_at", null),
+        supabase.from("proposals").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).is("deleted_at", null),
         supabase.rpc("count_portal_tokens", { _workspace_id: workspaceId }),
-        supabase.from("invoices").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+        supabase.from("invoices").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).is("deleted_at", null),
         supabase.from("workspace_memberships").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+        supabase.from("projects").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).is("deleted_at", null),
+        supabase.from("meetings").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+        supabase.from("vendors").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).is("deleted_at", null),
       ]);
       return {
         companies: companies.count ?? 0,
@@ -110,9 +138,12 @@ export function OnboardingChecklist() {
         portal_tokens: (portal_tokens.data as number) ?? 0,
         invoices: invoices.count ?? 0,
         members: members.count ?? 0,
+        projects: projects.count ?? 0,
+        meetings: meetings.count ?? 0,
+        vendors: vendors.count ?? 0,
       };
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes — checklist data is very low-churn
+    staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
@@ -131,7 +162,7 @@ export function OnboardingChecklist() {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Rocket className="h-5 w-5 text-primary" />
-          <h2 className="text-sm font-semibold text-foreground">Get Started</h2>
+          <h2 className="text-sm font-semibold text-foreground">Get Started with CoreFlow</h2>
           <span className="text-xs text-muted-foreground">{completed}/{total} complete</span>
         </div>
         <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? "Expand checklist" : "Collapse checklist"}>

@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { Bell, CheckCheck, AlertTriangle, AlertCircle, Info } from "lucide-react";
+import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -128,6 +129,12 @@ export default function Notifications() {
         <div className="flex items-center gap-3">
           <Bell className="h-6 w-6 text-primary" />
           <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Notifications</h1>
+          <PageInfoButton
+            title="Notifications"
+            description="All your workspace alerts in one place — approval requests, overdue items, follow-up reminders, and system events."
+            actions={["Review and act on pending items", "Filter by severity (critical, warning, info)", "Mark individual or all notifications as read"]}
+            audience="All workspace members."
+          />
           {unreadCount > 0 && (
             <Badge className="bg-primary text-primary-foreground">{unreadCount} unread</Badge>
           )}

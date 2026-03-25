@@ -38,7 +38,7 @@ function useDashboardMetrics(workspaceId: string | undefined) {
       return result;
     },
     staleTime: 30000,
-    refetchInterval: 30000,
+    refetchInterval: 120000, // 2 min — reduced from 30s to cut unnecessary network load
   });
 }
 
