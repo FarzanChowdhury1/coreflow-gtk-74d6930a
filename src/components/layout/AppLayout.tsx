@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
 import { AppTopBar } from "./AppTopBar";
+import { PendingInviteBanner } from "./PendingInviteBanner";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 export function AppLayout() {
@@ -33,6 +34,7 @@ export function AppLayout() {
 
       <div className="flex flex-1 flex-col min-w-0 lg:pl-60">
         <AppTopBar onMenuClick={() => setSidebarOpen(true)} />
+        <PendingInviteBanner />
         <main className="flex-1 p-4 sm:p-6 animate-fade-in">
           <Outlet />
         </main>
