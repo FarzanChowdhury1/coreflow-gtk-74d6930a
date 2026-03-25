@@ -55,15 +55,6 @@ export default function Clients() {
     }
   }, []);
 
-  // Scroll to highlighted row when data loads
-  useEffect(() => {
-    if (highlightId && highlightRef.current) {
-      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-      const t = setTimeout(() => setHighlightId(null), 3000);
-      return () => clearTimeout(t);
-    }
-  }, [highlightId, companies, contacts]);
-
   // For archived companies, admin needs a broader query
   const { data: companies = [], isLoading: loadingCompanies } = useQuery({
     queryKey: ["companies", workspaceId, showArchivedCompanies],
