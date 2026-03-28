@@ -37,7 +37,7 @@ export default function Clients() {
   const [showArchivedContacts, setShowArchivedContacts] = useState(false);
   const [onboardingCompany, setOnboardingCompany] = useState<Company | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
-  const [initialTab, setInitialTab] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("companies");
   const highlightRef = useRef<HTMLTableRowElement>(null);
 
   const workspaceId = currentWorkspace?.id;
@@ -50,7 +50,7 @@ export default function Clients() {
     const tab = params.get("tab");
     if (hId) {
       setHighlightId(hId);
-      if (tab) setInitialTab(tab);
+      if (tab) setActiveTab(tab);
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
@@ -262,7 +262,7 @@ export default function Clients() {
         </div>
       </div>
 
-      <Tabs defaultValue="companies">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex items-center justify-between mb-4">
           <TabsList>
             <TabsTrigger value="companies">Companies ({activeCompanies.length})</TabsTrigger>
@@ -321,7 +321,7 @@ export default function Clients() {
                   {displayCompanies.map((company) => {
                     const isArchived = !!company.deleted_at;
                     return (
-                      <tr key={company.id} className={`border-b last:border-0 hover:bg-muted/30 transition-colors ${isArchived ? "opacity-60" : ""}`}>
+                      <tr key={company.id} ref={highlightId === company.id ? highlightRef : undefined} className={`border-b last:border-0 hover:bg-muted/30 transition-colors ${isArchived ? "opacity-60" : ""} ${highlightId === company.id ? "ring-2 ring-primary/50 bg-primary/5" : ""}`}>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-foreground">{company.legal_name}</span>
@@ -426,7 +426,7 @@ export default function Clients() {
                   {displayContacts.map((contact) => {
                     const isArchived = !!contact.deleted_at;
                     return (
-                      <tr key={contact.id} className={`border-b last:border-0 hover:bg-muted/30 transition-colors ${isArchived ? "opacity-60" : ""}`}>
+                      <tr key={contact.id} ref={highlightId === contact.id ? highlightRef : undefined} className={`border-b last:border-0 hover:bg-muted/30 transition-colors ${isArchived ? "opacity-60" : ""} ${highlightId === contact.id ? "ring-2 ring-primary/50 bg-primary/5" : ""}`}>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-foreground">{contact.full_name}</span>
