@@ -59,18 +59,17 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Suspense fallback={<PageFallback />}>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/invite" element={<InviteAccept />} />
+          <Routes>
+            {/* Public routes — wrapped in own Suspense */}
+            <Route path="/login" element={<Suspense fallback={<PageFallback />}><Login /></Suspense>} />
+            <Route path="/reset-password" element={<Suspense fallback={<PageFallback />}><ResetPassword /></Suspense>} />
+            <Route path="/invite" element={<Suspense fallback={<PageFallback />}><InviteAccept /></Suspense>} />
 
-              {/* External client portal */}
-              <Route path="/portal/*" element={<PortalEntry />} />
+            {/* External client portal */}
+            <Route path="/portal/*" element={<Suspense fallback={<PageFallback />}><PortalEntry /></Suspense>} />
 
               {/* Platform admin routes (cross-workspace, no workspace context needed) */}
-              <Route path="/platform/feedback" element={<PlatformAdminGuard><PlatformFeedback /></PlatformAdminGuard>} />
+              <Route path="/platform/feedback" element={<Suspense fallback={<PageFallback />}><PlatformAdminGuard><PlatformFeedback /></PlatformAdminGuard></Suspense>} />
 
               {/* Internal authenticated routes */}
               <Route
@@ -110,11 +109,10 @@ const App = () => (
                 <Route path="/email-health" element={<AdminGuard><EmailHealth /></AdminGuard>} />
               </Route>
 
-              {/* Redirects */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
+            {/* Redirects */}
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Suspense fallback={<PageFallback />}><NotFound /></Suspense>} />
+          </Routes>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
