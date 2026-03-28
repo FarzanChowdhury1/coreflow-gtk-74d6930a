@@ -2746,6 +2746,10 @@ export type Database = {
       }
       get_dashboard_metrics: { Args: { _workspace_id: string }; Returns: Json }
       get_onboarding_counts: { Args: { _workspace_id: string }; Returns: Json }
+      global_search: {
+        Args: { _limit?: number; _term: string; _workspace_id: string }
+        Returns: Json
+      }
       has_company_access: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
@@ -2846,6 +2850,8 @@ export type Database = {
       retention_days_ops_log: { Args: { _log_type: string }; Returns: number }
       revoke_workspace_invite: { Args: { _invite_id: string }; Returns: Json }
       select_retention_candidates: { Args: never; Returns: Json }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       submit_for_approval: {
         Args: {
           _entity_id: string

@@ -1,12 +1,12 @@
-import { useEffect, useState, useCallback } from "react";
 import { Shield } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
-import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { PaginationControls } from "@/components/ui/pagination-controls";
+import { usePaginatedQuery } from "@/hooks/use-paginated-query";
 import { format } from "date-fns";
 
 const ACTION_COLORS: Record<string, string> = {
@@ -18,23 +18,13 @@ const ACTION_COLORS: Record<string, string> = {
 
 export default function AuditLog() {
   const { currentWorkspace } = useWorkspace();
-  const [logs, setLogs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const workspaceId = currentWorkspace?.id;
 
-  const fetchLogs = useCallback(async () => {
-    if (!currentWorkspace) return;
-    setLoading(true);
-    const { data } = await supabase
-      .from("audit_logs")
-      .select("*")
-      .eq("workspace_id", currentWorkspace.id)
-      .order("created_at", { ascending: false })
-      .limit(50);
-    setLogs(data || []);
-    setLoading(false);
-  }, [currentWorkspace]);
-
-  useEffect(() => { fetchLogs(); }, [fetchLogs]);
+  const pag = usePaginatedQuery({
+    table: "audit_logs",
+    queryKey: ["audit-logs", workspaceId ?? ""],
+    workspaceId,
+  });
 
   return (
     <div>
@@ -47,12 +37,12 @@ export default function AuditLog() {
           actions={["Review who did what and when", "Filter by action type or entity", "Use for compliance and accountability tracking"]}
           audience="Admins monitoring workspace activity."
         />
-        <Badge variant="secondary">{logs.length} records</Badge>
+        <Badge variant="secondary">{pag.totalCount} records</Badge>
       </div>
 
-      {loading ? (
+      {pag.isLoading ? (
         <div className="text-center py-8 text-muted-foreground">Loading…</div>
-      ) : logs.length === 0 ? (
+      ) : pag.rows.length === 0 ? (
         <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
           <p>No audit records yet. Actions will be logged as you use the system.</p>
         </div>
@@ -69,7 +59,7 @@ export default function AuditLog() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {logs.map((log) => (
+              {pag.rows.map((log: any) => (
                 <TableRow key={log.id}>
                   <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                     {format(new Date(log.created_at), "dd MMM yyyy HH:mm:ss")}
@@ -101,6 +91,17 @@ export default function AuditLog() {
           </Table>
         </div>
       )}
+      <PaginationControls
+        page={pag.page}
+        totalPages={pag.totalPages}
+        totalCount={pag.totalCount}
+        hasNext={pag.hasNext}
+        hasPrev={pag.hasPrev}
+        onNext={pag.nextPage}
+        onPrev={pag.prevPage}
+        isFetching={pag.isFetching}
+        pageSize={pag.PAGE_SIZE}
+      />
     </div>
   );
 }

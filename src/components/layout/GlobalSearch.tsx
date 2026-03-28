@@ -22,13 +22,13 @@ interface SearchResult {
   href: string;
 }
 
-const TYPE_META: Record<string, { icon: typeof Building2; label: string; color: string }> = {
-  company: { icon: Building2, label: "Company", color: "text-primary" },
-  contact: { icon: User, label: "Contact", color: "text-blue-500" },
-  lead: { icon: Inbox, label: "Lead", color: "text-amber-500" },
-  proposal: { icon: FileText, label: "Proposal", color: "text-violet-500" },
-  project: { icon: FolderKanban, label: "Project", color: "text-green-500" },
-  invoice: { icon: Receipt, label: "Invoice", color: "text-red-500" },
+const TYPE_META: Record<string, { icon: typeof Building2; label: string; color: string; hrefFn: (id: string) => string }> = {
+  companies: { icon: Building2, label: "Company", color: "text-primary", hrefFn: (id) => `/clients?highlight=${id}` },
+  contacts: { icon: User, label: "Contact", color: "text-blue-500", hrefFn: (id) => `/clients?tab=contacts&highlight=${id}` },
+  leads: { icon: Inbox, label: "Lead", color: "text-amber-500", hrefFn: (id) => `/leads?highlight=${id}` },
+  proposals: { icon: FileText, label: "Proposal", color: "text-violet-500", hrefFn: (id) => `/proposals?open=${id}` },
+  projects: { icon: FolderKanban, label: "Project", color: "text-green-500", hrefFn: (id) => `/projects?open=${id}` },
+  invoices: { icon: Receipt, label: "Invoice", color: "text-red-500", hrefFn: (id) => `/invoices?open=${id}` },
 };
 
 export function GlobalSearch() {
@@ -60,96 +60,34 @@ export function GlobalSearch() {
       }
       setLoading(true);
 
-      const like = `%${term}%`;
-      const [companies, contacts, leads, proposals, projects, invoices] = await Promise.all([
-        supabase
-          .from("companies")
-          .select("id, legal_name")
-          .eq("workspace_id", wsId)
-          .is("deleted_at", null)
-          .ilike("legal_name", like)
-          .limit(5),
-        supabase
-          .from("contacts")
-          .select("id, full_name, email, company_id")
-          .eq("workspace_id", wsId)
-          .is("deleted_at", null)
-          .or(`full_name.ilike.${like},email.ilike.${like}`)
-          .limit(5),
-        supabase
-          .from("leads")
-          .select("id, title, status")
-          .eq("workspace_id", wsId)
-          .is("deleted_at", null)
-          .ilike("title", like)
-          .limit(5),
-        supabase
-          .from("proposals")
-          .select("id, title")
-          .eq("workspace_id", wsId)
-          .is("deleted_at", null)
-          .ilike("title", like)
-          .limit(5),
-        supabase
-          .from("projects")
-          .select("id, name, status")
-          .eq("workspace_id", wsId)
-          .is("deleted_at", null)
-          .ilike("name", like)
-          .limit(5),
-        supabase
-          .from("invoices")
-          .select("id, invoice_number, grand_total, currency")
-          .eq("workspace_id", wsId)
-          .is("deleted_at", null)
-          .ilike("invoice_number", like)
-          .limit(5),
-      ]);
+      const { data, error } = await supabase.rpc("global_search", {
+        _workspace_id: wsId,
+        _term: term,
+        _limit: 5,
+      });
+
+      if (error || !data) {
+        setResults([]);
+        setLoading(false);
+        return;
+      }
 
       const items: SearchResult[] = [];
+      const groups = data as Record<string, Array<{ id: string; title: string; subtitle: string | null }>>;
 
-      (companies.data ?? []).forEach((c) =>
-        items.push({ id: c.id, type: "company", title: c.legal_name, href: `/clients?highlight=${c.id}` })
-      );
-      (contacts.data ?? []).forEach((c) =>
-        items.push({
-          id: c.id,
-          type: "contact",
-          title: c.full_name,
-          subtitle: c.email ?? undefined,
-          href: `/clients?tab=contacts&highlight=${c.id}`,
-        })
-      );
-      (leads.data ?? []).forEach((l) =>
-        items.push({
-          id: l.id,
-          type: "lead",
-          title: l.title,
-          subtitle: l.status,
-          href: `/leads?highlight=${l.id}`,
-        })
-      );
-      (proposals.data ?? []).forEach((p) =>
-        items.push({ id: p.id, type: "proposal", title: p.title, href: `/proposals?open=${p.id}` })
-      );
-      (projects.data ?? []).forEach((p) =>
-        items.push({
-          id: p.id,
-          type: "project",
-          title: p.name,
-          subtitle: p.status,
-          href: `/projects?open=${p.id}`,
-        })
-      );
-      (invoices.data ?? []).forEach((inv) =>
-        items.push({
-          id: inv.id,
-          type: "invoice",
-          title: inv.invoice_number,
-          subtitle: `${inv.currency} ${inv.grand_total?.toLocaleString() ?? 0}`,
-          href: `/invoices?open=${inv.id}`,
-        })
-      );
+      for (const [groupKey, entries] of Object.entries(groups)) {
+        const meta = TYPE_META[groupKey];
+        if (!meta) continue;
+        for (const entry of entries) {
+          items.push({
+            id: entry.id,
+            type: groupKey.replace(/s$/, "") as SearchResult["type"],
+            title: entry.title,
+            subtitle: entry.subtitle ?? undefined,
+            href: meta.hrefFn(entry.id),
+          });
+        }
+      }
 
       setResults(items);
       setLoading(false);
@@ -160,7 +98,7 @@ export function GlobalSearch() {
   // Debounced search
   useEffect(() => {
     if (!open) return;
-    const t = setTimeout(() => search(query), 250);
+    const t = setTimeout(() => search(query), 300);
     return () => clearTimeout(t);
   }, [query, open, search]);
 
@@ -177,6 +115,12 @@ export function GlobalSearch() {
     setOpen(false);
     setQuery("");
     navigate(result.href);
+  };
+
+  // Map singular type back to TYPE_META plural key for icon/color
+  const getMetaForType = (type: string) => {
+    const key = type + "s";
+    return TYPE_META[key] ?? TYPE_META.companies;
   };
 
   return (
@@ -208,7 +152,7 @@ export function GlobalSearch() {
             <CommandEmpty>No results found.</CommandEmpty>
           ) : (
             Object.entries(grouped).map(([type, items]) => {
-              const meta = TYPE_META[type];
+              const meta = getMetaForType(type);
               const Icon = meta.icon;
               return (
                 <CommandGroup key={type} heading={meta.label + "s"}>

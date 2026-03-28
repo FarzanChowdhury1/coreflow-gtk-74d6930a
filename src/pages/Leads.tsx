@@ -7,7 +7,9 @@ import { LeadTasksPanel } from "@/components/leads/LeadTasksPanel";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { usePaginatedQuery } from "@/hooks/use-paginated-query";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import { useWorkspaceCompanies, useWorkspaceContacts } from "@/hooks/use-workspace-queries";
 import { LeadFormDialog } from "@/components/leads/LeadFormDialog";
 import { ProposalFormDialog } from "@/components/proposals/ProposalFormDialog";
@@ -57,25 +59,14 @@ export default function Leads() {
     }
   }, []);
 
-  const { data: leads = [], isLoading } = useQuery({
-    queryKey: ["leads", workspaceId, showArchived],
-    queryFn: async () => {
-      if (!workspaceId) return [];
-      let query = supabase
-        .from("leads")
-        .select("*")
-        .eq("workspace_id", workspaceId)
-        .order("created_at", { ascending: false });
-      if (!showArchived) {
-        query = query.is("deleted_at", null);
-      }
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!workspaceId,
-    staleTime: 30000,
+  const leadsPag = usePaginatedQuery<Lead>({
+    table: "leads",
+    queryKey: ["leads", workspaceId ?? "", showArchived ? "all" : "active"],
+    workspaceId,
+    filters: (q: any) => showArchived ? q : q.is("deleted_at", null),
   });
+  const leads = leadsPag.rows;
+  const isLoading = leadsPag.isLoading;
 
   // Scroll to highlighted lead when data loads
   useEffect(() => {
@@ -355,6 +346,17 @@ export default function Leads() {
           </table>
         </div>
       )}
+      <PaginationControls
+        page={leadsPag.page}
+        totalPages={leadsPag.totalPages}
+        totalCount={leadsPag.totalCount}
+        hasNext={leadsPag.hasNext}
+        hasPrev={leadsPag.hasPrev}
+        onNext={leadsPag.nextPage}
+        onPrev={leadsPag.prevPage}
+        isFetching={leadsPag.isFetching}
+        pageSize={leadsPag.PAGE_SIZE}
+      />
 
       <LeadFormDialog
         open={dialogOpen}
