@@ -19,18 +19,21 @@ jobs:
 
       - run: npm ci
 
-      - name: Lint
-        run: npx eslint src/ --max-warnings 0 || echo "::warning::Lint warnings found"
-
+      # ═══════ HARD BLOCKERS ═══════
       - name: Typecheck
         run: npx tsc --noEmit -p tsconfig.app.json
 
-      - name: Run tests
+      - name: Run tests (unit + smoke)
         run: npx vitest run
 
       - name: Production build
         run: npm run build
 
+      # ═══════ SOFT WARNINGS ═══════
+      - name: Lint (warning only)
+        run: npx eslint src/ --max-warnings 0 || echo "::warning::Lint warnings found — not blocking CI"
+
+      # ═══════ VISIBILITY ═══════
       - name: Bundle size report
         run: |
           echo "## Bundle Size Report" >> $GITHUB_STEP_SUMMARY
@@ -41,7 +44,7 @@ jobs:
           TOTAL=$(du -sh dist/ | cut -f1)
           echo "**Total dist size:** $TOTAL" >> $GITHUB_STEP_SUMMARY
 
-      - name: Bundle size gate
+      - name: Bundle size gate (warning)
         run: |
           MAX_KB=2048
           TOTAL_KB=$(du -sk dist/ | cut -f1)
