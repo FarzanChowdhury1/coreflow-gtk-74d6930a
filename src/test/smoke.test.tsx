@@ -78,11 +78,14 @@ describe("Smoke: Dashboard renders", () => {
   it("renders dashboard heading and metric cards", async () => {
     const Dashboard = (await import("@/pages/Dashboard")).default;
     const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query");
+    const { MemoryRouter } = await import("react-router-dom");
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
     render(
       <QueryClientProvider client={qc}>
-        <Dashboard />
+        <MemoryRouter>
+          <Dashboard />
+        </MemoryRouter>
       </QueryClientProvider>
     );
 
@@ -129,8 +132,9 @@ describe("Smoke: Lead creation dialog opens", () => {
     await userEvent.click(newLeadBtn);
 
     await waitFor(() => {
-      // Dialog title or form field should appear
-      expect(screen.getByText(/add lead|new lead|create lead/i)).toBeInTheDocument();
+      // Dialog title heading should appear (h2 with "New Lead")
+      const headings = screen.getAllByText(/new lead/i);
+      expect(headings.length).toBeGreaterThanOrEqual(2); // button + dialog title = dialog opened
     });
   });
 });
