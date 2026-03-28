@@ -227,6 +227,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
     queryKey: ["dash-financials", workspaceId, month.key],
     enabled: !!workspaceId && isAdmin,
     staleTime: 120_000,
+    refetchOnMount: false,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_dashboard_financials", {
         _workspace_id: workspaceId,

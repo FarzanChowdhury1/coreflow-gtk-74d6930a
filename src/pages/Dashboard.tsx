@@ -37,8 +37,10 @@ function useDashboardMetrics(workspaceId: string | undefined) {
       if (result?.error) throw new Error(result.error);
       return result;
     },
-    staleTime: 30000,
-    refetchInterval: 120000, // 2 min — reduced from 30s to cut unnecessary network load
+    staleTime: 30_000,
+    refetchOnMount: false,
+    refetchInterval: 120_000,
+  });
   });
 }
 
@@ -152,8 +154,9 @@ function SystemAlerts({ workspaceId }: { workspaceId: string | undefined }) {
       if (error) throw error;
       return data;
     },
-    staleTime: 60000,
-    refetchInterval: 60000,
+    staleTime: 60_000,
+    refetchOnMount: false,
+    refetchInterval: 60_000,
   });
 
   const dismiss = async (id: string) => {
