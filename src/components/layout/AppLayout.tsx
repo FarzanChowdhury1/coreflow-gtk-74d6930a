@@ -1,9 +1,15 @@
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { Outlet } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
 import { AppTopBar } from "./AppTopBar";
 import { PendingInviteBanner } from "./PendingInviteBanner";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+
+const OutletFallback = () => (
+  <div className="flex min-h-[50vh] items-center justify-center">
+    <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+  </div>
+);
 
 export function AppLayout() {
   const { loading } = useWorkspace();
@@ -33,7 +39,9 @@ export function AppLayout() {
               </div>
             </div>
           ) : (
-            <Outlet />
+            <Suspense fallback={<OutletFallback />}>
+              <Outlet />
+            </Suspense>
           )}
         </main>
       </div>
