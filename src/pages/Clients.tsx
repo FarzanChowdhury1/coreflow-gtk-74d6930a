@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { usePaginatedQuery } from "@/hooks/use-paginated-query";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import { CompanyFormDialog } from "@/components/clients/CompanyFormDialog";
 import { ContactFormDialog } from "@/components/clients/ContactFormDialog";
 import { PortalLinkDialog } from "@/components/clients/PortalLinkDialog";
@@ -55,47 +57,24 @@ export default function Clients() {
     }
   }, []);
 
-  // For archived companies, admin needs a broader query
-  const { data: companies = [], isLoading: loadingCompanies } = useQuery({
-    queryKey: ["companies", workspaceId, showArchivedCompanies],
-    queryFn: async () => {
-      if (!workspaceId) return [];
-      let query = supabase
-        .from("companies")
-        .select("*")
-        .eq("workspace_id", workspaceId)
-        .order("created_at", { ascending: false });
-      // RLS already filters deleted_at for non-admin; for admin showing archived we skip the filter
-      if (!showArchivedCompanies) {
-        query = query.is("deleted_at", null);
-      }
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!workspaceId,
-    staleTime: 60_000,
+  const companiesPag = usePaginatedQuery<Company>({
+    table: "companies",
+    queryKey: ["companies", workspaceId ?? "", showArchivedCompanies ? "all" : "active"],
+    workspaceId,
+    filters: (q: any) => showArchivedCompanies ? q : q.is("deleted_at", null),
   });
 
-  const { data: contacts = [], isLoading: loadingContacts } = useQuery({
-    queryKey: ["contacts", workspaceId, showArchivedContacts],
-    queryFn: async () => {
-      if (!workspaceId) return [];
-      let query = supabase
-        .from("contacts")
-        .select("*")
-        .eq("workspace_id", workspaceId)
-        .order("created_at", { ascending: false });
-      if (!showArchivedContacts) {
-        query = query.is("deleted_at", null);
-      }
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!workspaceId,
-    staleTime: 60_000,
+  const contactsPag = usePaginatedQuery<Contact>({
+    table: "contacts",
+    queryKey: ["contacts", workspaceId ?? "", showArchivedContacts ? "all" : "active"],
+    workspaceId,
+    filters: (q: any) => showArchivedContacts ? q : q.is("deleted_at", null),
   });
+
+  const companies = companiesPag.rows;
+  const contacts = contactsPag.rows;
+  const loadingCompanies = companiesPag.isLoading;
+  const loadingContacts = contactsPag.isLoading;
 
   // Scroll to highlighted row when data loads
   useEffect(() => {
@@ -372,6 +351,17 @@ export default function Clients() {
               </table>
             </div>
           )}
+          <PaginationControls
+            page={companiesPag.page}
+            totalPages={companiesPag.totalPages}
+            totalCount={companiesPag.totalCount}
+            hasNext={companiesPag.hasNext}
+            hasPrev={companiesPag.hasPrev}
+            onNext={companiesPag.nextPage}
+            onPrev={companiesPag.prevPage}
+            isFetching={companiesPag.isFetching}
+            pageSize={companiesPag.PAGE_SIZE}
+          />
         </TabsContent>
 
         <TabsContent value="contacts">
@@ -473,6 +463,17 @@ export default function Clients() {
               </table>
             </div>
           )}
+          <PaginationControls
+            page={contactsPag.page}
+            totalPages={contactsPag.totalPages}
+            totalCount={contactsPag.totalCount}
+            hasNext={contactsPag.hasNext}
+            hasPrev={contactsPag.hasPrev}
+            onNext={contactsPag.nextPage}
+            onPrev={contactsPag.prevPage}
+            isFetching={contactsPag.isFetching}
+            pageSize={contactsPag.PAGE_SIZE}
+          />
         </TabsContent>
       </Tabs>
 

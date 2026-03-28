@@ -12,6 +12,8 @@ import {
 import { InvoiceFormDialog } from "@/components/invoices/InvoiceFormDialog";
 import { InvoiceDetail } from "@/components/invoices/InvoiceDetail";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { usePaginatedQuery } from "@/hooks/use-paginated-query";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import type { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 const STATUS_COLORS: Record<string, string> = {
@@ -40,22 +42,15 @@ export default function Invoices() {
     }
   }, []);
 
-  const { data: invoices = [], isLoading: loading } = useQuery({
-    queryKey: ["invoices", workspaceId],
-    queryFn: async () => {
-      if (!workspaceId) return [];
-      const { data, error } = await supabase
-        .from("invoices")
-        .select("*, companies(legal_name)")
-        .eq("workspace_id", workspaceId)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as (Tables<"invoices"> & { companies: { legal_name: string } | null })[];
-    },
-    enabled: !!workspaceId,
-    staleTime: 30_000,
+  const invoicesPag = usePaginatedQuery<Tables<"invoices"> & { companies: { legal_name: string } | null }>({
+    table: "invoices",
+    queryKey: ["invoices", workspaceId ?? ""],
+    workspaceId,
+    select: "*, companies(legal_name)",
+    filters: (q: any) => q.is("deleted_at", null),
   });
+  const invoices = invoicesPag.rows;
+  const loading = invoicesPag.isLoading;
 
   const { data: companies = [] } = useQuery({
     queryKey: ["companies", workspaceId],
@@ -90,7 +85,7 @@ export default function Invoices() {
   });
 
   const fetchData = () => {
-    queryClient.invalidateQueries({ queryKey: ["invoices", workspaceId] });
+    invoicesPag.invalidate();
   };
 
   // Auto-open invoice from deep-link once data loads
@@ -217,6 +212,17 @@ export default function Invoices() {
           </Table>
         </div>
       )}
+      <PaginationControls
+        page={invoicesPag.page}
+        totalPages={invoicesPag.totalPages}
+        totalCount={invoicesPag.totalCount}
+        hasNext={invoicesPag.hasNext}
+        hasPrev={invoicesPag.hasPrev}
+        onNext={invoicesPag.nextPage}
+        onPrev={invoicesPag.prevPage}
+        isFetching={invoicesPag.isFetching}
+        pageSize={invoicesPag.PAGE_SIZE}
+      />
 
       <InvoiceFormDialog
         open={showForm}
