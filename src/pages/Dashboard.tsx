@@ -41,7 +41,6 @@ function useDashboardMetrics(workspaceId: string | undefined) {
     refetchOnMount: false,
     refetchInterval: 120_000,
   });
-  });
 }
 
 const cards = [
