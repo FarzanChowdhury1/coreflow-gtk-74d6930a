@@ -2740,6 +2740,10 @@ export type Database = {
         Args: { _renewal_id: string; _workspace_id: string }
         Returns: Json
       }
+      get_dashboard_financials: {
+        Args: { _workspace_id: string }
+        Returns: Json
+      }
       get_dashboard_metrics: { Args: { _workspace_id: string }; Returns: Json }
       get_onboarding_counts: { Args: { _workspace_id: string }; Returns: Json }
       has_company_access: {
