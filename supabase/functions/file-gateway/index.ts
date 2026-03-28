@@ -18,6 +18,13 @@ function isAllowedOrigin(origin: string | null): string | null {
   if (origin.endsWith(".lovable.app")) return origin;
   if (origin.endsWith(".lovableproject.com")) return origin;
   if (origin === "http://localhost:8080" || origin === "http://localhost:5173") return origin;
+  const extra = Deno.env.get("PORTAL_ALLOWED_ORIGINS") || "";
+  if (extra) {
+    const origins = extra.split(",").map((s) => s.trim()).filter(Boolean);
+    for (const allowed of origins) {
+      if (origin === allowed || origin === `https://${allowed}` || origin === `http://${allowed}`) return origin;
+    }
+  }
   return null;
 }
 
