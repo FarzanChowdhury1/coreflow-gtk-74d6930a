@@ -26,6 +26,8 @@ function isAllowedOrigin(origin: string | null): string | null {
   if (origin.endsWith(".lovable.app")) return origin;
   if (origin.endsWith(".lovableproject.com")) return origin;
   if (origin === "http://localhost:8080" || origin === "http://localhost:5173") return origin;
+  // Production custom domain
+  if (origin === "https://coreflow.gatekeepr.live") return origin;
   // Env-driven custom domains (comma-separated)
   const extra = Deno.env.get("PORTAL_ALLOWED_ORIGINS") || "";
   if (extra) {
