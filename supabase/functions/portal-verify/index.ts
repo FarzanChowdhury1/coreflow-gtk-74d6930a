@@ -28,6 +28,7 @@ function isAllowedOrigin(origin: string | null): string | null {
   if (origin === "http://localhost:8080" || origin === "http://localhost:5173") return origin;
   // Env-driven custom domains (comma-separated)
   const extra = Deno.env.get("PORTAL_ALLOWED_ORIGINS") || "";
+  console.log("[CORS debug] origin:", JSON.stringify(origin), "extra:", JSON.stringify(extra));
   if (extra) {
     const origins = extra.split(",").map((s) => s.trim()).filter(Boolean);
     for (const allowed of origins) {
