@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  test-and-build:
+  quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,6 +19,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Lint
+        run: npx eslint src/ --max-warnings 0 || echo "::warning::Lint warnings found"
+
       - name: Typecheck
         run: npx tsc --noEmit -p tsconfig.app.json
 
@@ -27,3 +30,22 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+      - name: Bundle size report
+        run: |
+          echo "## Bundle Size Report" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          du -sh dist/assets/*.js | sort -rh >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          TOTAL=$(du -sh dist/ | cut -f1)
+          echo "**Total dist size:** $TOTAL" >> $GITHUB_STEP_SUMMARY
+
+      - name: Bundle size gate
+        run: |
+          MAX_KB=2048
+          TOTAL_KB=$(du -sk dist/ | cut -f1)
+          echo "Total bundle: ${TOTAL_KB}KB (limit: ${MAX_KB}KB)"
+          if [ "$TOTAL_KB" -gt "$MAX_KB" ]; then
+            echo "::warning::Bundle size ${TOTAL_KB}KB exceeds ${MAX_KB}KB soft limit"
+          fi
