@@ -75,6 +75,7 @@ export default function Clients() {
   const contacts = contactsPag.rows;
   const loadingCompanies = companiesPag.isLoading;
   const loadingContacts = contactsPag.isLoading;
+  const clientsError = companiesPag.isError || contactsPag.isError;
 
   // Scroll to highlighted row when data loads
   useEffect(() => {
