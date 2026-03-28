@@ -31,7 +31,7 @@ export function usePaginatedQuery<T = any>({
   const from = page * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isFetching, isError } = useQuery({
     queryKey: [...queryKey, page],
     queryFn: async () => {
       if (!workspaceId) return { rows: [] as T[], count: 0 };
@@ -94,6 +94,7 @@ export function usePaginatedQuery<T = any>({
     resetPage,
     isLoading,
     isFetching,
+    isError,
     invalidate,
     PAGE_SIZE,
   };

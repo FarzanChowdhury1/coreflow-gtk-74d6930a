@@ -67,6 +67,7 @@ export default function Leads() {
   });
   const leads = leadsPag.rows;
   const isLoading = leadsPag.isLoading;
+  const leadsError = leadsPag.isError;
 
   // Scroll to highlighted lead when data loads
   useEffect(() => {
@@ -298,6 +299,13 @@ export default function Leads() {
           </label>
         )}
       </div>
+
+      {leadsError && (
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+          <Inbox className="h-4 w-4 text-destructive shrink-0" />
+          <p className="text-sm text-muted-foreground">Failed to load leads. Try refreshing the page.</p>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="rounded-lg border bg-card p-4 space-y-3">

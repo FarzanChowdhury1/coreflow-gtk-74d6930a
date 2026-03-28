@@ -75,6 +75,7 @@ export default function Clients() {
   const contacts = contactsPag.rows;
   const loadingCompanies = companiesPag.isLoading;
   const loadingContacts = contactsPag.isLoading;
+  const clientsError = companiesPag.isError || contactsPag.isError;
 
   // Scroll to highlighted row when data loads
   useEffect(() => {
@@ -240,6 +241,13 @@ export default function Clients() {
           />
         </div>
       </div>
+
+      {clientsError && (
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+          <Building2 className="h-4 w-4 text-destructive shrink-0" />
+          <p className="text-sm text-muted-foreground">Failed to load client data. Try refreshing the page.</p>
+        </div>
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex items-center justify-between mb-4">

@@ -51,6 +51,7 @@ export default function Invoices() {
   });
   const invoices = invoicesPag.rows;
   const loading = invoicesPag.isLoading;
+  const invoicesError = invoicesPag.isError;
 
   const { data: companies = [] } = useQuery({
     queryKey: ["companies", workspaceId],
@@ -158,6 +159,13 @@ export default function Invoices() {
       <p className="mb-5 text-sm text-muted-foreground max-w-2xl">
         Create and track invoices for your clients. Record payments and export PDFs when ready.
       </p>
+
+      {invoicesError && (
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+          <Receipt className="h-4 w-4 text-destructive shrink-0" />
+          <p className="text-sm text-muted-foreground">Failed to load invoices. Try refreshing the page.</p>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-8 text-muted-foreground">Loading…</div>
