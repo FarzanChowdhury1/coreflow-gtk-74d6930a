@@ -222,134 +222,39 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
 
   /* ══════════════ FINANCIAL QUERIES (current month — admin only) ══════════════ */
 
-  const { data: revenueData, isLoading: revenueLoading, isError: revenueError } = useQuery({
-    queryKey: ["dash-revenue-month", workspaceId, month.key],
+  /* Single RPC replaces 10 sequential sub-queries (revenue + spend) */
+  const { data: financials, isLoading: financialsLoading, isError: financialsError } = useQuery({
+    queryKey: ["dash-financials", workspaceId, month.key],
     enabled: !!workspaceId && isAdmin,
     staleTime: 120_000,
     queryFn: async () => {
-      // Total collected this month from payments ledger
-      const { data: payments, error: paymentsErr } = await supabase
-        .from("payments")
-        .select("amount")
-        .eq("workspace_id", workspaceId)
-        .gte("paid_at", month.tsStart)
-        .lte("paid_at", month.tsEnd);
-      if (paymentsErr) throw paymentsErr;
-      const collectedThisMonth = (payments || []).reduce((s: number, p: any) => s + Number(p.amount), 0);
-
-      // Total invoiced this month (by issue_date)
-      const { data: monthInvoices, error: invErr } = await supabase
-        .from("invoices")
-        .select("grand_total, amount_paid, status")
-        .eq("workspace_id", workspaceId)
-        .is("deleted_at", null)
-        .gte("issue_date", month.dateStart)
-        .lte("issue_date", month.dateEnd);
-      if (invErr) throw invErr;
-      const invoicedThisMonth = (monthInvoices || []).reduce((s: number, i: any) => s + Number(i.grand_total), 0);
-
-      // Outstanding receivable — all unpaid/partially paid invoices workspace-wide
-      const { data: openInvoices, error: openErr } = await supabase
-        .from("invoices")
-        .select("grand_total, amount_paid")
-        .eq("workspace_id", workspaceId)
-        .is("deleted_at", null)
-        .not("status", "in", '("paid","void")');
-      if (openErr) throw openErr;
-      const outstandingReceivable = (openInvoices || []).reduce(
-        (s: number, i: any) => s + (Number(i.grand_total) - Number(i.amount_paid)), 0
-      );
-
-      // Active renewals count
-      const { count: renewalsCount, error: renErr } = await supabase
-        .from("renewals")
-        .select("id", { count: "exact", head: true })
-        .eq("workspace_id", workspaceId)
-        .eq("is_active", true);
-      if (renErr) throw renErr;
-
-      // Overdue invoices — independent of pipeline range
-      const today = format(new Date(), "yyyy-MM-dd");
-      const { data: overdueRows, error: overdueErr } = await supabase
-        .from("invoices")
-        .select("id")
-        .eq("workspace_id", workspaceId)
-        .is("deleted_at", null)
-        .lt("due_date", today)
-        .not("status", "in", '("paid","void")');
-      if (overdueErr) throw overdueErr;
-
+      const { data, error } = await supabase.rpc("get_dashboard_financials", {
+        _workspace_id: workspaceId,
+      });
+      if (error) throw error;
+      const d = data as unknown as Record<string, number>;
       return {
-        collectedThisMonth,
-        invoicedThisMonth,
-        outstandingReceivable,
-        renewalsCount: renewalsCount || 0,
-        overdueCount: overdueRows?.length ?? 0,
+        collectedThisMonth: d.collected_this_month ?? 0,
+        invoicedThisMonth: d.invoiced_this_month ?? 0,
+        outstandingReceivable: d.outstanding_receivable ?? 0,
+        overdueCount: d.overdue_count ?? 0,
+        renewalsCount: d.renewals_count ?? 0,
+        expenseThisMonth: d.expense_this_month ?? 0,
+        subBurn: d.sub_burn ?? 0,
+        activeSubsCount: d.active_subs_count ?? 0,
+        vendorsCount: d.vendors_count ?? 0,
+        totalBudget: d.total_budget ?? 0,
       };
     },
   });
 
-  const { data: spendData, isLoading: spendLoading, isError: spendError } = useQuery({
-    queryKey: ["dash-spend-month", workspaceId, month.key],
-    enabled: !!workspaceId && isAdmin,
-    staleTime: 120_000,
-    queryFn: async () => {
-      const { data: expenses, error: expErr } = await supabase
-        .from("expenses")
-        .select("amount")
-        .eq("workspace_id", workspaceId)
-        .is("deleted_at", null)
-        .gte("expense_date", month.dateStart)
-        .lte("expense_date", month.dateEnd);
-      if (expErr) throw expErr;
-      const expenseThisMonth = (expenses || []).reduce((s: number, e: any) => s + Number(e.amount), 0);
-
-      const { data: subs, error: subErr } = await supabase
-        .from("subscriptions")
-        .select("amount, interval_months")
-        .eq("workspace_id", workspaceId)
-        .eq("is_active", true);
-      if (subErr) throw subErr;
-      const subBurn = (subs || []).reduce((s: number, sub: any) => s + Number(sub.amount) / sub.interval_months, 0);
-
-      const { count: activeSubsCount, error: ascErr } = await supabase
-        .from("subscriptions")
-        .select("id", { count: "exact", head: true })
-        .eq("workspace_id", workspaceId)
-        .eq("is_active", true);
-      if (ascErr) throw ascErr;
-
-      const { count: vendorsCount, error: venErr } = await supabase
-        .from("vendors")
-        .select("id", { count: "exact", head: true })
-        .eq("workspace_id", workspaceId)
-        .is("deleted_at", null);
-      if (venErr) throw venErr;
-
-      /*
-       * Budget snapshot — only counts budget rows whose `period_start` falls
-       * within the current calendar month. Quarterly or yearly budgets are
-       * intentionally excluded unless represented as monthly entries. This
-       * prevents double-counting across overlapping budget periods.
-       */
-      const { data: budgets, error: budErr } = await supabase
-        .from("budgets")
-        .select("target_amount")
-        .eq("workspace_id", workspaceId)
-        .gte("period_start", month.dateStart)
-        .lte("period_start", month.dateEnd);
-      if (budErr) throw budErr;
-      const totalBudget = (budgets || []).reduce((s: number, b: any) => s + Number(b.target_amount), 0);
-
-      return {
-        expenseThisMonth,
-        subBurn: Math.round(subBurn),
-        activeSubsCount: activeSubsCount || 0,
-        vendorsCount: vendorsCount || 0,
-        totalBudget,
-      };
-    },
-  });
+  // Aliases for template compatibility
+  const revenueData = financials;
+  const revenueLoading = financialsLoading;
+  const revenueError = financialsError;
+  const spendData = financials;
+  const spendLoading = financialsLoading;
+  const spendError = financialsError;
 
   /* ══════════════ COMPUTED PIPELINE METRICS ══════════════ */
 
