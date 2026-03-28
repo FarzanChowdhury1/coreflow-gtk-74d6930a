@@ -244,8 +244,8 @@ export default function Clients() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex items-center justify-between mb-4">
           <TabsList>
-            <TabsTrigger value="companies">Companies ({activeCompanies.length})</TabsTrigger>
-            <TabsTrigger value="contacts">Contacts ({activeContacts.length})</TabsTrigger>
+            <TabsTrigger value="companies">Companies ({companiesPag.totalCount})</TabsTrigger>
+            <TabsTrigger value="contacts">Contacts ({contactsPag.totalCount})</TabsTrigger>
           </TabsList>
         </div>
 
