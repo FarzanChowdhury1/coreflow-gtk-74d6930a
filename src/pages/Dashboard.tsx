@@ -65,6 +65,7 @@ function MetricCardSkeleton() {
 
 export default function Dashboard() {
   const { currentWorkspace, currentRole } = useWorkspace();
+  const { user } = useAuth();
   const { data: metrics, isLoading, isError: metricsError } = useDashboardMetrics(currentWorkspace?.id);
   const currency = currentWorkspace?.currency || "BDT";
   const navigate = useNavigate();

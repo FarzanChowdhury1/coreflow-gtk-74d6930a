@@ -52,6 +52,7 @@ function formatCurrency(value: number, currency: string = "BDT") {
 
 export default function BudgetActual() {
   const { currentWorkspace, currentRole } = useWorkspace();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const isAdmin = currentRole === "admin";
   const currency = currentWorkspace?.currency || "BDT";
