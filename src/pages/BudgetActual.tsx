@@ -197,9 +197,16 @@ export default function BudgetActual() {
       </div>
 
       {rows.length === 0 ? (
-        <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">
-          No budget targets or expenses for this period. Set a budget target to get started.
-        </CardContent></Card>
+        <div className="rounded-lg border bg-card p-10 text-center">
+          <PieChart className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
+          <h2 className="text-sm font-medium text-foreground mb-1">No budget data yet</h2>
+          <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+            Budget vs Actual helps you compare planned spending against what has actually been spent. Set a budget and start recording expenses to see how your business is performing.
+          </p>
+          <Button size="sm" onClick={() => { setEditingBudget(null); setFormOpen(true); }}>
+            <Plus className="h-4 w-4 mr-1" /> Set First Budget
+          </Button>
+        </div>
       ) : (
         <div className="rounded-md border">
           <Table>

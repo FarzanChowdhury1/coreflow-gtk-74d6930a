@@ -118,10 +118,13 @@ export default function Payments() {
       ) : payments.length === 0 ? (
         <div className="rounded-lg border bg-card p-10 text-center">
           <CreditCard className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
-          <h3 className="text-sm font-medium text-foreground mb-1">No payments recorded</h3>
+          <h2 className="text-sm font-medium text-foreground mb-1">No payments yet</h2>
           <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-            Payments are recorded against invoices. First create and issue an invoice, then record payments here as they come in.
+            Payments help you track money received against invoices and client work. Record payments here so you always know what has been paid, partially paid, or still pending.
           </p>
+          <Button size="sm" onClick={() => setShowForm(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Record First Payment
+          </Button>
         </div>
       ) : (
         <div className="rounded-lg border bg-card overflow-x-auto">
