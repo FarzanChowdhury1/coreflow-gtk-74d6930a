@@ -1,15 +1,16 @@
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useState } from "react";
 import {
   Building2, User, Inbox, FileText, Link2, Receipt, Users, FolderKanban, CalendarDays, Store,
-  Check, ChevronDown, ChevronUp, Rocket,
+  Check, ChevronDown, ChevronUp, Rocket, Database, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface ChecklistItem {
   key: string;
@@ -106,7 +107,10 @@ const items: ChecklistItem[] = [
 export function OnboardingChecklist() {
   const { currentWorkspace, currentRole } = useWorkspace();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [collapsed, setCollapsed] = useState(false);
+  const [seeding, setSeeding] = useState(false);
   const workspaceId = currentWorkspace?.id;
 
   // Defer checklist counts: don't fire until 1.5s after mount so primary
