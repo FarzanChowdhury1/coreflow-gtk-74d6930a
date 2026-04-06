@@ -95,33 +95,34 @@ export default function Payments() {
           )}
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              exportToCSV(
-                payments.map((p: any) => ({
-                  invoice: p.invoices?.invoice_number || "",
-                  amount: Number(p.amount),
-                  method: METHOD_LABELS[p.method] || p.method,
-                  reference: p.reference || "",
-                  paid_at: new Date(p.paid_at).toLocaleDateString(),
-                  notes: p.notes || "",
-                })),
-                [
-                  { key: "invoice", label: "Invoice" },
-                  { key: "amount", label: "Amount" },
-                  { key: "method", label: "Method" },
-                  { key: "reference", label: "Reference" },
-                  { key: "paid_at", label: "Paid At" },
-                  { key: "notes", label: "Notes" },
-                ],
-                "payments-export"
-              )
-            }
-          >
-            <Download className="h-4 w-4 mr-1" /> Export
-          </Button>
+          {(() => {
+            const mapped = payments.map((p: any) => ({
+              invoice: p.invoices?.invoice_number || "",
+              amount: Number(p.amount),
+              method: METHOD_LABELS[p.method] || p.method,
+              reference: p.reference || "",
+              paid_at: new Date(p.paid_at).toLocaleDateString(),
+              notes: p.notes || "",
+            }));
+            const cols = [
+              { key: "invoice", label: "Invoice" },
+              { key: "amount", label: "Amount" },
+              { key: "method", label: "Method" },
+              { key: "reference", label: "Reference" },
+              { key: "paid_at", label: "Paid At" },
+              { key: "notes", label: "Notes" },
+            ];
+            return (
+              <>
+                <Button variant="outline" size="sm" onClick={() => exportToCSV(mapped, cols, "payments-export")}>
+                  <Download className="h-4 w-4 mr-1" /> CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => exportToXLSX(mapped, cols, "payments-export")}>
+                  <Download className="h-4 w-4 mr-1" /> XLSX
+                </Button>
+              </>
+            );
+          })()}
           <Button onClick={() => setShowForm(true)}>
             <Plus className="mr-1 h-4 w-4" /> Record Payment
           </Button>

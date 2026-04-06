@@ -116,19 +116,20 @@ export default function Expenses() {
     queryClient.invalidateQueries({ queryKey: ["expenses"] });
   };
 
-  const handleExport = () => {
-    exportToCSV(filtered.map((e) => ({ ...e, vendor_name: e.vendors?.name || "", project_name: e.projects?.name || "" })), [
-      { key: "expense_date", label: "Date" },
-      { key: "description", label: "Description" },
-      { key: "amount", label: "Amount" },
-      { key: "currency", label: "Currency" },
-      { key: "category", label: "Category" },
-      { key: "vendor_name", label: "Vendor" },
-      { key: "project_name", label: "Project" },
-      { key: "payment_method", label: "Payment Method" },
-      { key: "notes", label: "Notes" },
-    ], "expenses");
-  };
+  const expCols = [
+    { key: "expense_date", label: "Date" },
+    { key: "description", label: "Description" },
+    { key: "amount", label: "Amount" },
+    { key: "currency", label: "Currency" },
+    { key: "category", label: "Category" },
+    { key: "vendor_name", label: "Vendor" },
+    { key: "project_name", label: "Project" },
+    { key: "payment_method", label: "Payment Method" },
+    { key: "notes", label: "Notes" },
+  ];
+  const expMapped = () => filtered.map((e) => ({ ...e, vendor_name: e.vendors?.name || "", project_name: e.projects?.name || "" }));
+  const handleExport = () => exportToCSV(expMapped(), expCols, "expenses");
+  const handleExportXlsx = () => exportToXLSX(expMapped(), expCols, "expenses");
 
   if (!isAdmin) {
     return (
