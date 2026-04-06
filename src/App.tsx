@@ -40,6 +40,7 @@ const Vendors = lazy(() => import("@/pages/Vendors"));
 const Expenses = lazy(() => import("@/pages/Expenses"));
 const Subscriptions = lazy(() => import("@/pages/Subscriptions"));
 const BudgetActual = lazy(() => import("@/pages/BudgetActual"));
+const Profitability = lazy(() => import("@/pages/Profitability"));
 const EmailHealth = lazy(() => import("@/pages/EmailHealth"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const PlatformFeedback = lazy(() => import("@/pages/platform/PlatformFeedback"));
@@ -110,6 +111,7 @@ const App = () => (
                 <Route path="/expenses" element={<AdminGuard><Expenses /></AdminGuard>} />
                 <Route path="/subscriptions" element={<AdminGuard><Subscriptions /></AdminGuard>} />
                 <Route path="/budget" element={<AdminGuard><BudgetActual /></AdminGuard>} />
+                <Route path="/profitability" element={<AdminGuard><Profitability /></AdminGuard>} />
                 <Route path="/audit" element={<AdminGuard><AuditLog /></AdminGuard>} />
                 <Route path="/team" element={<AdminGuard><Team /></AdminGuard>} />
                 <Route path="/digest-inspector" element={<AdminGuard><DigestInspector /></AdminGuard>} />

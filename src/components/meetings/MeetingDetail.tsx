@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
@@ -13,6 +14,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { FileAttachments } from "@/components/files/FileAttachments";
+import { MeetingActions } from "./MeetingActions";
 import { Calendar, Clock, MapPin, Users, Building2, FolderKanban, Save, Inbox } from "lucide-react";
 
 interface Props {
@@ -35,6 +37,23 @@ export function MeetingDetail({ meetingId, open, onOpenChange, onUpdated }: Prop
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+
+  // Fetch workspace members for assignee picker
+  const { data: wsMembers = [] } = useQuery({
+    queryKey: ["ws-members-picker", currentWorkspace?.id],
+    queryFn: async () => {
+      if (!currentWorkspace?.id) return [];
+      const { data } = await supabase
+        .from("workspace_memberships")
+        .select("user_id, profiles:user_id(full_name)")
+        .eq("workspace_id", currentWorkspace.id);
+      return (data || []).map((m: any) => ({
+        id: m.user_id,
+        full_name: (m.profiles as any)?.full_name || "Unknown",
+      }));
+    },
+    enabled: !!currentWorkspace?.id && open,
+  });
 
   const fetchMeeting = useCallback(async () => {
     if (!meetingId) return;
@@ -181,6 +200,11 @@ export function MeetingDetail({ meetingId, open, onOpenChange, onUpdated }: Prop
               {saving ? "Saving…" : "Save Changes"}
             </Button>
           )}
+
+          {/* Structured actions & decisions */}
+          <div className="border-t pt-4">
+            <MeetingActions meetingId={m.id} members={wsMembers} />
+          </div>
 
           {/* File attachments (recordings, transcripts) */}
           {currentWorkspace && (
