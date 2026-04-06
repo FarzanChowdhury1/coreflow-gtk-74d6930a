@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
 import { AppTopBar } from "./AppTopBar";
 import { PendingInviteBanner } from "./PendingInviteBanner";
+import { EntitlementBanner } from "./EntitlementBanner";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 const OutletFallback = () => (
@@ -30,6 +31,7 @@ export function AppLayout() {
       <div className="flex flex-1 flex-col min-w-0 lg:pl-60">
         <AppTopBar onMenuClick={() => setSidebarOpen(true)} />
         <PendingInviteBanner />
+        <EntitlementBanner />
         <main className="flex-1 p-4 sm:p-6 animate-fade-in">
           {loading ? (
             <div className="flex min-h-[50vh] items-center justify-center">

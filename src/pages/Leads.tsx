@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Inbox, Plus, Search, FileText, Calendar, Archive, RotateCcw, Download } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { LeadMobileCards } from "@/components/leads/LeadMobileCards";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
@@ -43,6 +45,7 @@ export default function Leads() {
   const [meetingContext, setMeetingContext] = useState<{ lead_id?: string; company_id?: string; contact_id?: string } | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const workspaceId = currentWorkspace?.id;
   const isAdmin = currentRole === "admin";
@@ -334,6 +337,24 @@ export default function Leads() {
             </Button>
           )}
         </div>
+      ) : isMobile ? (
+        <LeadMobileCards
+          leads={displayLeads}
+          statusColors={statusColors}
+          getCompanyName={(id) => id ? companies.find((c) => c.id === id)?.legal_name ?? "—" : "—"}
+          getContactName={(id) => id ? contacts.find((c) => c.id === id)?.full_name ?? "—" : "—"}
+          isAdmin={isAdmin}
+          userId={user?.id}
+          onEdit={(lead) => { setEditingLead(lead); setDialogOpen(true); }}
+          onArchive={handleArchive}
+          onRestore={handleRestore}
+          onConvert={(lead) => {
+            if (lead.company_id) {
+              setProposalPrefill({ title: lead.title, company_id: lead.company_id, notes: lead.notes || undefined, lead_id: lead.id });
+            }
+          }}
+          onMeeting={(lead) => setMeetingContext({ lead_id: lead.id, company_id: lead.company_id || undefined, contact_id: lead.contact_id || undefined })}
+        />
       ) : (
         <div className="rounded-lg border bg-card overflow-x-auto">
           <table className="w-full text-sm min-w-[700px]">

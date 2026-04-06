@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Building2, Plus, Search, Link2, User, Calendar, Shield, Archive, RotateCcw, Download, ClipboardList } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { CompanyMobileCards } from "@/components/clients/CompanyMobileCards";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
@@ -26,6 +28,7 @@ type Contact = Tables<"contacts">;
 export default function Clients() {
   const { currentWorkspace, currentRole } = useWorkspace();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
@@ -293,6 +296,18 @@ export default function Clients() {
                 </Button>
               )}
             </div>
+          ) : isMobile ? (
+            <CompanyMobileCards
+              companies={displayCompanies}
+              isAdmin={isAdmin}
+              onEdit={(c) => { setEditingCompany(c); setCompanyDialogOpen(true); }}
+              onArchive={handleArchiveCompany}
+              onRestore={handleRestoreCompany}
+              onAccess={(c) => setAccessCompany(c)}
+              onPortal={() => setPortalLinkOpen(true)}
+              onMeeting={(id) => setMeetingCompanyId(id)}
+              onOnboarding={(c) => setOnboardingCompany(c)}
+            />
           ) : (
             <div className="rounded-lg border bg-card overflow-x-auto">
               <table className="w-full text-sm min-w-[500px]">

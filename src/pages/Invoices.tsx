@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { InvoiceMobileCards } from "@/components/invoices/InvoiceMobileCards";
 import { Receipt, Plus, Download, Clock } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { InvoiceAging } from "@/components/invoices/InvoiceAging";
@@ -28,6 +30,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function Invoices() {
   const { currentWorkspace } = useWorkspace();
+  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Tables<"invoices"> | null>(null);
@@ -191,6 +194,8 @@ export default function Invoices() {
                 <Plus className="mr-1 h-4 w-4" /> Create First Invoice
               </Button>
             </div>
+          ) : isMobile ? (
+            <InvoiceMobileCards invoices={invoices} onSelect={setSelectedInvoice} />
           ) : (
             <div className="rounded-lg border bg-card overflow-x-auto">
               <Table className="min-w-[700px]">
