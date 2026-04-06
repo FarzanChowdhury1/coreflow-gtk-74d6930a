@@ -296,6 +296,18 @@ export default function Clients() {
                 </Button>
               )}
             </div>
+          ) : isMobile ? (
+            <CompanyMobileCards
+              companies={displayCompanies}
+              isAdmin={isAdmin}
+              onEdit={(c) => { setEditingCompany(c); setCompanyDialogOpen(true); }}
+              onArchive={handleArchiveCompany}
+              onRestore={handleRestoreCompany}
+              onAccess={(c) => setAccessCompany(c)}
+              onPortal={() => setPortalLinkOpen(true)}
+              onMeeting={(id) => setMeetingCompanyId(id)}
+              onOnboarding={(c) => setOnboardingCompany(c)}
+            />
           ) : (
             <div className="rounded-lg border bg-card overflow-x-auto">
               <table className="w-full text-sm min-w-[500px]">
