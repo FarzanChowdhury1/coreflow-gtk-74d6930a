@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Clock, AlertTriangle } from "lucide-react";
+import { Clock, AlertTriangle, Info } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 
 interface AgingBucket {
@@ -41,6 +42,14 @@ export function InvoiceAging() {
     enabled: !!wsId,
     staleTime: 60_000,
   });
+
+  // Detect whether all invoices share a single currency
+  const currencies = useMemo(() => {
+    const set = new Set(invoices.map((inv) => inv.currency || "BDT"));
+    return Array.from(set);
+  }, [invoices]);
+  const isMixed = currencies.length > 1;
+  const primaryCurrency = currencies.length === 1 ? currencies[0] : "BDT";
 
   const buckets = useMemo<AgingBucket[]>(() => {
     const today = new Date();
@@ -97,15 +106,29 @@ export function InvoiceAging() {
     );
   }
 
+  const fmtTotal = (amount: number) => {
+    if (isMixed) return `${amount.toLocaleString()} (mixed currencies)`;
+    return formatCurrency(amount, primaryCurrency);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Methodology note */}
+      <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md p-3">
+        <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+        <span>
+          Aging is based on due date vs today. Outstanding = total − paid. Voided invoices are excluded. Partially paid invoices show only the remaining balance.
+          {isMixed && " Totals mix multiple currencies — review per-invoice values for accuracy."}
+        </span>
+      </div>
+
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {buckets.map((b) => (
           <Card key={b.label} className={b.total > 0 ? "border-l-4" : ""} style={b.total > 0 ? { borderLeftColor: `var(--${b.color.replace('bg-', '')}, currentColor)` } : {}}>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground mb-1">{b.label}</p>
-              <p className="text-lg font-semibold text-foreground">৳{b.total.toLocaleString("en-BD")}</p>
+              <p className="text-lg font-semibold text-foreground">{fmtTotal(b.total)}</p>
               <p className="text-xs text-muted-foreground">{b.count} invoice{b.count !== 1 ? "s" : ""}</p>
             </CardContent>
           </Card>
@@ -128,7 +151,7 @@ export function InvoiceAging() {
                     key={b.label}
                     className={`${b.color} transition-all`}
                     style={{ width: `${pct}%` }}
-                    title={`${b.label}: ৳${b.total.toLocaleString("en-BD")} (${pct.toFixed(1)}%)`}
+                    title={`${b.label}: ${fmtTotal(b.total)} (${pct.toFixed(1)}%)`}
                   />
                 );
               })}
@@ -169,26 +192,29 @@ export function InvoiceAging() {
               </TableHeader>
               <TableBody>
                 {buckets.flatMap((b) =>
-                  b.invoices.map((inv: any) => (
-                    <TableRow key={inv.id}>
-                      <TableCell className="font-medium text-foreground">{inv.invoice_number}</TableCell>
-                      <TableCell className="text-sm">{inv.companies?.legal_name ?? "—"}</TableCell>
-                      <TableCell className="text-right text-sm">৳{Number(inv.grand_total).toLocaleString("en-BD")}</TableCell>
-                      <TableCell className="text-right text-sm">৳{Number(inv.amount_paid).toLocaleString("en-BD")}</TableCell>
-                      <TableCell className="text-right font-medium text-sm">৳{inv.outstanding.toLocaleString("en-BD")}</TableCell>
-                      <TableCell className="text-sm">{inv.due_date ?? "No due date"}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className={`text-xs ${
-                          !inv.daysOverdue || inv.daysOverdue <= 0 ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                          : inv.daysOverdue <= 30 ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                          : inv.daysOverdue <= 60 ? "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
-                          : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                        }`}>
-                          {!inv.daysOverdue || inv.daysOverdue <= 0 ? "Current" : `${inv.daysOverdue}d overdue`}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  b.invoices.map((inv: any) => {
+                    const cur = inv.currency || "BDT";
+                    return (
+                      <TableRow key={inv.id}>
+                        <TableCell className="font-medium text-foreground">{inv.invoice_number}</TableCell>
+                        <TableCell className="text-sm">{inv.companies?.legal_name ?? "—"}</TableCell>
+                        <TableCell className="text-right text-sm">{formatCurrency(Number(inv.grand_total), cur)}</TableCell>
+                        <TableCell className="text-right text-sm">{formatCurrency(Number(inv.amount_paid), cur)}</TableCell>
+                        <TableCell className="text-right font-medium text-sm">{formatCurrency(inv.outstanding, cur)}</TableCell>
+                        <TableCell className="text-sm">{inv.due_date ?? "No due date"}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className={`text-xs ${
+                            !inv.daysOverdue || inv.daysOverdue <= 0 ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            : inv.daysOverdue <= 30 ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                            : inv.daysOverdue <= 60 ? "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+                            : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                          }`}>
+                            {!inv.daysOverdue || inv.daysOverdue <= 0 ? "Current" : `${inv.daysOverdue}d overdue`}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
