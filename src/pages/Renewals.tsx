@@ -211,6 +211,7 @@ export default function Renewals() {
               </div>
             );
           })()}
+      </div>
 
       {renewalsError && (
         <div className="mb-4 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
