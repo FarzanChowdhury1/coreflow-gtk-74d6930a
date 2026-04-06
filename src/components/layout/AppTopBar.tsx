@@ -37,19 +37,12 @@ export function AppTopBar({ onMenuClick }: Props) {
 
   useEffect(() => { fetchRecent(); }, [fetchRecent]);
 
+  // Poll every 30s instead of realtime (security: prevents cross-user channel eavesdropping)
   useEffect(() => {
     if (!user) return;
-    const channel = supabase
-      .channel("topbar-notif-" + user.id)
-      .on("postgres_changes", {
-        event: "INSERT", schema: "public", table: "notifications",
-        filter: `user_id=eq.${user.id}`,
-      }, (payload) => {
-        setNotifications((prev) => [payload.new as any, ...prev].slice(0, 8));
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user]);
+    const interval = setInterval(() => { fetchRecent(); }, 30_000);
+    return () => clearInterval(interval);
+  }, [user, fetchRecent]);
 
   const sorted = useMemo(() => sortByPriority(notifications), [notifications]);
   const unreadCount = notifications.filter((n) => !n.is_read).length;
