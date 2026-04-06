@@ -176,8 +176,7 @@ export default function Renewals() {
             note="Invoices are generated once per cycle. The schedule advances on generation, not on payment."
           />
         </div>
-        {isAdmin && (
-          {(() => {
+        {isAdmin && (() => {
             const mapped = renewals.map((r) => ({
               label: r.label,
               company: r.companies?.legal_name || "",
@@ -206,12 +205,12 @@ export default function Renewals() {
                 <Button variant="outline" size="sm" onClick={() => exportToXLSX(mapped, cols, "renewals-export")}>
                   <Download className="h-4 w-4 mr-1" /> XLSX
                 </Button>
-            <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
-              <Plus className="mr-1 h-4 w-4" /> New Renewal
-            </Button>
-          </div>
-        )}
-      </div>
+                <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
+                  <Plus className="mr-1 h-4 w-4" /> New Renewal
+                </Button>
+              </div>
+            );
+          })()}
 
       {renewalsError && (
         <div className="mb-4 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
