@@ -2579,6 +2579,82 @@ export type Database = {
           },
         ]
       }
+      workspace_followup_notes: {
+        Row: {
+          author_id: string
+          created_at: string
+          followup_id: string
+          id: string
+          note: string
+        }
+        Insert: {
+          author_id: string
+          created_at?: string
+          followup_id: string
+          id?: string
+          note: string
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          followup_id?: string
+          id?: string
+          note?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_followup_notes_followup_id_fkey"
+            columns: ["followup_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_followups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_followups: {
+        Row: {
+          created_at: string
+          id: string
+          last_contacted_at: string | null
+          next_followup_date: string | null
+          owner_id: string | null
+          priority: string | null
+          stage: Database["public"]["Enums"]["workspace_commercial_stage"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_contacted_at?: string | null
+          next_followup_date?: string | null
+          owner_id?: string | null
+          priority?: string | null
+          stage?: Database["public"]["Enums"]["workspace_commercial_stage"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_contacted_at?: string | null
+          next_followup_date?: string | null
+          owner_id?: string | null
+          priority?: string | null
+          stage?: Database["public"]["Enums"]["workspace_commercial_stage"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_followups_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_invites: {
         Row: {
           accepted_at: string | null
@@ -3030,6 +3106,18 @@ export type Database = {
         | "voided"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status: "todo" | "in_progress" | "review" | "done"
+      workspace_commercial_stage:
+        | "new"
+        | "trialing"
+        | "activated_free"
+        | "expansion_opportunity"
+        | "trial_expired"
+        | "follow_up_needed"
+        | "converted_manual"
+        | "enterprise_pipeline"
+        | "churn_risk"
+        | "inactive"
+        | "closed_lost"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3202,6 +3290,19 @@ export const Constants = {
       ],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: ["todo", "in_progress", "review", "done"],
+      workspace_commercial_stage: [
+        "new",
+        "trialing",
+        "activated_free",
+        "expansion_opportunity",
+        "trial_expired",
+        "follow_up_needed",
+        "converted_manual",
+        "enterprise_pipeline",
+        "churn_risk",
+        "inactive",
+        "closed_lost",
+      ],
     },
   },
 } as const
