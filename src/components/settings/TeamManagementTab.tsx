@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useEntitlement } from "@/hooks/use-entitlement";
-import { trackEvent, trackFirstEvent } from "@/lib/events";
+import { trackEvent } from "@/lib/events";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -312,7 +312,7 @@ export function TeamManagementTab() {
             <CardTitle>Internal Team Members</CardTitle>
             <CardDescription>Your internal workspace members. Clients are managed separately in the Clients section.</CardDescription>
           </div>
-          <Button size="sm" onClick={() => { setInviteOpen(true); setLastCreatedToken(null); setLastCreatedInviteId(null); setEmailStatus("idle"); setEmailError(null); }}>
+          <Button size="sm" onClick={() => { setInviteOpen(true); setLastCreatedToken(null); setLastCreatedInviteId(null); setEmailStatus("idle"); setEmailError(null); }} disabled={!ent.canAddSeat}>
             <Plus className="mr-2 h-4 w-4" />
             Invite Member
           </Button>
@@ -560,6 +560,29 @@ export function TeamManagementTab() {
 
               <DialogFooter>
                 <Button onClick={() => { setInviteOpen(false); setLastCreatedToken(null); setLastCreatedInviteId(null); setEmailStatus("idle"); }}>Done</Button>
+              </DialogFooter>
+            </div>
+          ) : !ent.canAddSeat ? (
+            <div className="space-y-4">
+              <div className="rounded-md border border-warning/30 bg-warning/5 p-4">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Seat limit reached</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Your {ent.plan === "free" ? "Free" : "current"} plan supports up to {ent.seatLimit} seat{ent.seatLimit !== 1 ? "s" : ""}. You currently have {ent.seatCount} member{ent.seatCount !== 1 ? "s" : ""}.
+                    </p>
+                    <a
+                      href="mailto:hello@coreflow.app?subject=Upgrade%20Inquiry"
+                      className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline mt-2"
+                    >
+                      Contact Sales to upgrade <ArrowUpRight className="h-3 w-3" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button onClick={() => setInviteOpen(false)}>Close</Button>
               </DialogFooter>
             </div>
           ) : (
