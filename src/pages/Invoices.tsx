@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { Receipt, Plus, Download } from "lucide-react";
+import { Receipt, Plus, Download, Clock } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
+import { InvoiceAging } from "@/components/invoices/InvoiceAging";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { exportToCSV } from "@/lib/csv-export";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -160,77 +162,92 @@ export default function Invoices() {
         Create and track invoices for your clients. Record payments and export PDFs when ready.
       </p>
 
-      {invoicesError && (
-        <div className="mb-4 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
-          <Receipt className="h-4 w-4 text-destructive shrink-0" />
-          <p className="text-sm text-muted-foreground">Failed to load invoices. Try refreshing the page.</p>
-        </div>
-      )}
+      <Tabs defaultValue="all" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="all">All Invoices</TabsTrigger>
+          <TabsTrigger value="aging" className="gap-1.5">
+            <Clock className="h-3.5 w-3.5" /> Aging Report
+          </TabsTrigger>
+        </TabsList>
 
-      {loading ? (
-        <div className="text-center py-8 text-muted-foreground">Loading…</div>
-      ) : invoices.length === 0 ? (
-        <div className="rounded-lg border bg-card p-10 text-center">
-          <Receipt className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
-          <h2 className="text-sm font-medium text-foreground mb-1">No invoices yet</h2>
-          <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-            Invoices let you bill clients and track payments. Create one linked to a company, add line items, and issue it when ready.
-          </p>
-          <Button onClick={() => setShowForm(true)} size="sm">
-            <Plus className="mr-1 h-4 w-4" /> Create First Invoice
-          </Button>
-        </div>
-      ) : (
-        <div className="rounded-lg border bg-card overflow-x-auto">
-          <Table className="min-w-[700px]">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Invoice #</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Grand Total</TableHead>
-                <TableHead className="text-right">Paid</TableHead>
-                <TableHead>Issue Date</TableHead>
-                <TableHead>Due Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {invoices.map((inv) => (
-                <TableRow
-                  key={inv.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => setSelectedInvoice(inv)}
-                >
-                  <TableCell className="font-medium text-foreground">{inv.invoice_number}</TableCell>
-                  <TableCell>{inv.companies?.legal_name ?? "—"}</TableCell>
-                  <TableCell>
-                    <Badge className={STATUS_COLORS[inv.status]}>{inv.status.replace("_", " ")}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    ৳{Number(inv.grand_total).toLocaleString("en-BD")}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    ৳{Number(inv.amount_paid).toLocaleString("en-BD")}
-                  </TableCell>
-                  <TableCell>{inv.issue_date ? format(new Date(inv.issue_date), "dd MMM yyyy") : "—"}</TableCell>
-                  <TableCell>{inv.due_date ? format(new Date(inv.due_date), "dd MMM yyyy") : "—"}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-      <PaginationControls
-        page={invoicesPag.page}
-        totalPages={invoicesPag.totalPages}
-        totalCount={invoicesPag.totalCount}
-        hasNext={invoicesPag.hasNext}
-        hasPrev={invoicesPag.hasPrev}
-        onNext={invoicesPag.nextPage}
-        onPrev={invoicesPag.prevPage}
-        isFetching={invoicesPag.isFetching}
-        pageSize={invoicesPag.PAGE_SIZE}
-      />
+        <TabsContent value="all">
+          {invoicesError && (
+            <div className="mb-4 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+              <Receipt className="h-4 w-4 text-destructive shrink-0" />
+              <p className="text-sm text-muted-foreground">Failed to load invoices. Try refreshing the page.</p>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading…</div>
+          ) : invoices.length === 0 ? (
+            <div className="rounded-lg border bg-card p-10 text-center">
+              <Receipt className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
+              <h2 className="text-sm font-medium text-foreground mb-1">No invoices yet</h2>
+              <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+                Invoices let you bill clients and track payments. Create one linked to a company, add line items, and issue it when ready.
+              </p>
+              <Button onClick={() => setShowForm(true)} size="sm">
+                <Plus className="mr-1 h-4 w-4" /> Create First Invoice
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-lg border bg-card overflow-x-auto">
+              <Table className="min-w-[700px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Invoice #</TableHead>
+                    <TableHead>Company</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Grand Total</TableHead>
+                    <TableHead className="text-right">Paid</TableHead>
+                    <TableHead>Issue Date</TableHead>
+                    <TableHead>Due Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {invoices.map((inv) => (
+                    <TableRow
+                      key={inv.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setSelectedInvoice(inv)}
+                    >
+                      <TableCell className="font-medium text-foreground">{inv.invoice_number}</TableCell>
+                      <TableCell>{inv.companies?.legal_name ?? "—"}</TableCell>
+                      <TableCell>
+                        <Badge className={STATUS_COLORS[inv.status]}>{inv.status.replace("_", " ")}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        ৳{Number(inv.grand_total).toLocaleString("en-BD")}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ৳{Number(inv.amount_paid).toLocaleString("en-BD")}
+                      </TableCell>
+                      <TableCell>{inv.issue_date ? format(new Date(inv.issue_date), "dd MMM yyyy") : "—"}</TableCell>
+                      <TableCell>{inv.due_date ? format(new Date(inv.due_date), "dd MMM yyyy") : "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+          <PaginationControls
+            page={invoicesPag.page}
+            totalPages={invoicesPag.totalPages}
+            totalCount={invoicesPag.totalCount}
+            hasNext={invoicesPag.hasNext}
+            hasPrev={invoicesPag.hasPrev}
+            onNext={invoicesPag.nextPage}
+            onPrev={invoicesPag.prevPage}
+            isFetching={invoicesPag.isFetching}
+            pageSize={invoicesPag.PAGE_SIZE}
+          />
+        </TabsContent>
+
+        <TabsContent value="aging">
+          <InvoiceAging />
+        </TabsContent>
+      </Tabs>
 
       <InvoiceFormDialog
         open={showForm}
