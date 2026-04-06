@@ -322,7 +322,7 @@ export default function PlatformDashboard() {
                             <div className="flex items-center justify-center gap-1">
                               <span className="text-sm font-medium">{moduleCount}/12</span>
                               {moduleCount >= 8 ? <Rocket className="h-3.5 w-3.5 text-primary" /> :
-                               moduleCount >= 3 ? <TrendingUp className="h-3.5 w-3.5 text-green-600" /> :
+                               moduleCount >= 3 ? <TrendingUp className="h-3.5 w-3.5 text-primary" /> :
                                <Circle className="h-3.5 w-3.5 text-muted-foreground/40" />}
                             </div>
                           </TableCell>
@@ -348,7 +348,7 @@ export default function PlatformDashboard() {
                                 ))}
                               </div>
                             ) : (
-                              <CheckCircle2 className="h-4 w-4 text-green-600" />
+                              <CheckCircle2 className="h-4 w-4 text-primary" />
                             )}
                           </TableCell>
                         </TableRow>
