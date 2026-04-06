@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FolderKanban, Plus, Search, Building2, Wrench, Download } from "lucide-react";
+import { FolderKanban, Plus, Search, Building2, Wrench, Download, AlertTriangle } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,7 @@ export default function Projects() {
     }
   }, []);
 
-  const { data: projects = [], isLoading } = useQuery({
+  const { data: projects = [], isLoading, isError: projectsError } = useQuery({
     queryKey: ["projects", workspaceId],
     queryFn: async () => {
       if (!workspaceId) return [];
@@ -142,6 +142,13 @@ export default function Projects() {
         </div>
       </div>
 
+      {projectsError && (
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+          <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+          <p className="text-sm text-muted-foreground">Failed to load projects. Try refreshing the page.</p>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
@@ -155,13 +162,19 @@ export default function Projects() {
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border bg-card p-10 text-center">
           <FolderKanban className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
-          <h2 className="text-sm font-medium text-foreground mb-1">No projects yet</h2>
+          <h2 className="text-sm font-medium text-foreground mb-1">
+            {(searchTerm || filterType !== "all") ? "No projects match your filters" : "No projects yet"}
+          </h2>
           <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-            Projects track delivery work for your clients. You can create one from an approved proposal or start fresh. Each project has its own task board.
+            {(searchTerm || filterType !== "all")
+              ? "Try adjusting your search or filter."
+              : "Projects track delivery work for your clients. You can create one from an approved proposal or start fresh. Each project has its own task board."}
           </p>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Create First Project
-          </Button>
+          {!(searchTerm || filterType !== "all") && (
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Create First Project
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
