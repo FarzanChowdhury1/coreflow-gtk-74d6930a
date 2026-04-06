@@ -175,8 +175,7 @@ export default function Clients() {
             note="Contacts can exist without a company. Archived records are hidden from active views."
           />
         </div>
-        {isAdmin && (
-          {(() => {
+        {isAdmin && (() => {
             const companyCols = [
               { key: "legal_name", label: "Company Name" },
               { key: "phone", label: "Phone" },
@@ -217,7 +216,6 @@ export default function Clients() {
               </div>
             );
           })()}
-        )}
       </div>
       <p className="mb-5 text-sm text-muted-foreground max-w-2xl">
         {isAdmin
