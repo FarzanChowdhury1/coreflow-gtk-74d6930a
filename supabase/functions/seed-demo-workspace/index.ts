@@ -85,9 +85,9 @@ Deno.serve(async (req) => {
 
     // --- COMPANIES ---
     const { data: companies, error: compErr } = await admin.from("companies").insert([
-      { workspace_id, legal_name: "Meridian Creative Agency", bin: null, phone: "+1 555-0100", address: "45 Design District, Suite 200, New York, NY 10011" },
-      { workspace_id, legal_name: "Horizon Supply Co.", bin: null, phone: "+1 555-0200", address: "780 Industrial Blvd, Chicago, IL 60614" },
-      { workspace_id, legal_name: "Apex Digital Solutions", bin: null, phone: "+1 555-0300", address: "12 Tech Park Way, Austin, TX 78701" },
+      { workspace_id, legal_name: "Meridian Creative Agency", bin: null, phone: "+15550100", address: "45 Design District, Suite 200, New York, NY 10011" },
+      { workspace_id, legal_name: "Horizon Supply Co.", bin: null, phone: "+15550200", address: "780 Industrial Blvd, Chicago, IL 60614" },
+      { workspace_id, legal_name: "Apex Digital Solutions", bin: null, phone: "+15550300", address: "12 Tech Park Way, Austin, TX 78701" },
     ]).select("id, legal_name");
 
     if (compErr || !companies || companies.length < 3) throw new Error("Failed to create companies: " + (compErr?.message ?? "unknown"));
@@ -96,10 +96,10 @@ Deno.serve(async (req) => {
 
     // --- CONTACTS ---
     const { data: contacts, error: contErr } = await admin.from("contacts").insert([
-      { workspace_id, company_id: meridian.id, full_name: "Sarah Chen", email: "sarah@meridiancreative.com", phone: "+1 555-0101", designation: "Managing Director" },
-      { workspace_id, company_id: meridian.id, full_name: "James Park", email: "james@meridiancreative.com", phone: "+1 555-0102", designation: "Creative Lead" },
-      { workspace_id, company_id: horizon.id, full_name: "Michael Torres", email: "michael@horizonsupply.com", phone: "+1 555-0201", designation: "Operations Manager" },
-      { workspace_id, company_id: apex.id, full_name: "Priya Sharma", email: "priya@apexdigital.com", phone: "+1 555-0301", designation: "CTO" },
+      { workspace_id, company_id: meridian.id, full_name: "Sarah Chen", email: "sarah@meridiancreative.com", phone: "+15550101", designation: "Managing Director" },
+      { workspace_id, company_id: meridian.id, full_name: "James Park", email: "james@meridiancreative.com", phone: "+15550102", designation: "Creative Lead" },
+      { workspace_id, company_id: horizon.id, full_name: "Michael Torres", email: "michael@horizonsupply.com", phone: "+15550201", designation: "Operations Manager" },
+      { workspace_id, company_id: apex.id, full_name: "Priya Sharma", email: "priya@apexdigital.com", phone: "+15550301", designation: "CTO" },
     ]).select("id, full_name, company_id");
 
     if (contErr || !contacts || contacts.length < 4) throw new Error("Failed to create contacts: " + (contErr?.message ?? "unknown"));
