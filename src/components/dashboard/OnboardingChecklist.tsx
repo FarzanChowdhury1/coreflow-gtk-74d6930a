@@ -161,8 +161,8 @@ export function OnboardingChecklist({ userId }: { userId?: string }) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Rocket className="h-5 w-5 text-primary" />
-          <h2 className="text-sm font-semibold text-foreground">Get Started with CoreFlow</h2>
-          <span className="text-xs text-muted-foreground">{completed}/{total} complete</span>
+          <h2 className="text-sm font-semibold text-foreground">Setup Checklist</h2>
+          <span className="text-xs text-muted-foreground">{completed}/{total} steps</span>
         </div>
         <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? "Expand checklist" : "Collapse checklist"}>
           {collapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
