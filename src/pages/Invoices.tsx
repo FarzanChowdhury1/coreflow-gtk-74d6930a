@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { InvoiceMobileCards } from "@/components/invoices/InvoiceMobileCards";
 import { Receipt, Plus, Download, Clock } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { InvoiceAging } from "@/components/invoices/InvoiceAging";
