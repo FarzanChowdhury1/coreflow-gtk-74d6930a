@@ -38,7 +38,10 @@ export function TurnstileWidget({ onVerify, onExpire, className }: TurnstileWidg
 
   useEffect(() => {
     if (!SITE_KEY) {
-      // If no site key configured, pass a bypass token so forms still work
+      // Dev/staging bypass — in production, VITE_TURNSTILE_SITE_KEY must be set
+      if (import.meta.env.DEV) {
+        console.warn("[Turnstile] No VITE_TURNSTILE_SITE_KEY configured — bypassing CAPTCHA. Set the key for production.");
+      }
       onVerify("__bypass__");
       return;
     }
