@@ -25,6 +25,7 @@ import {
   Wallet,
   PieChart,
   Mail,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -56,6 +57,7 @@ const navItems: NavItem[] = [
   { label: "Expenses", icon: Wallet, path: "/expenses", section: "Spend", adminOnly: true },
   { label: "Subscriptions", icon: CreditCard, path: "/subscriptions", section: "Spend", adminOnly: true },
   { label: "Budget vs Actual", icon: PieChart, path: "/budget", section: "Spend", adminOnly: true },
+  { label: "Profitability", icon: BarChart3, path: "/profitability", section: "Revenue", adminOnly: true },
   { label: "Internal Team", icon: Users, path: "/team", section: "Workspace", adminOnly: true },
   { label: "Notifications", icon: Bell, path: "/notifications", section: "Workspace" },
   { label: "Digest Inspector", icon: FileSearch, path: "/digest-inspector", section: "Workspace", adminOnly: true },
