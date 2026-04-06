@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Building2, Plus, Search, Link2, User, Calendar, Shield, Archive, RotateCcw, Download, ClipboardList } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CompanyMobileCards } from "@/components/clients/CompanyMobileCards";
+import { ContactMobileCards } from "@/components/clients/ContactMobileCards";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
@@ -423,6 +424,15 @@ export default function Clients() {
                 </Button>
               )}
             </div>
+          ) : isMobile ? (
+            <ContactMobileCards
+              contacts={displayContacts}
+              isAdmin={isAdmin}
+              getCompanyName={getCompanyName}
+              onEdit={(c) => { setEditingContact(c); setContactDialogOpen(true); }}
+              onArchive={handleArchiveContact}
+              onRestore={handleRestoreContact}
+            />
           ) : (
             <div className="rounded-lg border bg-card overflow-x-auto">
               <table className="w-full text-sm min-w-[600px]">
