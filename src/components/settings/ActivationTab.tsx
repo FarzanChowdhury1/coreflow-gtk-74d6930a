@@ -131,7 +131,7 @@ export function ActivationTab() {
                   return (
                     <div key={m.event} className="flex items-center gap-3 py-1">
                       {achieved ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                       ) : (
                         <Circle className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                       )}

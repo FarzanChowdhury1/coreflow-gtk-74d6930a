@@ -1,6 +1,6 @@
 import { useEntitlement } from "@/hooks/use-entitlement";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { PLANS } from "@/lib/entitlements";
+import type { PlanId } from "@/lib/entitlements";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -103,7 +103,7 @@ export function PlanBillingTab() {
               </p>
               {!ent.isTrialing && (
                 <p className="text-sm text-muted-foreground flex items-center gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600" /> Active subscription
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Active subscription
                 </p>
               )}
             </div>
