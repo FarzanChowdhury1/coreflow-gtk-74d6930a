@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { Receipt, Plus, Archive, ArchiveRestore, Pencil, Download, CheckCircle2, AlertTriangle } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { ExpenseMobileCards } from "@/components/expenses/ExpenseMobileCards";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,6 +50,7 @@ export default function Expenses() {
   const { currentWorkspace, currentRole } = useWorkspace();
   
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const isAdmin = currentRole === "admin";
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
