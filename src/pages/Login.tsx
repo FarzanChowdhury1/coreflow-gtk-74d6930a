@@ -5,6 +5,7 @@ import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
+import { useTurnstile } from "@/components/auth/TurnstileWidget";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -21,6 +22,7 @@ export default function Login() {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const redirectTo = searchParams.get("redirect");
+  const { turnstileToken, TurnstileElement } = useTurnstile();
 
   const validate = (): boolean => {
     const errors: Record<string, string> = {};
