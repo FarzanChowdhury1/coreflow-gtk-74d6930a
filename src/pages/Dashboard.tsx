@@ -4,6 +4,7 @@ import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist"
 import { DashboardBreakdowns } from "@/components/dashboard/DashboardBreakdowns";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
