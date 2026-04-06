@@ -4,6 +4,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { LeadMobileCards } from "@/components/leads/LeadMobileCards";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
+import { exportToXLSX } from "@/lib/xlsx-export";
 import { Button } from "@/components/ui/button";
 import { LeadTasksPanel } from "@/components/leads/LeadTasksPanel";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
