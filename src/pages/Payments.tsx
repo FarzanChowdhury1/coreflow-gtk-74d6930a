@@ -28,11 +28,13 @@ export default function Payments() {
   const [invoices, setInvoices] = useState<Tables<"invoices">[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const isAdmin = currentRole === "admin";
 
   const fetchData = useCallback(async () => {
     if (!currentWorkspace) return;
     setLoading(true);
+    setFetchError(false);
 
     const [payRes, invRes] = await Promise.all([
       supabase
@@ -47,6 +49,7 @@ export default function Payments() {
         .is("deleted_at", null),
     ]);
 
+    if (payRes.error || invRes.error) setFetchError(true);
     if (payRes.data) setPayments(payRes.data as any);
     if (invRes.data) setInvoices(invRes.data);
     setLoading(false);
