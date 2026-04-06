@@ -23,28 +23,31 @@ export function PlanBillingTab() {
 
   const seatPct = ent.seatLimit ? Math.min(100, Math.round((seatCount / ent.seatLimit) * 100)) : 0;
 
+  const trialAlreadyUsed = !!(currentWorkspace as any)?.trial_ends_at;
+
   const handleStartTrial = async () => {
     if (!currentWorkspace) return;
     setStartingTrial(true);
-    const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + 14);
 
-    const { error } = await supabase
-      .from("workspaces")
-      .update({
-        plan: "growth",
-        trial_ends_at: trialEnd.toISOString(),
-        seat_limit: 999,
-      })
-      .eq("id", currentWorkspace.id);
+    const { data, error } = await supabase.rpc("start_growth_trial", {
+      _workspace_id: currentWorkspace.id,
+    });
 
     setStartingTrial(false);
+
     if (error) {
       toast.error("Failed to start trial. Please try again.");
-    } else {
-      toast.success("Growth trial activated — 14 days of full access, no card required.");
-      refreshWorkspaces();
+      return;
     }
+
+    const result = data as Record<string, unknown> | null;
+    if (result?.error) {
+      toast.error(String(result.error));
+      return;
+    }
+
+    toast.success("Growth trial activated — 14 days of full access, no card required.");
+    refreshWorkspaces();
   };
 
   return (
