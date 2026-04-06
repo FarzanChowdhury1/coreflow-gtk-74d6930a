@@ -316,6 +316,9 @@ function BudgetFormDialog({ open, onOpenChange, budget, workspaceId, currency, p
       return;
     }
     toast.success(budget ? "Budget updated" : "Budget target set");
+    if (!budget && workspaceId && user?.id) {
+      trackFirstEvent("budget.first_created", workspaceId, user.id);
+    }
     onSaved();
   };
 

@@ -1,0 +1,71 @@
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Pencil, Archive, RotateCcw } from "lucide-react";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Contact = Tables<"contacts">;
+
+interface Props {
+  contacts: Contact[];
+  isAdmin: boolean;
+  getCompanyName: (id: string | null) => React.ReactNode;
+  onEdit: (c: Contact) => void;
+  onArchive: (c: Contact) => void;
+  onRestore: (c: Contact) => void;
+}
+
+export function ContactMobileCards({ contacts, isAdmin, getCompanyName, onEdit, onArchive, onRestore }: Props) {
+  return (
+    <div className="space-y-3">
+      {contacts.map((contact) => {
+        const isArchived = !!contact.deleted_at;
+        return (
+          <div
+            key={contact.id}
+            className={`rounded-lg border bg-card p-4 ${isArchived ? "opacity-60" : ""}`}
+          >
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div>
+                <p className="font-medium text-foreground">{contact.full_name}</p>
+                {contact.designation && (
+                  <p className="text-xs text-muted-foreground">{contact.designation}</p>
+                )}
+              </div>
+              {isArchived && <Badge variant="outline" className="text-[10px] shrink-0">Archived</Badge>}
+            </div>
+
+            <div className="space-y-1 text-sm text-muted-foreground mb-3">
+              {contact.email && <p>{contact.email}</p>}
+              {contact.phone && <p className="font-mono text-xs">{contact.phone}</p>}
+              <p>Company: {getCompanyName(contact.company_id)}</p>
+            </div>
+
+            {isAdmin && (
+              <div className="flex gap-1">
+                {isArchived ? (
+                  <Button variant="ghost" size="sm" onClick={() => onRestore(contact)}>
+                    <RotateCcw className="h-3.5 w-3.5 mr-1" /> Restore
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="ghost" size="sm" onClick={() => onEdit(contact)}>
+                      <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => onArchive(contact)}
+                    >
+                      <Archive className="h-3.5 w-3.5" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
