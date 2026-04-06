@@ -2950,6 +2950,7 @@ export type Database = {
       select_retention_candidates: { Args: never; Returns: Json }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      start_growth_trial: { Args: { _workspace_id: string }; Returns: Json }
       submit_for_approval: {
         Args: {
           _entity_id: string
