@@ -1,15 +1,16 @@
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useState } from "react";
 import {
   Building2, User, Inbox, FileText, Link2, Receipt, Users, FolderKanban, CalendarDays, Store,
-  Check, ChevronDown, ChevronUp, Rocket,
+  Check, ChevronDown, ChevronUp, Rocket, Database, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface ChecklistItem {
   key: string;
@@ -106,7 +107,10 @@ const items: ChecklistItem[] = [
 export function OnboardingChecklist() {
   const { currentWorkspace, currentRole } = useWorkspace();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [collapsed, setCollapsed] = useState(false);
+  const [seeding, setSeeding] = useState(false);
   const workspaceId = currentWorkspace?.id;
 
   // Defer checklist counts: don't fire until 1.5s after mount so primary
@@ -165,6 +169,45 @@ export function OnboardingChecklist() {
       </div>
 
       <Progress value={progress} className="h-2 mb-4" aria-label={`Onboarding progress: ${completed} of ${total} steps complete`} />
+
+      {!collapsed && completed === 0 && (
+        <div className="mb-4 rounded-md border border-dashed border-primary/30 bg-primary/5 p-3">
+          <div className="flex items-start gap-3">
+            <Database className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground">Want to explore with sample data?</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Load realistic example data — clients, proposals, invoices, and more — so you can see how CoreFlow works before adding your own.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0"
+              disabled={seeding}
+              onClick={async () => {
+                if (!workspaceId) return;
+                setSeeding(true);
+                try {
+                  const { data, error } = await supabase.functions.invoke("seed-demo-workspace", {
+                    body: { workspace_id: workspaceId },
+                  });
+                  if (error) throw error;
+                  if (data?.error) throw new Error(data.error);
+                  toast({ title: "Sample data loaded", description: "Your workspace now has example data to explore." });
+                  queryClient.invalidateQueries();
+                } catch (err: any) {
+                  toast({ title: "Could not load sample data", description: err?.message || "Please try again.", variant: "destructive" });
+                } finally {
+                  setSeeding(false);
+                }
+              }}
+            >
+              {seeding ? <><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Loading…</> : "Load Sample Data"}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {!collapsed && (
         <div className="space-y-1">

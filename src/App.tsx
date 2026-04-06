@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -43,6 +43,7 @@ const BudgetActual = lazy(() => import("@/pages/BudgetActual"));
 const EmailHealth = lazy(() => import("@/pages/EmailHealth"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const PlatformFeedback = lazy(() => import("@/pages/platform/PlatformFeedback"));
+const Landing = lazy(() => import("@/pages/Landing"));
 
 const PageFallback = () => (
   <div className="flex min-h-[50vh] items-center justify-center">
@@ -117,8 +118,8 @@ const App = () => (
                 <Route path="/email-health" element={<AdminGuard><EmailHealth /></AdminGuard>} />
               </Route>
 
-            {/* Redirects */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            {/* Public landing page */}
+            <Route path="/" element={<Suspense fallback={<PageFallback />}><Landing /></Suspense>} />
             <Route path="*" element={<Suspense fallback={<PageFallback />}><NotFound /></Suspense>} />
           </Routes>
         </BrowserRouter>
