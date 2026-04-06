@@ -161,7 +161,8 @@ export default function Login() {
                     className={inputClass}
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                {TurnstileElement}
+                <Button type="submit" className="w-full" disabled={loading || !turnstileToken}>
                   {loading ? "Sending..." : "Send Reset Link"}
                 </Button>
               </div>
@@ -300,7 +301,9 @@ export default function Login() {
                 </div>
               )}
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              {TurnstileElement}
+
+              <Button type="submit" className="w-full" disabled={loading || !turnstileToken}>
                 {loading ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
               </Button>
             </div>
