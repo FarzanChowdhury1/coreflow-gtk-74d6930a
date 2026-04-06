@@ -30,6 +30,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function Invoices() {
   const { currentWorkspace } = useWorkspace();
+  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Tables<"invoices"> | null>(null);
