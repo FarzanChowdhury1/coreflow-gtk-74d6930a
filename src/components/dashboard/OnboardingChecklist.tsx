@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { useState } from "react";
 import { trackEvent } from "@/lib/events";
 import { useState } from "react";
 import {
@@ -106,7 +106,7 @@ const items: ChecklistItem[] = [
   },
 ];
 
-export function OnboardingChecklist() {
+export function OnboardingChecklist({ userId }: { userId?: string }) {
   const { currentWorkspace, currentRole } = useWorkspace();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -197,7 +197,7 @@ export function OnboardingChecklist() {
                   if (error) throw error;
                   if (data?.error) throw new Error(data.error);
                   toast({ title: "Sample data loaded", description: "Your workspace now has example data to explore." });
-                  trackEvent("workspace.sample_data_loaded", workspaceId, user?.id ?? "", {});
+                  trackEvent("workspace.sample_data_loaded", workspaceId, userId ?? "", {});
                   queryClient.invalidateQueries();
                 } catch (err: any) {
                   toast({ title: "Could not load sample data", description: err?.message || "Please try again.", variant: "destructive" });
