@@ -84,9 +84,9 @@ function PlanBadge({ plan, trialEnd }: { plan: string; trialEnd: string | null }
   const now = new Date();
   const isActiveTrial = trialEnd && new Date(trialEnd) > now;
 
-  if (plan === "enterprise") return <Badge className="bg-purple-600/20 text-purple-700 dark:text-purple-300 border-purple-600/30">Enterprise</Badge>;
-  if (plan === "growth" && isActiveTrial) return <Badge className="bg-blue-600/20 text-blue-700 dark:text-blue-300 border-blue-600/30">Growth Trial</Badge>;
-  if (plan === "growth") return <Badge className="bg-blue-600/20 text-blue-700 dark:text-blue-300 border-blue-600/30">Growth</Badge>;
+  if (plan === "enterprise") return <Badge variant="outline" className="bg-accent/50 text-accent-foreground border-accent">Enterprise</Badge>;
+  if (plan === "growth" && isActiveTrial) return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">Growth Trial</Badge>;
+  if (plan === "growth") return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">Growth</Badge>;
   return <Badge variant="secondary">Free</Badge>;
 }
 
