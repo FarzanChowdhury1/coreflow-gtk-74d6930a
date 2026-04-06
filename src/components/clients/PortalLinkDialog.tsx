@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { trackFirstEvent } from "@/lib/events";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
@@ -23,6 +25,7 @@ interface Props {
 
 export function PortalLinkDialog({ open, onOpenChange, contacts, companies }: Props) {
   const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
   const [contactId, setContactId] = useState("");
   const [companyId, setCompanyId] = useState("");
   const [expiryDays, setExpiryDays] = useState("30");
@@ -65,6 +68,7 @@ export function PortalLinkDialog({ open, onOpenChange, contacts, companies }: Pr
       setGeneratedLink(link);
       setPortalToken(result.token!);
       toast.success("Portal link generated");
+      if (currentWorkspace?.id && user?.id) trackFirstEvent("portal.first_token_created", currentWorkspace.id, user.id);
     } catch (err: any) {
       toast.error(err.message);
     } finally {

@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { trackFirstEvent } from "@/lib/events";
 
 interface Props {
   open: boolean;
@@ -95,6 +96,7 @@ export const ProjectFormDialog = forwardRef<HTMLDivElement, Props>(function Proj
         toast({ title: "Failed", description: error.message, variant: "destructive" });
       } else {
         toast({ title: "Project created from approved proposal with tasks" });
+        if (workspaceId && user?.id) trackFirstEvent("project.first_created", workspaceId, user.id);
         queryClient.invalidateQueries({ queryKey: ["projects"] });
         queryClient.invalidateQueries({ queryKey: ["approved_versions_available"] });
         onOpenChange(false);
@@ -128,6 +130,7 @@ export const ProjectFormDialog = forwardRef<HTMLDivElement, Props>(function Proj
           user_id: user.id,
         });
         toast({ title: "Project created" });
+        if (workspaceId && user?.id) trackFirstEvent("project.first_created", workspaceId, user.id);
         queryClient.invalidateQueries({ queryKey: ["projects"] });
         onOpenChange(false);
       }

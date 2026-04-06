@@ -4,6 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { trackFirstEvent } from "@/lib/events";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -41,6 +43,7 @@ interface Props {
 
 export function InvoiceFormDialog({ open, onOpenChange, onCreated, companies, projects }: Props) {
   const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
   const [saving, setSaving] = useState(false);
 
   const form = useForm<InvoiceFormData>({
@@ -79,6 +82,7 @@ export function InvoiceFormDialog({ open, onOpenChange, onCreated, companies, pr
 
       if (error) throw error;
       toast.success(`Invoice ${invoiceNumber} created`);
+      if (currentWorkspace?.id && user?.id) trackFirstEvent("invoice.first_issued", currentWorkspace.id, user.id);
       form.reset();
       onOpenChange(false);
       onCreated();

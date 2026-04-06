@@ -7,7 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
+import { trackFirstEvent } from "@/lib/events";
 import { toast } from "sonner";
 
 interface Props {
@@ -20,6 +22,7 @@ interface Props {
 
 export function RenewalFormDialog({ open, onOpenChange, renewal, companies, projects }: Props) {
   const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
 
@@ -75,6 +78,7 @@ export function RenewalFormDialog({ open, onOpenChange, renewal, companies, proj
       return;
     }
     toast.success(renewal ? "Renewal updated" : "Renewal created");
+    if (!renewal && currentWorkspace?.id && user?.id) trackFirstEvent("renewal.first_created", currentWorkspace.id, user.id);
     queryClient.invalidateQueries({ queryKey: ["renewals"] });
     setSaving(false);
     onOpenChange(false);

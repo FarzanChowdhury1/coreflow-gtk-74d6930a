@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { trackFirstEvent } from "@/lib/events";
 import { Search } from "lucide-react";
 
 export interface ProposalFormPrefill {
@@ -126,6 +127,7 @@ export function ProposalFormDialog({ open, onOpenChange, prefill, onCreated }: P
       toast({ title: "Version creation failed", description: vError.message, variant: "destructive" });
     } else {
       toast({ title: "Proposal created with draft v1" });
+      if (workspaceId && user?.id) trackFirstEvent("proposal.first_created", workspaceId, user.id);
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       queryClient.invalidateQueries({ queryKey: ["proposal_versions_latest"] });
       onCreated?.();

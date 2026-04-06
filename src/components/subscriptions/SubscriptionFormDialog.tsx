@@ -6,7 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
+import { trackFirstEvent } from "@/lib/events";
 import { toast } from "sonner";
 import { SUB_CATEGORIES, type Subscription } from "@/pages/Subscriptions";
 
@@ -20,6 +22,7 @@ interface Props {
 }
 
 export function SubscriptionFormDialog({ open, onOpenChange, subscription, workspaceId, currency, onSaved }: Props) {
+  const { user } = useAuth();
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [intervalMonths, setIntervalMonths] = useState("1");
@@ -71,6 +74,7 @@ export function SubscriptionFormDialog({ open, onOpenChange, subscription, works
     setSaving(false);
     if (error) { toast.error("Failed to save"); return; }
     toast.success(subscription ? "Subscription updated" : "Subscription created");
+    if (!subscription && user?.id) trackFirstEvent("subscription.first_created", workspaceId, user.id);
     onSaved();
   };
 
