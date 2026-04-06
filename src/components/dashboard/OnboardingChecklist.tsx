@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useState } from "react";
 import { trackEvent } from "@/lib/events";
-import { useState } from "react";
 import {
   Building2, User, Inbox, FileText, Link2, Receipt, Users, FolderKanban, CalendarDays, Store,
   Check, ChevronDown, ChevronUp, Rocket, Database, Loader2,
