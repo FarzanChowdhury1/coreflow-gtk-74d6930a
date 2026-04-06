@@ -219,6 +219,14 @@ export default function Expenses() {
             </Button>
           )}
         </div>
+      ) : isMobile ? (
+        <ExpenseMobileCards
+          expenses={filtered}
+          isAdmin={isAdmin}
+          onEdit={(e) => { setEditing(e as any); setFormOpen(true); }}
+          onArchive={(id) => { const e = filtered.find(x => x.id === id); if (e) toggleArchive(e); }}
+          onRestore={(id) => { const e = filtered.find(x => x.id === id); if (e) toggleArchive(e); }}
+        />
       ) : (
         <div className="rounded-md border">
           <Table>
