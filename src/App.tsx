@@ -82,6 +82,7 @@ const App = () => (
 
               {/* Platform admin routes (cross-workspace, no workspace context needed) */}
               <Route path="/platform/feedback" element={<Suspense fallback={<PageFallback />}><PlatformAdminGuard><PlatformFeedback /></PlatformAdminGuard></Suspense>} />
+              <Route path="/platform/dashboard" element={<Suspense fallback={<PageFallback />}><PlatformAdminGuard><PlatformDashboard /></PlatformAdminGuard></Suspense>} />
 
               {/* Internal authenticated routes */}
               <Route
