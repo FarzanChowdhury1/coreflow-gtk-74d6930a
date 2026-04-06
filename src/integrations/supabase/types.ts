@@ -2676,6 +2676,7 @@ export type Database = {
       }
       workspaces: {
         Row: {
+          billing_owner_id: string | null
           created_at: string
           currency: string
           deleted_at: string | null
@@ -2688,6 +2689,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          billing_owner_id?: string | null
           created_at?: string
           currency?: string
           deleted_at?: string | null
@@ -2700,6 +2702,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          billing_owner_id?: string | null
           created_at?: string
           currency?: string
           deleted_at?: string | null
@@ -2838,6 +2841,7 @@ export type Database = {
         Args: { _renewal_id: string; _workspace_id: string }
         Returns: Json
       }
+      get_billing_owner: { Args: { _workspace_id: string }; Returns: Json }
       get_dashboard_financials: {
         Args: { _workspace_id: string }
         Returns: Json
@@ -2949,6 +2953,10 @@ export type Database = {
       retention_days_ops_log: { Args: { _log_type: string }; Returns: number }
       revoke_workspace_invite: { Args: { _invite_id: string }; Returns: Json }
       select_retention_candidates: { Args: never; Returns: Json }
+      set_billing_owner: {
+        Args: { _new_owner_id: string; _workspace_id: string }
+        Returns: Json
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       start_growth_trial: { Args: { _workspace_id: string }; Returns: Json }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useEntitlement } from "@/hooks/use-entitlement";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { BillingOwnerSection } from "@/components/settings/BillingOwnerSection";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -198,6 +199,8 @@ export function PlanBillingTab() {
           </div>
         </CardContent>
       </Card>
+      {/* Billing owner */}
+      <BillingOwnerSection />
     </div>
   );
 }
