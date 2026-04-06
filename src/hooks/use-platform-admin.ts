@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -36,11 +36,8 @@ export function usePlatformAdmin() {
     return () => { cancelled = true; };
   }, [user?.id]);
 
-  // loading = true when user exists but we haven't verified yet
-  const loading = useMemo(() => {
-    if (!user) return false;
-    return !checked || checkedRef.current !== user.id;
-  }, [user, checked]);
+  // loading when user exists but check hasn't completed
+  const loading = !!user && !checked;
 
   return { isPlatformAdmin, loading };
 }
