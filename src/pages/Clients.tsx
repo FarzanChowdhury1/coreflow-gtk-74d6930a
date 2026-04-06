@@ -176,56 +176,47 @@ export default function Clients() {
           />
         </div>
         {isAdmin && (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                exportToCSV(
-                  displayCompanies,
-                  [
-                    { key: "legal_name", label: "Company Name" },
-                    { key: "phone", label: "Phone" },
-                    { key: "address", label: "Address" },
-                    { key: "bin", label: "BIN" },
-                    { key: "deleted_at", label: "Status", format: (v: any) => v ? "Archived" : "Active" },
-                    { key: "created_at", label: "Created", format: (v: any) => new Date(v).toLocaleDateString() },
-                  ],
-                  "companies-export"
-                )
-              }
-            >
-              <Download className="h-4 w-4 mr-1" /> Export Companies
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                exportToCSV(
-                  displayContacts.map((c) => ({
-                    ...c,
-                    company_name: c.company_id
-                      ? companies.find((co) => co.id === c.company_id)?.legal_name ?? "—"
-                      : "Independent",
-                  })),
-                  [
-                    { key: "full_name", label: "Name" },
-                    { key: "email", label: "Email" },
-                    { key: "phone", label: "Phone" },
-                    { key: "designation", label: "Designation" },
-                    { key: "company_name", label: "Company" },
-                    { key: "deleted_at", label: "Status", format: (v: any) => v ? "Archived" : "Active" },
-                  ],
-                  "contacts-export"
-                )
-              }
-            >
-              <Download className="h-4 w-4 mr-1" /> Export Contacts
-            </Button>
-            <Button variant="outline" onClick={() => setPortalLinkOpen(true)}>
-              <Link2 className="mr-1 h-4 w-4" /> Client Portal Access
-            </Button>
-          </div>
+          {(() => {
+            const companyCols = [
+              { key: "legal_name", label: "Company Name" },
+              { key: "phone", label: "Phone" },
+              { key: "address", label: "Address" },
+              { key: "bin", label: "BIN" },
+              { key: "deleted_at", label: "Status", format: (v: any) => v ? "Archived" : "Active" },
+              { key: "created_at", label: "Created", format: (v: any) => new Date(v).toLocaleDateString() },
+            ];
+            const contactData = displayContacts.map((c) => ({
+              ...c,
+              company_name: c.company_id ? companies.find((co) => co.id === c.company_id)?.legal_name ?? "—" : "Independent",
+            }));
+            const contactCols = [
+              { key: "full_name", label: "Name" },
+              { key: "email", label: "Email" },
+              { key: "phone", label: "Phone" },
+              { key: "designation", label: "Designation" },
+              { key: "company_name", label: "Company" },
+              { key: "deleted_at", label: "Status", format: (v: any) => v ? "Archived" : "Active" },
+            ];
+            return (
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => exportToCSV(displayCompanies, companyCols, "companies-export")}>
+                  <Download className="h-4 w-4 mr-1" /> CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => exportToXLSX(displayCompanies, companyCols, "companies-export")}>
+                  <Download className="h-4 w-4 mr-1" /> XLSX
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => exportToCSV(contactData, contactCols, "contacts-export")}>
+                  <Download className="h-4 w-4 mr-1" /> Contacts CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => exportToXLSX(contactData, contactCols, "contacts-export")}>
+                  <Download className="h-4 w-4 mr-1" /> Contacts XLSX
+                </Button>
+                <Button variant="outline" onClick={() => setPortalLinkOpen(true)}>
+                  <Link2 className="mr-1 h-4 w-4" /> Client Portal Access
+                </Button>
+              </div>
+            );
+          })()}
         )}
       </div>
       <p className="mb-5 text-sm text-muted-foreground max-w-2xl">
