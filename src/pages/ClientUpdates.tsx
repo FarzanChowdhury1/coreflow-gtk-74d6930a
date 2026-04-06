@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MessageSquare, Plus, Search, Send, EyeOff, Paperclip } from "lucide-react";
+import { MessageSquare, Plus, Search, Send, EyeOff, Paperclip, AlertTriangle } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +47,7 @@ export default function ClientUpdates() {
     enabled: !!workspaceId,
   });
 
-  const { data: updates = [], isLoading } = useQuery({
+  const { data: updates = [], isLoading, isError: updatesError } = useQuery({
     queryKey: ["client_updates", workspaceId, selectedProjectId],
     queryFn: async () => {
       if (!workspaceId) return [];
@@ -159,18 +159,31 @@ export default function ClientUpdates() {
         </Select>
       </div>
 
+      {updatesError && (
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+          <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+          <p className="text-sm text-muted-foreground">Failed to load client updates. Try refreshing the page.</p>
+        </div>
+      )}
+
       {isLoading ? (
         <p className="text-center py-8 text-muted-foreground text-sm">Loading...</p>
       ) : filteredUpdates.length === 0 ? (
         <div className="rounded-lg border bg-card p-10 text-center">
           <MessageSquare className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
-          <h2 className="text-sm font-medium text-foreground mb-1">No client updates yet</h2>
+          <h2 className="text-sm font-medium text-foreground mb-1">
+            {(searchTerm || selectedProjectId !== "all") ? "No updates match your filters" : "No client updates yet"}
+          </h2>
           <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-            Client Updates help you share progress, decisions, and important status changes with clients in one place. Add updates here so communication stays clear and easy to track.
+            {(searchTerm || selectedProjectId !== "all")
+              ? "Try adjusting your search or project filter."
+              : "Client Updates help you share progress, decisions, and important status changes with clients in one place. Add updates here so communication stays clear and easy to track."}
           </p>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Create First Update
-          </Button>
+          {!(searchTerm || selectedProjectId !== "all") && (
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Create First Update
+            </Button>
+          )}
         </div>
       ) : (
         <div className="space-y-3">

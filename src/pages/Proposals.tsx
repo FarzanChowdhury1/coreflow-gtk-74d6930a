@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText, Plus, Search, Download } from "lucide-react";
+import { FileText, Plus, Search, Download, AlertTriangle } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,7 @@ export default function Proposals() {
   }, []);
   const isAdmin = currentRole === "admin";
 
-  const { data: proposals = [], isLoading } = useQuery({
+  const { data: proposals = [], isLoading, isError: proposalsError } = useQuery({
     queryKey: ["proposals", workspaceId],
     queryFn: async () => {
       if (!workspaceId) return [];
@@ -142,6 +142,13 @@ export default function Proposals() {
         </div>
       </div>
 
+      {proposalsError && (
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+          <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+          <p className="text-sm text-muted-foreground">Failed to load proposals. Try refreshing the page.</p>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="rounded-lg border bg-card p-4 space-y-3">
           {[1, 2, 3].map((i) => (
@@ -155,13 +162,19 @@ export default function Proposals() {
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border bg-card p-10 text-center">
           <FileText className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
-          <h2 className="text-sm font-medium text-foreground mb-1">No proposals yet</h2>
+          <h2 className="text-sm font-medium text-foreground mb-1">
+            {searchTerm ? "No proposals match your search" : "No proposals yet"}
+          </h2>
           <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-            Proposals let you send pricing and scope to clients for approval. Create one, add line items, then send it for sign-off.
+            {searchTerm
+              ? "Try adjusting your search term."
+              : "Proposals let you send pricing and scope to clients for approval. Create one, add line items, then send it for sign-off."}
           </p>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Create First Proposal
-          </Button>
+          {!searchTerm && (
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Create First Proposal
+            </Button>
+          )}
         </div>
       ) : (
         <div className="rounded-lg border bg-card overflow-x-auto">

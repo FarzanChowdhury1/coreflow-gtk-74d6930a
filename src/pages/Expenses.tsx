@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Receipt, Plus, Archive, ArchiveRestore, Pencil, Download, CheckCircle2 } from "lucide-react";
+import { Receipt, Plus, Archive, ArchiveRestore, Pencil, Download, CheckCircle2, AlertTriangle } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
 import { supabase } from "@/integrations/supabase/client";
@@ -57,7 +57,7 @@ export default function Expenses() {
   const [showArchived, setShowArchived] = useState(false);
   const currency = currentWorkspace?.currency || "BDT";
 
-  const { data: expenses = [], isLoading } = useQuery({
+  const { data: expenses = [], isLoading, isError: expensesError } = useQuery({
     queryKey: ["expenses", currentWorkspace?.id, showArchived],
     enabled: !!currentWorkspace?.id,
     queryFn: async () => {
@@ -187,6 +187,13 @@ export default function Expenses() {
         <div className="mb-3 text-sm text-muted-foreground flex flex-wrap gap-x-4">
           <span>{filtered.length} expense{filtered.length !== 1 ? "s" : ""} · Total: <span className="font-medium text-foreground">{formatCurrency(totalFiltered, currency)}</span></span>
           {totalUnpaid > 0 && <span>Outstanding payables: <span className="font-medium text-warning">{formatCurrency(totalUnpaid, currency)}</span></span>}
+        </div>
+      )}
+
+      {expensesError && (
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+          <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+          <p className="text-sm text-muted-foreground">Failed to load expenses. Try refreshing the page.</p>
         </div>
       )}
 

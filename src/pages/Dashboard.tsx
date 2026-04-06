@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, FileText, FolderKanban, Receipt, AlertTriangle, X } from "lucide-react";
+import { LayoutDashboard, Users, FileText, FolderKanban, Receipt, AlertTriangle, X, ArrowRight, CreditCard, RefreshCw, Inbox } from "lucide-react";
 
 import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 import { DashboardBreakdowns } from "@/components/dashboard/DashboardBreakdowns";
@@ -123,6 +123,34 @@ export default function Dashboard() {
 
       {/* Onboarding checklist for new admins */}
       <OnboardingChecklist />
+
+      {/* Workflow spine — lightweight explainer */}
+      <Card className="mt-4">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-foreground">How CoreFlow works</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+            {[
+              { icon: Inbox, label: "Lead" },
+              { icon: FileText, label: "Proposal" },
+              { icon: FolderKanban, label: "Project" },
+              { icon: Receipt, label: "Invoice" },
+              { icon: CreditCard, label: "Payment" },
+              { icon: RefreshCw, label: "Renewal" },
+            ].map((step, i, arr) => (
+              <span key={step.label} className="flex items-center gap-1">
+                <step.icon className="h-3.5 w-3.5 text-primary/70" />
+                <span className="font-medium text-foreground/80">{step.label}</span>
+                {i < arr.length - 1 && <ArrowRight className="h-3 w-3 text-muted-foreground/40 mx-0.5" />}
+              </span>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Capture a lead, send a proposal, deliver the project, invoice the client, record payment, and set up renewals for repeat billing.
+          </p>
+        </CardContent>
+      </Card>
 
       {/* System Alerts — contained card */}
       <SystemAlerts workspaceId={currentWorkspace?.id} />

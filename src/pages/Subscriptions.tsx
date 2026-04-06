@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { CreditCard, Plus, Pause, Play, Pencil, Download } from "lucide-react";
+import { CreditCard, Plus, Pause, Play, Pencil, Download, AlertTriangle } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,7 +44,7 @@ export default function Subscriptions() {
   const [search, setSearch] = useState("");
   const currency = currentWorkspace?.currency || "BDT";
 
-  const { data: subs = [], isLoading } = useQuery({
+  const { data: subs = [], isLoading, isError: subsError } = useQuery({
     queryKey: ["subscriptions", currentWorkspace?.id],
     enabled: !!currentWorkspace?.id,
     queryFn: async () => {
@@ -129,6 +129,13 @@ export default function Subscriptions() {
         <div className="mb-3 flex gap-4 text-sm">
           <span className="text-muted-foreground">{activeSubs.length} active</span>
           <span className="text-muted-foreground">Monthly burn: <span className="font-medium text-foreground">{formatCurrency(Math.round(monthlyBurn), currency)}</span></span>
+        </div>
+      )}
+
+      {subsError && (
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+          <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+          <p className="text-sm text-muted-foreground">Failed to load subscriptions. Try refreshing the page.</p>
         </div>
       )}
 

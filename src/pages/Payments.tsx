@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
-import { CreditCard, Plus, Download } from "lucide-react";
-import { Navigate } from "react-router-dom";
+import { CreditCard, Plus, Download, AlertTriangle, ShieldAlert } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
+import { Card, CardContent } from "@/components/ui/card";
 import { exportToCSV } from "@/lib/csv-export";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -28,11 +28,13 @@ export default function Payments() {
   const [invoices, setInvoices] = useState<Tables<"invoices">[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const isAdmin = currentRole === "admin";
 
   const fetchData = useCallback(async () => {
     if (!currentWorkspace) return;
     setLoading(true);
+    setFetchError(false);
 
     const [payRes, invRes] = await Promise.all([
       supabase
@@ -47,6 +49,7 @@ export default function Payments() {
         .is("deleted_at", null),
     ]);
 
+    if (payRes.error || invRes.error) setFetchError(true);
     if (payRes.data) setPayments(payRes.data as any);
     if (invRes.data) setInvoices(invRes.data);
     setLoading(false);
@@ -58,7 +61,18 @@ export default function Payments() {
   const totalReceived = payments.reduce((s, p) => s + Number(p.amount), 0);
 
   if (!isAdmin) {
-    return <Navigate to="/dashboard" replace />;
+    return (
+      <div>
+        <div className="mb-2 flex items-center gap-3">
+          <CreditCard className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-semibold text-foreground">Payment Ledger</h1>
+        </div>
+        <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">
+          <ShieldAlert className="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" />
+          Payment management is available to workspace admins only. Contact your workspace admin if you need access.
+        </CardContent></Card>
+      </div>
+    );
   }
 
   return (
@@ -112,6 +126,13 @@ export default function Payments() {
           </Button>
         </div>
       </div>
+
+      {fetchError && (
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+          <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+          <p className="text-sm text-muted-foreground">Failed to load payments. Try refreshing the page.</p>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-8 text-muted-foreground">Loading…</div>

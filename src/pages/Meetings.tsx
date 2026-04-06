@@ -12,7 +12,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Calendar, Search, Video, Building2, Clock, FileText, Download } from "lucide-react";
+import { Plus, Calendar, Search, Video, Building2, Clock, FileText, Download, AlertTriangle } from "lucide-react";
 import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
 import { MeetingDetail } from "@/components/meetings/MeetingDetail";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
@@ -41,7 +41,7 @@ export default function Meetings() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const { data: meetings = [], isLoading } = useQuery({
+  const { data: meetings = [], isLoading, isError: meetingsError } = useQuery({
     queryKey: ["meetings", wsId, statusFilter],
     queryFn: async () => {
       if (!wsId) return [];
@@ -153,18 +153,31 @@ export default function Meetings() {
         </Select>
       </div>
 
+      {meetingsError && (
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+          <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+          <p className="text-sm text-muted-foreground">Failed to load meetings. Try refreshing the page.</p>
+        </div>
+      )}
+
       {isLoading ? (
         <p className="text-center py-8 text-muted-foreground">Loading meetings…</p>
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border bg-card p-10 text-center">
           <Calendar className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
-          <h2 className="text-sm font-medium text-foreground mb-1">No meetings yet</h2>
+          <h2 className="text-sm font-medium text-foreground mb-1">
+            {(search || statusFilter !== "all") ? "No meetings match your filters" : "No meetings yet"}
+          </h2>
           <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-            Meetings help you keep track of discussions, decisions, and follow-up actions. Add meetings here so your team can review what was discussed and what needs to happen next.
+            {(search || statusFilter !== "all")
+              ? "Try adjusting your search or status filter."
+              : "Meetings help you keep track of discussions, decisions, and follow-up actions. Add meetings here so your team can review what was discussed and what needs to happen next."}
           </p>
-          <Button size="sm" onClick={() => { setEditMeeting(null); setShowForm(true); }}>
-            <Plus className="h-4 w-4 mr-1" /> Schedule First Meeting
-          </Button>
+          {!(search || statusFilter !== "all") && (
+            <Button size="sm" onClick={() => { setEditMeeting(null); setShowForm(true); }}>
+              <Plus className="h-4 w-4 mr-1" /> Schedule First Meeting
+            </Button>
+          )}
         </div>
       ) : (
         <div className="space-y-6">

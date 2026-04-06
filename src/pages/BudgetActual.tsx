@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { PieChart, Plus, Pencil, Trash2, Download } from "lucide-react";
+import { PieChart, Plus, Pencil, Trash2, Download, AlertTriangle } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,7 +61,7 @@ export default function BudgetActual() {
   const periodStartStr = format(start, "yyyy-MM-dd");
   const periodEndStr = format(end, "yyyy-MM-dd");
 
-  const { data: budgets = [] } = useQuery({
+  const { data: budgets = [], isError: budgetError } = useQuery({
     queryKey: ["budgets", currentWorkspace?.id, periodStartStr],
     enabled: !!currentWorkspace?.id && isAdmin,
     queryFn: async () => {
@@ -75,7 +75,7 @@ export default function BudgetActual() {
     },
   });
 
-  const { data: expenses = [] } = useQuery({
+  const { data: expenses = [], isError: expenseError } = useQuery({
     queryKey: ["expenses-rollup", currentWorkspace?.id, periodStartStr, periodEndStr],
     enabled: !!currentWorkspace?.id && isAdmin,
     queryFn: async () => {
@@ -148,6 +148,13 @@ export default function BudgetActual() {
         />
       </div>
       <p className="mb-4 text-sm text-muted-foreground">Compare planned spend against real expenses for the current period.</p>
+
+      {(budgetError || expenseError) && (
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+          <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+          <p className="text-sm text-muted-foreground">Failed to load budget data. Try refreshing the page.</p>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <Select value={periodType} onValueChange={(v) => setPeriodType(v as PeriodType)}>
