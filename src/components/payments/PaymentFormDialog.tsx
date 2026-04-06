@@ -5,6 +5,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { trackFirstEvent } from "@/lib/events";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -80,6 +81,7 @@ export function PaymentFormDialog({ open, onOpenChange, onCreated, invoices, pre
       });
       if (error) throw error;
       toast.success("Payment recorded");
+      if (currentWorkspace?.id && user?.id) trackFirstEvent("payment.first_recorded", currentWorkspace.id, user.id);
       form.reset();
       onOpenChange(false);
       onCreated();

@@ -4,6 +4,7 @@ import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist"
 import { DashboardBreakdowns } from "@/components/dashboard/DashboardBreakdowns";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +65,7 @@ function MetricCardSkeleton() {
 
 export default function Dashboard() {
   const { currentWorkspace, currentRole } = useWorkspace();
+  const { user } = useAuth();
   const { data: metrics, isLoading, isError: metricsError } = useDashboardMetrics(currentWorkspace?.id);
   const currency = currentWorkspace?.currency || "BDT";
   const navigate = useNavigate();
@@ -122,7 +124,7 @@ export default function Dashboard() {
       )}
 
       {/* Onboarding checklist for new admins */}
-      <OnboardingChecklist />
+      <OnboardingChecklist userId={user?.id} />
 
       {/* Workflow spine — lightweight explainer */}
       <Card className="mt-4">

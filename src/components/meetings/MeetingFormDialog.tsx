@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { trackFirstEvent } from "@/lib/events";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
@@ -173,6 +174,7 @@ export function MeetingFormDialog({ open, onOpenChange, onSaved, editMeeting, de
           .insert({ ...record, created_by: user.id } as any);
         if (error) throw error;
         toast.success("Meeting scheduled");
+        if (wsId && user?.id) trackFirstEvent("meeting.first_created", wsId, user.id);
       }
       onSaved();
       onOpenChange(false);

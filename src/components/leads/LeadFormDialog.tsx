@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { leadSchema, type LeadFormData } from "@/lib/validations";
+import { trackFirstEvent } from "@/lib/events";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
@@ -112,6 +113,7 @@ export function LeadFormDialog({ open, onOpenChange, lead, companies, contacts }
         toast({ title: "Creation failed", description: error.message, variant: "destructive" });
       } else {
         toast({ title: "Lead created" });
+        trackFirstEvent("lead.first_created", currentWorkspace.id, user.id);
         queryClient.invalidateQueries({ queryKey: ["leads"] });
         onOpenChange(false);
       }

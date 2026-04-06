@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
+import { trackFirstEvent } from "@/lib/events";
 import { toast } from "sonner";
 import { EXPENSE_CATEGORIES, type Expense } from "@/pages/Expenses";
 
@@ -93,6 +94,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, cu
     setSaving(false);
     if (error) { toast.error("Failed to save expense"); return; }
     toast.success(expense ? "Expense updated" : "Expense recorded");
+    if (!expense && user?.id) trackFirstEvent("expense.first_created", workspaceId, user.id);
     onSaved();
   };
 

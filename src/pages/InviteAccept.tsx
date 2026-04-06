@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { trackEvent } from "@/lib/events";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, XCircle, AlertTriangle, Users } from "lucide-react";
@@ -59,7 +60,9 @@ export default function InviteAccept() {
       const res = data as any;
       if (res.success) {
         setResult({ success: true, message: res.already_member ? "You are already a member of this workspace." : "You have joined the workspace!" });
-        // Redirect to dashboard after a short delay
+        if (!res.already_member && user?.id && res.workspace_id) {
+          trackEvent("invite.accepted", res.workspace_id, user.id);
+        }
         setTimeout(() => navigate("/dashboard", { replace: true }), 1500);
       } else {
         setResult({ success: false, message: res.error || "Failed to accept invite" });

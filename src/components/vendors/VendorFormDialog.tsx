@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { trackFirstEvent } from "@/lib/events";
 import { toast } from "sonner";
 import type { Vendor } from "@/pages/Vendors";
 
@@ -20,6 +22,7 @@ interface Props {
 }
 
 export function VendorFormDialog({ open, onOpenChange, vendor, workspaceId, onSaved }: Props) {
+  const { user } = useAuth();
   const [name, setName] = useState("");
   const [contactName, setContactName] = useState("");
   const [email, setEmail] = useState("");
@@ -58,6 +61,7 @@ export function VendorFormDialog({ open, onOpenChange, vendor, workspaceId, onSa
     setSaving(false);
     if (error) { toast.error("Failed to save vendor"); return; }
     toast.success(vendor ? "Vendor updated" : "Vendor created");
+    if (!vendor && user?.id) trackFirstEvent("vendor.first_created", workspaceId, user.id);
     onSaved();
   };
 
