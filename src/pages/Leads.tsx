@@ -4,6 +4,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { LeadMobileCards } from "@/components/leads/LeadMobileCards";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
+import { exportToXLSX } from "@/lib/xlsx-export";
 import { Button } from "@/components/ui/button";
 import { LeadTasksPanel } from "@/components/leads/LeadTasksPanel";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -247,29 +248,27 @@ export default function Leads() {
           />
         </div>
         <div className="flex gap-2">
-          {isAdmin && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                exportToCSV(
-                  displayLeads,
-                  [
-                    { key: "title", label: "Title" },
-                    { key: "status", label: "Status" },
-                    { key: "source", label: "Source" },
-                    { key: "estimated_value", label: "Est. Value" },
-                    { key: "currency", label: "Currency" },
-                    { key: "next_follow_up", label: "Next Follow-Up", format: (v: any) => v ? new Date(v).toLocaleDateString() : "" },
-                    { key: "created_at", label: "Created", format: (v: any) => new Date(v).toLocaleDateString() },
-                  ],
-                  "leads-export"
-                )
-              }
-            >
-              <Download className="h-4 w-4 mr-1" /> Export
-            </Button>
-          )}
+          {isAdmin && (() => {
+            const cols = [
+              { key: "title", label: "Title" },
+              { key: "status", label: "Status" },
+              { key: "source", label: "Source" },
+              { key: "estimated_value", label: "Est. Value" },
+              { key: "currency", label: "Currency" },
+              { key: "next_follow_up", label: "Next Follow-Up", format: (v: any) => v ? new Date(v).toLocaleDateString() : "" },
+              { key: "created_at", label: "Created", format: (v: any) => new Date(v).toLocaleDateString() },
+            ];
+            return (
+              <>
+                <Button size="sm" variant="outline" onClick={() => exportToCSV(displayLeads, cols, "leads-export")}>
+                  <Download className="h-4 w-4 mr-1" /> CSV
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => exportToXLSX(displayLeads, cols, "leads-export")}>
+                  <Download className="h-4 w-4 mr-1" /> XLSX
+                </Button>
+              </>
+            );
+          })()}
           <Button size="sm" onClick={() => { setEditingLead(null); setDialogOpen(true); }}>
             <Plus className="h-4 w-4 mr-1" /> New Lead
           </Button>

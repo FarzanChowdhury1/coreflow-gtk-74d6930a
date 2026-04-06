@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { PieChart, Plus, Pencil, Trash2, Download, AlertTriangle } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
+import { exportToXLSX } from "@/lib/xlsx-export";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";

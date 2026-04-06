@@ -4,6 +4,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { ExpenseMobileCards } from "@/components/expenses/ExpenseMobileCards";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
+import { exportToXLSX } from "@/lib/xlsx-export";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
@@ -115,19 +116,20 @@ export default function Expenses() {
     queryClient.invalidateQueries({ queryKey: ["expenses"] });
   };
 
-  const handleExport = () => {
-    exportToCSV(filtered.map((e) => ({ ...e, vendor_name: e.vendors?.name || "", project_name: e.projects?.name || "" })), [
-      { key: "expense_date", label: "Date" },
-      { key: "description", label: "Description" },
-      { key: "amount", label: "Amount" },
-      { key: "currency", label: "Currency" },
-      { key: "category", label: "Category" },
-      { key: "vendor_name", label: "Vendor" },
-      { key: "project_name", label: "Project" },
-      { key: "payment_method", label: "Payment Method" },
-      { key: "notes", label: "Notes" },
-    ], "expenses");
-  };
+  const expCols = [
+    { key: "expense_date", label: "Date" },
+    { key: "description", label: "Description" },
+    { key: "amount", label: "Amount" },
+    { key: "currency", label: "Currency" },
+    { key: "category", label: "Category" },
+    { key: "vendor_name", label: "Vendor" },
+    { key: "project_name", label: "Project" },
+    { key: "payment_method", label: "Payment Method" },
+    { key: "notes", label: "Notes" },
+  ];
+  const expMapped = () => filtered.map((e) => ({ ...e, vendor_name: e.vendors?.name || "", project_name: e.projects?.name || "" }));
+  const handleExport = () => exportToCSV(expMapped(), expCols, "expenses");
+  const handleExportXlsx = () => exportToXLSX(expMapped(), expCols, "expenses");
 
   if (!isAdmin) {
     return (
@@ -178,7 +180,10 @@ export default function Expenses() {
           <Plus className="mr-1 h-4 w-4" /> Add Expense
         </Button>
         <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
-          <Download className="mr-1 h-4 w-4" /> Export CSV
+          <Download className="mr-1 h-4 w-4" /> CSV
+        </Button>
+        <Button variant="outline" size="sm" onClick={handleExportXlsx} disabled={filtered.length === 0}>
+          <Download className="mr-1 h-4 w-4" /> XLSX
         </Button>
         <div className="flex items-center gap-2 ml-auto">
           <Switch id="show-archived-exp" checked={showArchived} onCheckedChange={setShowArchived} />

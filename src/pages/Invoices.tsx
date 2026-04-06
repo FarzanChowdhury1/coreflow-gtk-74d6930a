@@ -6,6 +6,7 @@ import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { InvoiceAging } from "@/components/invoices/InvoiceAging";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { exportToCSV } from "@/lib/csv-export";
+import { exportToXLSX } from "@/lib/xlsx-export";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Button } from "@/components/ui/button";
@@ -127,35 +128,36 @@ export default function Invoices() {
           />
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              exportToCSV(
-                invoices.map((i: any) => ({
-                  invoice_number: i.invoice_number,
-                  company: i.companies?.legal_name || "",
-                  status: i.status,
-                  grand_total: Number(i.grand_total),
-                  amount_paid: Number(i.amount_paid),
-                  due_date: i.due_date || "",
-                  issue_date: i.issue_date || "",
-                })),
-                [
-                  { key: "invoice_number", label: "Invoice #" },
-                  { key: "company", label: "Company" },
-                  { key: "status", label: "Status" },
-                  { key: "grand_total", label: "Total" },
-                  { key: "amount_paid", label: "Paid" },
-                  { key: "issue_date", label: "Issue Date" },
-                  { key: "due_date", label: "Due Date" },
-                ],
-                "invoices-export"
-              )
-            }
-          >
-            <Download className="h-4 w-4 mr-1" /> Export
-          </Button>
+          {(() => {
+            const mapped = invoices.map((i: any) => ({
+              invoice_number: i.invoice_number,
+              company: i.companies?.legal_name || "",
+              status: i.status,
+              grand_total: Number(i.grand_total),
+              amount_paid: Number(i.amount_paid),
+              due_date: i.due_date || "",
+              issue_date: i.issue_date || "",
+            }));
+            const cols = [
+              { key: "invoice_number", label: "Invoice #" },
+              { key: "company", label: "Company" },
+              { key: "status", label: "Status" },
+              { key: "grand_total", label: "Total" },
+              { key: "amount_paid", label: "Paid" },
+              { key: "issue_date", label: "Issue Date" },
+              { key: "due_date", label: "Due Date" },
+            ];
+            return (
+              <>
+                <Button variant="outline" size="sm" onClick={() => exportToCSV(mapped, cols, "invoices-export")}>
+                  <Download className="h-4 w-4 mr-1" /> CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => exportToXLSX(mapped, cols, "invoices-export")}>
+                  <Download className="h-4 w-4 mr-1" /> XLSX
+                </Button>
+              </>
+            );
+          })()}
           <Button onClick={() => setShowForm(true)}>
             <Plus className="mr-1 h-4 w-4" /> New Invoice
           </Button>

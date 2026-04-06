@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { RefreshCw, Plus, Pause, Play, Receipt, FileText, CheckCircle2, Loader2, Download, AlertTriangle } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
+import { exportToXLSX } from "@/lib/xlsx-export";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -175,44 +176,41 @@ export default function Renewals() {
             note="Invoices are generated once per cycle. The schedule advances on generation, not on payment."
           />
         </div>
-        {isAdmin && (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                exportToCSV(
-                  renewals.map((r) => ({
-                    label: r.label,
-                    company: r.companies?.legal_name || "",
-                    amount: r.amount,
-                    currency: r.currency,
-                    interval: `${r.interval_months} mo`,
-                    next_billing_date: r.next_billing_date,
-                    is_active: r.is_active ? "Active" : "Paused",
-                    latest_invoice: r.invoices?.invoice_number || "",
-                  })),
-                  [
-                    { key: "label", label: "Label" },
-                    { key: "company", label: "Company" },
-                    { key: "amount", label: "Amount" },
-                    { key: "currency", label: "Currency" },
-                    { key: "interval", label: "Interval" },
-                    { key: "next_billing_date", label: "Next Billing" },
-                    { key: "is_active", label: "Status" },
-                    { key: "latest_invoice", label: "Latest Invoice" },
-                  ],
-                  "renewals-export"
-                )
-              }
-            >
-              <Download className="h-4 w-4 mr-1" /> Export
-            </Button>
-            <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
-              <Plus className="mr-1 h-4 w-4" /> New Renewal
-            </Button>
-          </div>
-        )}
+        {isAdmin && (() => {
+            const mapped = renewals.map((r) => ({
+              label: r.label,
+              company: r.companies?.legal_name || "",
+              amount: r.amount,
+              currency: r.currency,
+              interval: `${r.interval_months} mo`,
+              next_billing_date: r.next_billing_date,
+              is_active: r.is_active ? "Active" : "Paused",
+              latest_invoice: r.invoices?.invoice_number || "",
+            }));
+            const cols = [
+              { key: "label", label: "Label" },
+              { key: "company", label: "Company" },
+              { key: "amount", label: "Amount" },
+              { key: "currency", label: "Currency" },
+              { key: "interval", label: "Interval" },
+              { key: "next_billing_date", label: "Next Billing" },
+              { key: "is_active", label: "Status" },
+              { key: "latest_invoice", label: "Latest Invoice" },
+            ];
+            return (
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => exportToCSV(mapped, cols, "renewals-export")}>
+                  <Download className="h-4 w-4 mr-1" /> CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => exportToXLSX(mapped, cols, "renewals-export")}>
+                  <Download className="h-4 w-4 mr-1" /> XLSX
+                </Button>
+                <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
+                  <Plus className="mr-1 h-4 w-4" /> New Renewal
+                </Button>
+              </div>
+            );
+          })()}
       </div>
 
       {renewalsError && (
