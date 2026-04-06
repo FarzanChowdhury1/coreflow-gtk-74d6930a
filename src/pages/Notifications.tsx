@@ -81,19 +81,12 @@ export default function Notifications() {
 
   useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
 
+  // Poll for new notifications every 30s (Realtime removed for security)
   useEffect(() => {
     if (!user) return;
-    const channel = supabase
-      .channel("notifications-" + user.id)
-      .on("postgres_changes", {
-        event: "INSERT", schema: "public", table: "notifications",
-        filter: `user_id=eq.${user.id}`,
-      }, (payload) => {
-        setNotifications((prev) => [payload.new as any, ...prev]);
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user]);
+    const interval = setInterval(() => { fetchNotifications(); }, 30_000);
+    return () => clearInterval(interval);
+  }, [user, fetchNotifications]);
 
   const markRead = async (id: string) => {
     await supabase.from("notifications").update({ is_read: true }).eq("id", id);
