@@ -122,7 +122,7 @@ export default function Dashboard() {
       )}
 
       {/* Onboarding checklist for new admins */}
-      <OnboardingChecklist />
+      <OnboardingChecklist userId={user?.id} />
 
       {/* Workflow spine — lightweight explainer */}
       <Card className="mt-4">
