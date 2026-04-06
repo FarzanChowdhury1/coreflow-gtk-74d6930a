@@ -39,6 +39,13 @@ interface ExpenseRow {
 
 type PeriodType = "month" | "quarter" | "year";
 
+const budgetExportCols = [
+  { key: "category", label: "Category" },
+  { key: "target", label: "Budget" },
+  { key: "actual", label: "Actual" },
+  { key: "pct", label: "% Used" },
+];
+
 function getPeriodDates(type: PeriodType, refDate: Date) {
   switch (type) {
     case "month": return { start: startOfMonth(refDate), end: endOfMonth(refDate) };
@@ -173,13 +180,11 @@ export default function BudgetActual() {
         <Button size="sm" onClick={() => { setEditingBudget(null); setFormOpen(true); }}>
           <Plus className="mr-1 h-4 w-4" /> Set Budget Target
         </Button>
-        <Button variant="outline" size="sm" onClick={() => exportToCSV(rows, [
-          { key: "category", label: "Category" },
-          { key: "target", label: "Budget" },
-          { key: "actual", label: "Actual" },
-          { key: "pct", label: "% Used" },
-        ], "budget-vs-actual")} disabled={rows.length === 0}>
-          <Download className="mr-1 h-4 w-4" /> Export CSV
+        <Button variant="outline" size="sm" onClick={() => exportToCSV(rows, budgetExportCols, "budget-vs-actual")} disabled={rows.length === 0}>
+          <Download className="mr-1 h-4 w-4" /> CSV
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => exportToXLSX(rows, budgetExportCols, "budget-vs-actual")} disabled={rows.length === 0}>
+          <Download className="mr-1 h-4 w-4" /> XLSX
         </Button>
       </div>
 

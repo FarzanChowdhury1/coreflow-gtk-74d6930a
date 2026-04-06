@@ -19,6 +19,11 @@ const ENTITY_SETS = [
   { key: "expenses", table: "expenses", label: "Expenses", select: "*, vendors(name), projects(name)", sheet: "Expenses" },
   { key: "renewals", table: "renewals", label: "Renewals", select: "*, companies(legal_name)", sheet: "Renewals" },
   { key: "projects", table: "projects", label: "Projects", select: "*, companies(legal_name)", sheet: "Projects" },
+  { key: "proposals", table: "proposals", label: "Proposals", select: "*, companies(legal_name)", sheet: "Proposals" },
+  { key: "meetings", table: "meetings", label: "Meetings", select: "*", sheet: "Meetings" },
+  { key: "vendors", table: "vendors", label: "Vendors", select: "*", sheet: "Vendors" },
+  { key: "subscriptions", table: "subscriptions", label: "Subscriptions", select: "*, vendors(name)", sheet: "Subscriptions" },
+  { key: "budgets", table: "budgets", label: "Budgets", select: "*", sheet: "Budgets" },
 ] as const;
 
 const COLUMN_MAPS: Record<string, { key: string; label: string; format?: (v: any, r: any) => string }[]> = {
@@ -90,6 +95,45 @@ const COLUMN_MAPS: Record<string, { key: string; label: string; format?: (v: any
     { key: "target_end_date", label: "Target End" },
     { key: "created_at", label: "Created", format: (v) => format(new Date(v), "dd MMM yyyy") },
   ],
+  proposals: [
+    { key: "title", label: "Title" },
+    { key: "_company", label: "Company", format: (_v, r) => r.companies?.legal_name || "" },
+    { key: "notes", label: "Notes" },
+    { key: "created_at", label: "Created", format: (v) => format(new Date(v), "dd MMM yyyy") },
+  ],
+  meetings: [
+    { key: "title", label: "Title" },
+    { key: "meeting_type", label: "Type" },
+    { key: "status", label: "Status" },
+    { key: "starts_at", label: "Starts At", format: (v) => format(new Date(v), "dd MMM yyyy HH:mm") },
+    { key: "location", label: "Location" },
+    { key: "attendees", label: "Attendees" },
+  ],
+  vendors: [
+    { key: "name", label: "Name" },
+    { key: "contact_name", label: "Contact" },
+    { key: "email", label: "Email" },
+    { key: "phone", label: "Phone" },
+    { key: "category", label: "Category" },
+    { key: "created_at", label: "Created", format: (v) => format(new Date(v), "dd MMM yyyy") },
+  ],
+  subscriptions: [
+    { key: "name", label: "Name" },
+    { key: "_vendor", label: "Vendor", format: (_v, r) => r.vendors?.name || "" },
+    { key: "amount", label: "Amount" },
+    { key: "currency", label: "Currency" },
+    { key: "interval_months", label: "Interval (months)" },
+    { key: "next_billing_date", label: "Next Billing" },
+    { key: "is_active", label: "Active", format: (v) => v ? "Yes" : "No" },
+  ],
+  budgets: [
+    { key: "category", label: "Category" },
+    { key: "target_amount", label: "Target Amount" },
+    { key: "currency", label: "Currency" },
+    { key: "period_start", label: "Period Start" },
+    { key: "period_end", label: "Period End" },
+    { key: "notes", label: "Notes" },
+  ],
 };
 
 export default function DataExport() {
@@ -156,7 +200,7 @@ export default function DataExport() {
           title="Data & Export"
           description="Export your workspace data as spreadsheets. Your data belongs to you — download it anytime."
           actions={[
-            "Export all workspace data as a multi-sheet XLSX",
+            "Export workspace data as a multi-sheet XLSX",
             "Individual entity exports are also available on each page",
           ]}
           audience="Workspace admins."
@@ -176,7 +220,7 @@ export default function DataExport() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Download all leads, clients, contacts, invoices, payments, expenses, renewals, and projects in one XLSX file with separate sheets.
+              Download leads, clients, contacts, invoices, payments, expenses, renewals, projects, proposals, meetings, vendors, subscriptions, and budgets in one XLSX file with separate sheets.
             </p>
             <Button
               onClick={handleFullExport}
@@ -226,9 +270,9 @@ export default function DataExport() {
               Have questions about your data, need a custom export, or want to discuss migration?
             </p>
             <Button variant="outline" size="sm" asChild>
-              <a href="mailto:support@coreflow.app?subject=Data%20Export%20Help">
+              <a href="mailto:hello@coreflow.app?subject=Data%20Export%20Help">
                 <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                Contact Support
+                Contact Us
               </a>
             </Button>
           </CardContent>
@@ -238,9 +282,10 @@ export default function DataExport() {
       <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
         <p className="font-medium text-foreground mb-1">Data portability guarantee</p>
         <p>
-          CoreFlow believes your data belongs to you. You can export all your records at any time. 
-          Exports include up to 5,000 rows per entity. If you need bulk data beyond this limit, 
-          contact support for assistance.
+          CoreFlow believes your data belongs to you. You can export your records at any time.
+          The workspace export includes {ENTITY_SETS.length} entity types across separate sheets.
+          Each sheet includes up to 5,000 rows. Some entities like audit logs and file attachments
+          are not included in the bulk export. If you need data beyond these limits, contact us for assistance.
         </p>
       </div>
     </div>
