@@ -26,6 +26,7 @@ import {
   PieChart,
   Mail,
   BarChart3,
+  Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -64,6 +65,7 @@ const navItems: NavItem[] = [
   { label: "Ops / Health", icon: Activity, path: "/ops", section: "Workspace", adminOnly: true },
   { label: "Beta Feedback", icon: MessageSquarePlus, path: "/beta-feedback", section: "Workspace", adminOnly: true },
   { label: "Email Health", icon: Mail, path: "/email-health", section: "Workspace", adminOnly: true },
+  { label: "Data Export", icon: Database, path: "/data-export", section: "Workspace", adminOnly: true },
   { label: "Audit Log", icon: Shield, path: "/audit", section: "Workspace", adminOnly: true },
   { label: "Settings", icon: Settings, path: "/settings", section: "Workspace" },
 ];
