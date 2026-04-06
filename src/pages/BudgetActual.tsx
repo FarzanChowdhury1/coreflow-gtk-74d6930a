@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { PieChart, Plus, Pencil, Trash2, Download, AlertTriangle } from "lucide-react";
+import { PieChart, Plus, Pencil, Trash2, Download } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
 import { supabase } from "@/integrations/supabase/client";

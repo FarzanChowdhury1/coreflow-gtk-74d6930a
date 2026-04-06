@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from "react";
 import { CreditCard, Plus, Download, AlertTriangle, ShieldAlert } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { Card, CardContent } from "@/components/ui/card";
-import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
