@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
+import { useTurnstile } from "@/components/auth/TurnstileWidget";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
@@ -16,6 +17,7 @@ export default function ResetPassword() {
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { turnstileToken, TurnstileElement } = useTurnstile();
 
   useEffect(() => {
     // Supabase sends recovery tokens via URL hash — the JS client auto-exchanges them
@@ -198,7 +200,9 @@ export default function ResetPassword() {
               )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            {TurnstileElement}
+
+            <Button type="submit" className="w-full" disabled={loading || !turnstileToken}>
               {loading ? "Updating..." : "Update Password"}
             </Button>
           </div>

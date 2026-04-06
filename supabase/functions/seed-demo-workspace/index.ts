@@ -84,41 +84,41 @@ Deno.serve(async (req) => {
     const inNinetyDays = new Date(Date.now() + 90 * 86400000).toISOString().split("T")[0];
 
     // --- COMPANIES ---
-    const { data: companies } = await admin.from("companies").insert([
+    const { data: companies, error: compErr } = await admin.from("companies").insert([
       { workspace_id, legal_name: "Meridian Creative Agency", bin: "MC-2024-001", phone: "+1 555-0100", address: "45 Design District, Suite 200, New York, NY 10011" },
       { workspace_id, legal_name: "Horizon Supply Co.", bin: "HS-2024-002", phone: "+1 555-0200", address: "780 Industrial Blvd, Chicago, IL 60614" },
       { workspace_id, legal_name: "Apex Digital Solutions", bin: "AD-2024-003", phone: "+1 555-0300", address: "12 Tech Park Way, Austin, TX 78701" },
     ]).select("id, legal_name");
 
-    if (!companies || companies.length < 3) throw new Error("Failed to create companies");
+    if (compErr || !companies || companies.length < 3) throw new Error("Failed to create companies: " + (compErr?.message ?? "unknown"));
 
     const [meridian, horizon, apex] = companies;
 
     // --- CONTACTS ---
-    const { data: contacts } = await admin.from("contacts").insert([
+    const { data: contacts, error: contErr } = await admin.from("contacts").insert([
       { workspace_id, company_id: meridian.id, full_name: "Sarah Chen", email: "sarah@meridiancreative.com", phone: "+1 555-0101", designation: "Managing Director" },
       { workspace_id, company_id: meridian.id, full_name: "James Park", email: "james@meridiancreative.com", phone: "+1 555-0102", designation: "Creative Lead" },
       { workspace_id, company_id: horizon.id, full_name: "Michael Torres", email: "michael@horizonsupply.com", phone: "+1 555-0201", designation: "Operations Manager" },
       { workspace_id, company_id: apex.id, full_name: "Priya Sharma", email: "priya@apexdigital.com", phone: "+1 555-0301", designation: "CTO" },
     ]).select("id, full_name, company_id");
 
-    if (!contacts || contacts.length < 4) throw new Error("Failed to create contacts");
+    if (contErr || !contacts || contacts.length < 4) throw new Error("Failed to create contacts: " + (contErr?.message ?? "unknown"));
 
     const sarahId = contacts[0].id;
     const michaelId = contacts[2].id;
     const priyaId = contacts[3].id;
 
     // --- LEADS ---
-    const { data: leads } = await admin.from("leads").insert([
+    const { data: leads, error: leadErr } = await admin.from("leads").insert([
       { workspace_id, title: "Brand refresh for Meridian", company_id: meridian.id, contact_id: sarahId, owner_id: user.id, status: "qualified", source: "referral", estimated_value: 15000, currency: "USD", last_contacted_at: `${sevenDaysAgo}T10:00:00Z`, next_follow_up: `${inFifteenDays}T10:00:00Z`, notes: "Sarah wants to refresh their brand identity. Looking at logo, color palette, and brand guidelines." },
       { workspace_id, title: "Supply chain dashboard for Horizon", company_id: horizon.id, contact_id: michaelId, owner_id: user.id, status: "new", source: "cold_outreach", estimated_value: 25000, currency: "USD", notes: "Initial conversation about building a real-time supply chain visibility tool." },
       { workspace_id, title: "Mobile app MVP for Apex", company_id: apex.id, contact_id: priyaId, owner_id: user.id, status: "proposal_sent", source: "website", estimated_value: 40000, currency: "USD", last_contacted_at: `${fifteenDaysAgo}T10:00:00Z` },
     ]).select("id, title");
 
-    if (!leads || leads.length < 3) throw new Error("Failed to create leads");
+    if (leadErr || !leads || leads.length < 3) throw new Error("Failed to create leads: " + (leadErr?.message ?? "unknown"));
 
     // --- PROPOSAL (for Meridian - the qualified lead) ---
-    const { data: proposal } = await admin.from("proposals").insert({
+    const { data: proposal, error: propErr } = await admin.from("proposals").insert({
       workspace_id,
       company_id: meridian.id,
       lead_id: leads[0].id,
@@ -126,9 +126,9 @@ Deno.serve(async (req) => {
       title: "Brand Identity Refresh — Meridian Creative",
     }).select("id").single();
 
-    if (!proposal) throw new Error("Failed to create proposal");
+    if (propErr || !proposal) throw new Error("Failed to create proposal: " + (propErr?.message ?? "unknown"));
 
-    const { data: version } = await admin.from("proposal_versions").insert({
+    const { data: version, error: verErr } = await admin.from("proposal_versions").insert({
       workspace_id,
       proposal_id: proposal.id,
       version_number: 1,
@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
       sent_at: `${fifteenDaysAgo}T10:00:00Z`,
     }).select("id").single();
 
-    if (!version) throw new Error("Failed to create version");
+    if (verErr || !version) throw new Error("Failed to create version: " + (verErr?.message ?? "unknown"));
 
     await admin.from("proposal_line_items").insert([
       { workspace_id, version_id: version.id, description: "Discovery & research phase", quantity: 1, unit_price: 3000, amount: 3000, sort_order: 0 },
@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
     ]);
 
     // --- PROJECT (from approved proposal) ---
-    const { data: project } = await admin.from("projects").insert({
+    const { data: project, error: projErr } = await admin.from("projects").insert({
       workspace_id,
       name: "Meridian Brand Refresh",
       company_id: meridian.id,
@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
       description: "Full brand identity refresh including logo, guidelines, and collateral.",
     }).select("id").single();
 
-    if (!project) throw new Error("Failed to create project");
+    if (projErr || !project) throw new Error("Failed to create project: " + (projErr?.message ?? "unknown"));
 
     // Add current user as project member
     await admin.from("project_members").insert({
@@ -196,13 +196,13 @@ Deno.serve(async (req) => {
     }
 
     const invoiceNumber = `INV-${String(invoiceNum).padStart(4, "0")}`;
-    const { data: invoice } = await admin.from("invoices").insert({
+    const { data: invoice, error: invErr } = await admin.from("invoices").insert({
       workspace_id,
       company_id: meridian.id,
       project_id: project.id,
       proposal_version_id: version.id,
       invoice_number: invoiceNumber,
-      status: "sent",
+      status: "issued",
       currency: "USD",
       subtotal: 8000,
       tax_config: JSON.stringify([]),
@@ -214,7 +214,7 @@ Deno.serve(async (req) => {
       notes: "Phase 1 milestone: Discovery + initial concepts",
     }).select("id").single();
 
-    if (!invoice) throw new Error("Failed to create invoice");
+    if (invErr || !invoice) throw new Error("Failed to create invoice: " + (invErr?.message ?? "unknown"));
 
     await admin.from("invoice_line_items").insert([
       { workspace_id, invoice_id: invoice.id, description: "Discovery & research phase", quantity: 1, unit_price: 3000, amount: 3000, sort_order: 0 },
@@ -272,7 +272,7 @@ Deno.serve(async (req) => {
       name: "TypeForge Foundry",
       category: "design",
       contact_name: "Alex Rivera",
-      contact_email: "alex@typeforge.io",
+      email: "alex@typeforge.io",
       notes: "Custom typography partner. Licensed their Meridian display typeface.",
     }).select("id").single();
 
@@ -299,12 +299,12 @@ Deno.serve(async (req) => {
     await admin.from("subscriptions").insert({
       workspace_id,
       vendor_id: vendor?.id ?? null,
-      label: "Figma Team Plan",
+      name: "Figma Team Plan",
       amount: 45,
       currency: "USD",
-      billing_cycle: "monthly",
+      interval_months: 1,
       next_billing_date: inThirtyDays,
-      status: "active",
+      is_active: true,
       category: "software",
       notes: "Design tool subscription — shared team account.",
     });
