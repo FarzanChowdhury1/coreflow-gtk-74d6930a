@@ -1,22 +1,51 @@
+import { useState } from "react";
 import { useEntitlement } from "@/hooks/use-entitlement";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import type { PlanId } from "@/lib/entitlements";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, ArrowUpRight, CheckCircle2, Clock, Crown, Info, Users } from "lucide-react";
+import { toast } from "sonner";
+import {
+  AlertTriangle, ArrowUpRight, CheckCircle2, Clock, Crown, Info, Loader2, Rocket, Users,
+} from "lucide-react";
 
 export function PlanBillingTab() {
   const ent = useEntitlement();
-  const { memberships, currentWorkspace } = useWorkspace();
+  const { memberships, currentWorkspace, refreshWorkspaces } = useWorkspace();
   const seatCount = memberships.filter((m) => m.workspace_id === currentWorkspace?.id).length;
+  const [startingTrial, setStartingTrial] = useState(false);
 
   const planLabel =
     ent.plan === "enterprise" ? "Enterprise" :
     ent.plan === "growth" ? "Growth" : "Free";
 
   const seatPct = ent.seatLimit ? Math.min(100, Math.round((seatCount / ent.seatLimit) * 100)) : 0;
+
+  const handleStartTrial = async () => {
+    if (!currentWorkspace) return;
+    setStartingTrial(true);
+    const trialEnd = new Date();
+    trialEnd.setDate(trialEnd.getDate() + 14);
+
+    const { error } = await supabase
+      .from("workspaces")
+      .update({
+        plan: "growth",
+        trial_ends_at: trialEnd.toISOString(),
+        seat_limit: 999,
+      })
+      .eq("id", currentWorkspace.id);
+
+    setStartingTrial(false);
+    if (error) {
+      toast.error("Failed to start trial. Please try again.");
+    } else {
+      toast.success("Growth trial activated — 14 days of full access, no card required.");
+      refreshWorkspaces();
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -55,14 +84,11 @@ export function PlanBillingTab() {
                 <Users className="h-4 w-4" /> Seats used
               </span>
               <span className="font-medium text-foreground">
-                {seatCount}{ent.seatLimit ? ` / ${ent.seatLimit}` : " (unlimited)"}
+                {seatCount}{ent.seatLimit && ent.seatLimit < 900 ? ` / ${ent.seatLimit}` : " (unlimited)"}
               </span>
             </div>
-            {ent.seatLimit && (
-              <Progress
-                value={seatPct}
-                className="h-2"
-              />
+            {ent.seatLimit && ent.seatLimit < 900 && (
+              <Progress value={seatPct} className="h-2" />
             )}
             {ent.isOverSeatLimit && (
               <p className="text-sm text-destructive flex items-center gap-1">
@@ -80,17 +106,28 @@ export function PlanBillingTab() {
 
           {/* Plan-specific messaging */}
           {ent.plan === "free" && (
-            <div className="rounded-md border bg-muted/30 p-4 space-y-2">
+            <div className="rounded-md border bg-muted/30 p-4 space-y-3">
               <p className="text-sm font-medium text-foreground">Free plan — up to 3 seats</p>
               <p className="text-sm text-muted-foreground">
                 Includes core CRM features: leads, proposals, projects, invoices, and payments.
                 Upgrade to Growth for advanced modules like expense tracking, approvals, audit logs, and unlimited seats.
               </p>
-              <Button size="sm" variant="default" asChild>
-                <a href="mailto:hello@coreflow.app?subject=Upgrade%20to%20Growth">
-                  Start Growth Trial (14 days free) <ArrowUpRight className="ml-1 h-3 w-3" />
-                </a>
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={handleStartTrial} disabled={startingTrial}>
+                  {startingTrial ? (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Rocket className="mr-1.5 h-3.5 w-3.5" />
+                  )}
+                  Start 14-Day Growth Trial
+                </Button>
+                <Button size="sm" variant="outline" asChild>
+                  <a href="mailto:hello@coreflow.app?subject=Enterprise%20Inquiry">
+                    Contact Sales <ArrowUpRight className="ml-1 h-3 w-3" />
+                  </a>
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">No credit card required. One trial per workspace.</p>
             </div>
           )}
 
@@ -154,7 +191,7 @@ export function PlanBillingTab() {
           </div>
           <div className="flex items-start gap-2">
             <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-            <p><strong className="text-foreground">No self-serve billing yet.</strong> To upgrade, start a trial, or manage your subscription, contact us. We'll set it up for you.</p>
+            <p><strong className="text-foreground">No self-serve billing yet.</strong> To subscribe after trial or discuss Enterprise, contact us and we'll set it up.</p>
           </div>
         </CardContent>
       </Card>
