@@ -10,10 +10,13 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Loader2, Building2, Zap, AlertTriangle,
-  CheckCircle2, Circle, TrendingUp, Rocket, Activity,
+  CheckCircle2, Circle, TrendingUp, Rocket, Activity, Users,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInDays, format } from "date-fns";
 
@@ -29,6 +32,10 @@ interface WorkspaceRow {
   event_count: number;
   event_names: string[] | null;
   company_count: number;
+  admin_emails: string[] | null;
+  admin_count: number;
+  team_member_count: number;
+  billing_owner_email: string | null;
 }
 
 interface Summary {
@@ -88,6 +95,44 @@ function PlanBadge({ plan, trialEnd }: { plan: string; trialEnd: string | null }
   if (plan === "growth" && isActiveTrial) return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">Growth Trial</Badge>;
   if (plan === "growth") return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">Growth</Badge>;
   return <Badge variant="secondary">Free</Badge>;
+}
+
+function AdminEmailsCell({ emails, billingOwnerEmail }: { emails: string[] | null; billingOwnerEmail: string | null }) {
+  if (!emails || emails.length === 0) {
+    return <span className="text-xs text-muted-foreground/50">No admins</span>;
+  }
+
+  const primary = billingOwnerEmail || emails[0];
+  const others = emails.filter(e => e !== primary);
+
+  return (
+    <div className="min-w-0">
+      <p className="text-sm font-medium text-foreground truncate max-w-[200px]" title={primary}>
+        {primary}
+      </p>
+      {billingOwnerEmail && (
+        <p className="text-[10px] text-primary font-medium">Billing owner</p>
+      )}
+      {others.length > 0 && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <p className="text-xs text-muted-foreground cursor-help">
+                +{others.length} more admin{others.length > 1 ? "s" : ""}
+              </p>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs">
+              <div className="space-y-0.5">
+                {others.map((e) => (
+                  <p key={e} className="text-xs">{e}</p>
+                ))}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
+    </div>
+  );
 }
 
 export default function PlatformDashboard() {
@@ -274,6 +319,7 @@ export default function PlatformDashboard() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Workspace</TableHead>
+                    <TableHead>Admin / Billing</TableHead>
                     <TableHead>Plan</TableHead>
                     <TableHead className="text-center">Seats</TableHead>
                     <TableHead className="text-center">Modules</TableHead>
@@ -285,7 +331,7 @@ export default function PlatformDashboard() {
                 <TableBody>
                   {filtered.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                         No workspaces match filters.
                       </TableCell>
                     </TableRow>
@@ -299,8 +345,21 @@ export default function PlatformDashboard() {
                           <TableCell>
                             <div>
                               <p className="font-medium text-foreground">{ws.name}</p>
-                              <p className="text-xs text-muted-foreground">{ws.company_count} client{ws.company_count !== 1 ? "s" : ""}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {ws.company_count} client{ws.company_count !== 1 ? "s" : ""}
+                                {" · "}
+                                <span className="inline-flex items-center gap-0.5">
+                                  <Users className="h-3 w-3" />
+                                  {ws.admin_count}A / {ws.team_member_count}M
+                                </span>
+                              </p>
                             </div>
+                          </TableCell>
+                          <TableCell>
+                            <AdminEmailsCell
+                              emails={ws.admin_emails}
+                              billingOwnerEmail={ws.billing_owner_email}
+                            />
                           </TableCell>
                           <TableCell>
                             <PlanBadge plan={ws.plan} trialEnd={ws.trial_ends_at} />
