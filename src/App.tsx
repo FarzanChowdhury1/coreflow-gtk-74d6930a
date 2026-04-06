@@ -43,6 +43,7 @@ const BudgetActual = lazy(() => import("@/pages/BudgetActual"));
 const EmailHealth = lazy(() => import("@/pages/EmailHealth"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const PlatformFeedback = lazy(() => import("@/pages/platform/PlatformFeedback"));
+const Landing = lazy(() => import("@/pages/Landing"));
 
 const PageFallback = () => (
   <div className="flex min-h-[50vh] items-center justify-center">
@@ -117,8 +118,8 @@ const App = () => (
                 <Route path="/email-health" element={<AdminGuard><EmailHealth /></AdminGuard>} />
               </Route>
 
-            {/* Redirects */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            {/* Public landing page */}
+            <Route path="/" element={<Suspense fallback={<PageFallback />}><Landing /></Suspense>} />
             <Route path="*" element={<Suspense fallback={<PageFallback />}><NotFound /></Suspense>} />
           </Routes>
         </BrowserRouter>
