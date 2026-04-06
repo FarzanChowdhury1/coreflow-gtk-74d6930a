@@ -2,6 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { trackEvent } from "@/lib/events";
 import { useState } from "react";
 import {
   Building2, User, Inbox, FileText, Link2, Receipt, Users, FolderKanban, CalendarDays, Store,
@@ -195,6 +197,7 @@ export function OnboardingChecklist() {
                   if (error) throw error;
                   if (data?.error) throw new Error(data.error);
                   toast({ title: "Sample data loaded", description: "Your workspace now has example data to explore." });
+                  trackEvent("workspace.sample_data_loaded", workspaceId, user?.id ?? "", {});
                   queryClient.invalidateQueries();
                 } catch (err: any) {
                   toast({ title: "Could not load sample data", description: err?.message || "Please try again.", variant: "destructive" });
