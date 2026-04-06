@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useEntitlement } from "@/hooks/use-entitlement";
+import { trackEvent, trackFirstEvent } from "@/lib/events";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, Trash2, Shield, User, Clock, XCircle, Copy, Check, Mail } from "lucide-react";
+import { Loader2, Plus, Trash2, Shield, User, Clock, XCircle, Copy, Check, Mail, AlertTriangle, ArrowUpRight } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -41,6 +43,7 @@ interface InviteRow {
 export function TeamManagementTab() {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
+  const ent = useEntitlement();
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [invites, setInvites] = useState<InviteRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -176,8 +179,10 @@ export function TeamManagementTab() {
       const res = data as any;
       if (res.success) {
         toast.success(`Invite created for ${inviteEmail.trim()}`);
+        if (currentWorkspace && user) {
+          trackEvent("invite.sent", currentWorkspace.id, user.id, { email: inviteEmail.trim() });
+        }
         setLastCreatedToken(res.token);
-        // RPC already returns invite_id — no second lookup needed
         setLastCreatedInviteId(res.invite_id || null);
         setEmailStatus("idle");
         setEmailError(null);
