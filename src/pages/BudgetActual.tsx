@@ -279,6 +279,7 @@ export default function BudgetActual() {
 function BudgetFormDialog({ open, onOpenChange, budget, workspaceId, currency, periodStart, periodEnd, onSaved }: {
   open: boolean; onOpenChange: (o: boolean) => void; budget: Budget | null; workspaceId: string; currency: string; periodStart: string; periodEnd: string; onSaved: () => void;
 }) {
+  const { user } = useAuth();
   const [category, setCategory] = useState("general");
   const [targetAmount, setTargetAmount] = useState("");
   const [notes, setNotes] = useState("");
