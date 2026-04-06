@@ -122,13 +122,13 @@ export default function Landing() {
         </p>
         <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <Button size="lg" asChild>
-            <Link to="/login">Start Free — No Card Required</Link>
+            <Link to="/login">Get Started Free</Link>
           </Button>
           <Button variant="outline" size="lg" asChild>
             <a href="#pricing">View Pricing</a>
           </Button>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">Free plan includes up to 3 seats. No credit card required.</p>
+        <p className="mt-3 text-xs text-muted-foreground">Free forever up to 3 seats · No credit card required · 14-day Growth trial included</p>
       </section>
 
       {/* Workflow spine */}
