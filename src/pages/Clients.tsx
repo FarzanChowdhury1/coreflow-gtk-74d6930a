@@ -5,6 +5,7 @@ import { CompanyMobileCards } from "@/components/clients/CompanyMobileCards";
 import { ContactMobileCards } from "@/components/clients/ContactMobileCards";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
+import { exportToXLSX } from "@/lib/xlsx-export";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";

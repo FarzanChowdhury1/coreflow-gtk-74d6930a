@@ -3,6 +3,7 @@ import { CreditCard, Plus, Download, AlertTriangle, ShieldAlert } from "lucide-r
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { Card, CardContent } from "@/components/ui/card";
 import { exportToCSV } from "@/lib/csv-export";
+import { exportToXLSX } from "@/lib/xlsx-export";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Button } from "@/components/ui/button";

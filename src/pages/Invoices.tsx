@@ -6,6 +6,7 @@ import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { InvoiceAging } from "@/components/invoices/InvoiceAging";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { exportToCSV } from "@/lib/csv-export";
+import { exportToXLSX } from "@/lib/xlsx-export";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Button } from "@/components/ui/button";

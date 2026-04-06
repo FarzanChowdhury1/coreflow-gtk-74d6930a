@@ -4,6 +4,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { ExpenseMobileCards } from "@/components/expenses/ExpenseMobileCards";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
+import { exportToXLSX } from "@/lib/xlsx-export";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
