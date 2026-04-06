@@ -1,24 +1,24 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function usePlatformAdmin() {
   const { user } = useAuth();
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [checked, setChecked] = useState(false);
   const checkedRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!user) {
       setIsPlatformAdmin(false);
       checkedRef.current = null;
-      setLoading(false);
+      setChecked(false);
       return;
     }
 
     if (checkedRef.current === user.id) return;
 
-    setLoading(true);
+    setChecked(false);
     let cancelled = false;
 
     supabase
@@ -30,11 +30,17 @@ export function usePlatformAdmin() {
         if (cancelled) return;
         setIsPlatformAdmin(!error && !!data);
         checkedRef.current = user.id;
-        setLoading(false);
+        setChecked(true);
       });
 
     return () => { cancelled = true; };
   }, [user?.id]);
+
+  // loading = true when user exists but we haven't verified yet
+  const loading = useMemo(() => {
+    if (!user) return false;
+    return !checked || checkedRef.current !== user.id;
+  }, [user, checked]);
 
   return { isPlatformAdmin, loading };
 }
