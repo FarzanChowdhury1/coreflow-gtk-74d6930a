@@ -45,6 +45,7 @@ const EmailHealth = lazy(() => import("@/pages/EmailHealth"));
 const DataExport = lazy(() => import("@/pages/DataExport"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const PlatformFeedback = lazy(() => import("@/pages/platform/PlatformFeedback"));
+const PlatformDashboard = lazy(() => import("@/pages/platform/PlatformDashboard"));
 const Landing = lazy(() => import("@/pages/Landing"));
 
 const PageFallback = () => (

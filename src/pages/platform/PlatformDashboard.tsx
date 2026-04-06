@@ -12,8 +12,8 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import {
-  ArrowLeft, Loader2, Building2, Users, Crown, Zap, AlertTriangle,
-  Clock, CheckCircle2, Circle, TrendingUp, ShieldAlert, Rocket, Activity,
+  ArrowLeft, Loader2, Building2, Zap, AlertTriangle,
+  CheckCircle2, Circle, TrendingUp, Rocket, Activity,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInDays, format } from "date-fns";
 
