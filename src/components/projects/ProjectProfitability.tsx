@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -6,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { TrendingUp, TrendingDown, Minus, BarChart3 } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, BarChart3, Info } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 
 interface ProjectProfit {
@@ -18,6 +20,7 @@ interface ProjectProfit {
   expenses: number;
   margin: number;
   marginPct: number | null;
+  currency: string;
 }
 
 export function ProjectProfitability() {
@@ -41,14 +44,13 @@ export function ProjectProfitability() {
     staleTime: 60_000,
   });
 
-  // Get all payments for project-linked invoices (revenue)
   const { data: invoices = [], isLoading: loadingInv } = useQuery({
     queryKey: ["profitability-invoices", wsId],
     queryFn: async () => {
       if (!wsId) return [];
       const { data, error } = await supabase
         .from("invoices")
-        .select("id, project_id, amount_paid")
+        .select("id, project_id, amount_paid, currency")
         .eq("workspace_id", wsId)
         .is("deleted_at", null)
         .not("project_id", "is", null)
@@ -60,14 +62,13 @@ export function ProjectProfitability() {
     staleTime: 60_000,
   });
 
-  // Get all project-linked expenses
   const { data: expenses = [], isLoading: loadingExp } = useQuery({
     queryKey: ["profitability-expenses", wsId],
     queryFn: async () => {
       if (!wsId) return [];
       const { data, error } = await supabase
         .from("expenses")
-        .select("id, project_id, amount")
+        .select("id, project_id, amount, currency")
         .eq("workspace_id", wsId)
         .is("deleted_at", null)
         .not("project_id", "is", null);
@@ -80,16 +81,29 @@ export function ProjectProfitability() {
 
   const isLoading = loadingProjects || loadingInv || loadingExp;
 
-  // Build profitability per project
+  // Detect mixed currencies across all financial records
+  const allCurrencies = useMemo(() => {
+    const set = new Set<string>();
+    invoices.forEach((i) => set.add(i.currency || "BDT"));
+    expenses.forEach((e) => set.add(e.currency || "BDT"));
+    return Array.from(set);
+  }, [invoices, expenses]);
+  const isMixed = allCurrencies.length > 1;
+  const primaryCurrency = allCurrencies.length === 1 ? allCurrencies[0] : "BDT";
+
   const profitData: ProjectProfit[] = projects.map((p: any) => {
-    const rev = invoices
-      .filter((i) => i.project_id === p.id)
-      .reduce((s, i) => s + Number(i.amount_paid), 0);
-    const exp = expenses
-      .filter((e) => e.project_id === p.id)
-      .reduce((s, e) => s + Number(e.amount), 0);
+    const projInvoices = invoices.filter((i) => i.project_id === p.id);
+    const projExpenses = expenses.filter((e) => e.project_id === p.id);
+
+    const rev = projInvoices.reduce((s, i) => s + Number(i.amount_paid), 0);
+    const exp = projExpenses.reduce((s, e) => s + Number(e.amount), 0);
     const margin = rev - exp;
     const marginPct = rev > 0 ? (margin / rev) * 100 : null;
+
+    // Use the dominant currency for this project's invoices, fallback to primary
+    const projCurrencies = new Set(projInvoices.map((i) => i.currency || "BDT"));
+    projExpenses.forEach((e) => projCurrencies.add(e.currency || "BDT"));
+    const currency = projCurrencies.size === 1 ? Array.from(projCurrencies)[0] : primaryCurrency;
 
     return {
       id: p.id,
@@ -100,10 +114,10 @@ export function ProjectProfitability() {
       expenses: exp,
       margin,
       marginPct,
+      currency,
     };
   });
 
-  // Only show projects that have at least some financial activity
   const active = profitData.filter((p) => p.revenue > 0 || p.expenses > 0);
   const totals = active.reduce(
     (acc, p) => ({ rev: acc.rev + p.revenue, exp: acc.exp + p.expenses }),
@@ -111,6 +125,11 @@ export function ProjectProfitability() {
   );
   const totalMargin = totals.rev - totals.exp;
   const totalPct = totals.rev > 0 ? (totalMargin / totals.rev) * 100 : null;
+
+  const fmtTotal = (amount: number) => {
+    if (isMixed) return `${amount.toLocaleString()} (mixed)`;
+    return formatCurrency(amount, primaryCurrency);
+  };
 
   if (isLoading) {
     return <div className="text-center py-8 text-muted-foreground">Loading profitability data…</div>;
@@ -131,25 +150,37 @@ export function ProjectProfitability() {
 
   return (
     <div className="space-y-6">
+      {/* Methodology note */}
+      <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md p-3">
+        <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+        <span>
+          <strong>Revenue</strong> = collected payments on project-linked invoices.{" "}
+          <strong>Expenses</strong> = direct project-linked expenses only.
+          Shared costs (subscriptions, unlinked vendor fees) are excluded.
+          This is not full accounting profit — it shows direct project margin only.
+          {isMixed && " Some projects use different currencies — per-row values use each project's currency, but totals mix currencies."}
+        </span>
+      </div>
+
       {/* Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-1">Total Revenue (Collected)</p>
-            <p className="text-lg font-semibold text-foreground">৳{totals.rev.toLocaleString("en-BD")}</p>
+            <p className="text-lg font-semibold text-foreground">{fmtTotal(totals.rev)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-1">Total Direct Expenses</p>
-            <p className="text-lg font-semibold text-foreground">৳{totals.exp.toLocaleString("en-BD")}</p>
+            <p className="text-lg font-semibold text-foreground">{fmtTotal(totals.exp)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-1">Net Margin</p>
             <p className={`text-lg font-semibold ${totalMargin >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-              ৳{totalMargin.toLocaleString("en-BD")}
+              {fmtTotal(totalMargin)}
             </p>
           </CardContent>
         </Card>
@@ -162,11 +193,6 @@ export function ProjectProfitability() {
           </CardContent>
         </Card>
       </div>
-
-      <p className="text-xs text-muted-foreground">
-        Revenue = collected payments on project-linked invoices. Expenses = direct project-linked expenses only. 
-        Shared costs (subscriptions, unlinked expenses) are excluded.
-      </p>
 
       {/* Per-project table */}
       <Card>
@@ -197,11 +223,11 @@ export function ProjectProfitability() {
                       <TableCell>
                         <Badge variant="secondary" className="text-xs capitalize">{p.status.replace("_", " ")}</Badge>
                       </TableCell>
-                      <TableCell className="text-right text-sm">৳{p.revenue.toLocaleString("en-BD")}</TableCell>
-                      <TableCell className="text-right text-sm">৳{p.expenses.toLocaleString("en-BD")}</TableCell>
+                      <TableCell className="text-right text-sm">{formatCurrency(p.revenue, p.currency)}</TableCell>
+                      <TableCell className="text-right text-sm">{formatCurrency(p.expenses, p.currency)}</TableCell>
                       <TableCell className="text-right">
                         <span className={`text-sm font-medium ${p.margin >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                          {p.margin >= 0 ? "" : "-"}৳{Math.abs(p.margin).toLocaleString("en-BD")}
+                          {p.margin >= 0 ? "" : "-"}{formatCurrency(Math.abs(p.margin), p.currency)}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">

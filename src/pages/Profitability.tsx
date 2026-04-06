@@ -17,7 +17,7 @@ export default function Profitability() {
         />
       </div>
       <p className="mb-5 text-sm text-muted-foreground max-w-2xl">
-        Direct project profitability based on collected revenue and linked expenses. Shared costs are excluded.
+        Direct project margin based on collected revenue and linked expenses.
       </p>
       <ProfitabilityView />
     </div>
