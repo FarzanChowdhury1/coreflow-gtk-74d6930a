@@ -2910,6 +2910,7 @@ export type Database = {
         Args: { _company_id: string; _workspace_id: string }
         Returns: undefined
       }
+      platform_workspace_overview: { Args: never; Returns: Json }
       portal_respond_proposal: {
         Args: { _action: string; _token: string; _version_id: string }
         Returns: Json
