@@ -17,8 +17,10 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Loader2, Building2, Zap, AlertTriangle,
   CheckCircle2, Circle, TrendingUp, Rocket, Activity, Users,
+  Clock, UserCheck, MessageSquare,
 } from "lucide-react";
 import { formatDistanceToNow, differenceInDays, format } from "date-fns";
+import { WorkspaceFollowupSheet } from "@/components/platform/WorkspaceFollowupSheet";
 
 interface WorkspaceRow {
   id: string;
@@ -36,6 +38,13 @@ interface WorkspaceRow {
   admin_count: number;
   team_member_count: number;
   billing_owner_email: string | null;
+  followup_stage: string | null;
+  next_followup_date: string | null;
+  last_contacted_at: string | null;
+  followup_priority: string | null;
+  followup_owner_email: string | null;
+  last_note: string | null;
+  note_count: number;
 }
 
 interface Summary {
@@ -54,6 +63,34 @@ const MODULE_EVENTS = [
   "vendor.first_created", "expense.first_created", "subscription.first_created",
   "budget.first_created", "meeting.first_created", "portal.first_token_created",
 ] as const;
+
+const STAGE_LABELS: Record<string, string> = {
+  new: "New",
+  trialing: "Trialing",
+  activated_free: "Activated (Free)",
+  expansion_opportunity: "Expansion",
+  trial_expired: "Trial Expired",
+  follow_up_needed: "Follow-up Needed",
+  converted_manual: "Converted",
+  enterprise_pipeline: "Enterprise",
+  churn_risk: "Churn Risk",
+  inactive: "Inactive",
+  closed_lost: "Closed/Lost",
+};
+
+const STAGE_COLORS: Record<string, string> = {
+  new: "bg-muted text-muted-foreground",
+  trialing: "bg-primary/10 text-primary border-primary/30",
+  activated_free: "bg-accent/50 text-accent-foreground",
+  expansion_opportunity: "bg-primary/20 text-primary border-primary/40",
+  trial_expired: "bg-destructive/10 text-destructive border-destructive/30",
+  follow_up_needed: "bg-warning/10 text-warning border-warning/30",
+  converted_manual: "bg-primary/10 text-primary border-primary/30",
+  enterprise_pipeline: "bg-accent/50 text-accent-foreground border-accent",
+  churn_risk: "bg-destructive/10 text-destructive border-destructive/30",
+  inactive: "bg-muted text-muted-foreground",
+  closed_lost: "bg-muted text-muted-foreground/50",
+};
 
 function getFollowUpFlags(ws: WorkspaceRow): string[] {
   const flags: string[] = [];
@@ -80,9 +117,12 @@ function getFollowUpFlags(ws: WorkspaceRow): string[] {
     flags.push("No activity recorded");
   }
 
-  if (ws.event_names?.includes("workspace.sample_data_loaded") && moduleCount <= 1) {
-    flags.push("Sample data only");
+  if (ws.next_followup_date) {
+    const fDate = new Date(ws.next_followup_date);
+    if (fDate < now) flags.push("Follow-up overdue");
   }
+
+  if (!ws.followup_owner_email) flags.push("No owner assigned");
 
   return flags;
 }
@@ -107,7 +147,7 @@ function AdminEmailsCell({ emails, billingOwnerEmail }: { emails: string[] | nul
 
   return (
     <div className="min-w-0">
-      <p className="text-sm font-medium text-foreground truncate max-w-[200px]" title={primary}>
+      <p className="text-sm font-medium text-foreground truncate max-w-[180px]" title={primary}>
         {primary}
       </p>
       {billingOwnerEmail && (
@@ -118,7 +158,7 @@ function AdminEmailsCell({ emails, billingOwnerEmail }: { emails: string[] | nul
           <Tooltip>
             <TooltipTrigger asChild>
               <p className="text-xs text-muted-foreground cursor-help">
-                +{others.length} more admin{others.length > 1 ? "s" : ""}
+                +{others.length} more
               </p>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-xs">
@@ -135,6 +175,15 @@ function AdminEmailsCell({ emails, billingOwnerEmail }: { emails: string[] | nul
   );
 }
 
+function StageBadge({ stage }: { stage: string | null }) {
+  const s = stage || "new";
+  return (
+    <Badge variant="outline" className={`text-[10px] ${STAGE_COLORS[s] || ""}`}>
+      {STAGE_LABELS[s] || s}
+    </Badge>
+  );
+}
+
 export default function PlatformDashboard() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -142,7 +191,9 @@ export default function PlatformDashboard() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [filterPlan, setFilterPlan] = useState("all");
   const [filterFlag, setFilterFlag] = useState("all");
-  const [sortBy, setSortBy] = useState<"created" | "activity" | "seats" | "activation">("activity");
+  const [filterStage, setFilterStage] = useState("all");
+  const [sortBy, setSortBy] = useState<"created" | "activity" | "seats" | "activation" | "followup">("activity");
+  const [selectedWs, setSelectedWs] = useState<WorkspaceRow | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -169,12 +220,18 @@ export default function PlatformDashboard() {
       else rows = rows.filter(w => w.plan === filterPlan);
     }
 
+    if (filterStage !== "all") {
+      rows = rows.filter(w => (w.followup_stage || "new") === filterStage);
+    }
+
     if (filterFlag === "over_limit") rows = rows.filter(w => w.seat_count > w.seat_limit);
     else if (filterFlag === "stalled") rows = rows.filter(w => {
       if (!w.last_activity) return true;
       return differenceInDays(new Date(), new Date(w.last_activity)) >= 7;
     });
     else if (filterFlag === "needs_followup") rows = rows.filter(w => getFollowUpFlags(w).length > 0);
+    else if (filterFlag === "overdue") rows = rows.filter(w => w.next_followup_date && new Date(w.next_followup_date) < new Date());
+    else if (filterFlag === "no_owner") rows = rows.filter(w => !w.followup_owner_email);
     else if (filterFlag === "activated") {
       rows = rows.filter(w => (w.event_names?.filter(e => MODULE_EVENTS.includes(e as any)).length ?? 0) >= 3);
     }
@@ -187,11 +244,16 @@ export default function PlatformDashboard() {
       }
       if (sortBy === "seats") return b.seat_count - a.seat_count;
       if (sortBy === "activation") return (b.event_count ?? 0) - (a.event_count ?? 0);
+      if (sortBy === "followup") {
+        const aD = a.next_followup_date ? new Date(a.next_followup_date).getTime() : Infinity;
+        const bD = b.next_followup_date ? new Date(b.next_followup_date).getTime() : Infinity;
+        return aD - bD;
+      }
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
 
     return rows;
-  }, [workspaces, filterPlan, filterFlag, sortBy]);
+  }, [workspaces, filterPlan, filterFlag, filterStage, sortBy]);
 
   if (loading) {
     return (
@@ -201,9 +263,12 @@ export default function PlatformDashboard() {
     );
   }
 
+  const overdueCount = workspaces.filter(w => w.next_followup_date && new Date(w.next_followup_date) < new Date()).length;
+  const unownedCount = workspaces.filter(w => !w.followup_owner_email).length;
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-7xl px-4 py-8 space-y-6">
+      <div className="mx-auto max-w-[1400px] px-4 py-8 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
           <Link to="/dashboard">
@@ -211,7 +276,7 @@ export default function PlatformDashboard() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Platform Operations</h1>
-            <p className="text-sm text-muted-foreground">Cross-workspace visibility — CoreFlow internal only</p>
+            <p className="text-sm text-muted-foreground">Internal sales ops & workspace follow-up — CoreFlow only</p>
           </div>
           <div className="ml-auto">
             <Link to="/platform/feedback">
@@ -222,10 +287,10 @@ export default function PlatformDashboard() {
 
         {/* Summary Cards */}
         {summary && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5" /> Total Workspaces</CardDescription>
+                <CardDescription className="flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5" /> Workspaces</CardDescription>
                 <CardTitle className="text-3xl">{summary.total}</CardTitle>
               </CardHeader>
               <CardContent>
@@ -253,19 +318,27 @@ export default function PlatformDashboard() {
                 <CardTitle className="text-3xl">{summary.over_seat_limit}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-muted-foreground">Workspaces exceeding their seat cap</p>
+                <p className="text-xs text-muted-foreground">Exceeding seat cap</p>
+              </CardContent>
+            </Card>
+
+            <Card className={overdueCount > 0 ? "border-destructive/30" : ""}>
+              <CardHeader className="pb-2">
+                <CardDescription className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Follow-up Overdue</CardDescription>
+                <CardTitle className="text-3xl">{overdueCount}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">Past scheduled follow-up date</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-1.5"><Activity className="h-3.5 w-3.5" /> Needs Follow-up</CardDescription>
-                <CardTitle className="text-3xl">
-                  {workspaces.filter(w => getFollowUpFlags(w).length > 0).length}
-                </CardTitle>
+                <CardDescription className="flex items-center gap-1.5"><UserCheck className="h-3.5 w-3.5" /> Unowned</CardDescription>
+                <CardTitle className="text-3xl">{unownedCount}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-muted-foreground">Workspaces with commercial or activation flags</p>
+                <p className="text-xs text-muted-foreground">No internal owner assigned</p>
               </CardContent>
             </Card>
           </div>
@@ -274,7 +347,7 @@ export default function PlatformDashboard() {
         {/* Filters */}
         <div className="flex flex-wrap gap-3">
           <Select value={filterPlan} onValueChange={setFilterPlan}>
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Plan" /></SelectTrigger>
+            <SelectTrigger className="w-[150px]"><SelectValue placeholder="Plan" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Plans</SelectItem>
               <SelectItem value="free">Free</SelectItem>
@@ -285,14 +358,26 @@ export default function PlatformDashboard() {
             </SelectContent>
           </Select>
 
+          <Select value={filterStage} onValueChange={setFilterStage}>
+            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Stage" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Stages</SelectItem>
+              {Object.entries(STAGE_LABELS).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Select value={filterFlag} onValueChange={setFilterFlag}>
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="Flag" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Workspaces</SelectItem>
-              <SelectItem value="needs_followup">Needs Follow-up</SelectItem>
+              <SelectItem value="needs_followup">Any Flag</SelectItem>
+              <SelectItem value="overdue">Follow-up Overdue</SelectItem>
+              <SelectItem value="no_owner">No Owner</SelectItem>
               <SelectItem value="over_limit">Over Seat Limit</SelectItem>
               <SelectItem value="stalled">Stalled (7d+)</SelectItem>
-              <SelectItem value="activated">Activated (3+ modules)</SelectItem>
+              <SelectItem value="activated">Activated (3+)</SelectItem>
             </SelectContent>
           </Select>
 
@@ -300,9 +385,10 @@ export default function PlatformDashboard() {
             <SelectTrigger className="w-[160px]"><SelectValue placeholder="Sort" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="activity">Last Activity</SelectItem>
+              <SelectItem value="followup">Next Follow-up</SelectItem>
               <SelectItem value="created">Created Date</SelectItem>
               <SelectItem value="seats">Seat Count</SelectItem>
-              <SelectItem value="activation">Activation Score</SelectItem>
+              <SelectItem value="activation">Activation</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -311,7 +397,7 @@ export default function PlatformDashboard() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Workspaces ({filtered.length})</CardTitle>
-            <CardDescription>Operational metadata only — no customer business data is shown.</CardDescription>
+            <CardDescription>Click a row to open follow-up details. Operational metadata only.</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -322,26 +408,31 @@ export default function PlatformDashboard() {
                     <TableHead>Admin / Billing</TableHead>
                     <TableHead>Plan</TableHead>
                     <TableHead className="text-center">Seats</TableHead>
-                    <TableHead className="text-center">Modules</TableHead>
-                    <TableHead>Last Activity</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Follow-up Flags</TableHead>
+                    <TableHead>Stage</TableHead>
+                    <TableHead>Owner</TableHead>
+                    <TableHead>Next Follow-up</TableHead>
+                    <TableHead className="text-center">Notes</TableHead>
+                    <TableHead>Flags</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                         No workspaces match filters.
                       </TableCell>
                     </TableRow>
                   ) : (
                     filtered.map((ws) => {
-                      const moduleCount = ws.event_names?.filter(e => MODULE_EVENTS.includes(e as any)).length ?? 0;
                       const flags = getFollowUpFlags(ws);
+                      const isOverdue = ws.next_followup_date && new Date(ws.next_followup_date) < new Date();
 
                       return (
-                        <TableRow key={ws.id}>
+                        <TableRow
+                          key={ws.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => setSelectedWs(ws)}
+                        >
                           <TableCell>
                             <div>
                               <p className="font-medium text-foreground">{ws.name}</p>
@@ -363,48 +454,65 @@ export default function PlatformDashboard() {
                           </TableCell>
                           <TableCell>
                             <PlanBadge plan={ws.plan} trialEnd={ws.trial_ends_at} />
-                            {ws.trial_ends_at && (
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                {new Date(ws.trial_ends_at) > new Date()
-                                  ? `${differenceInDays(new Date(ws.trial_ends_at), new Date())}d left`
-                                  : `Expired ${format(new Date(ws.trial_ends_at), "dd MMM")}`
-                                }
-                              </p>
-                            )}
                           </TableCell>
                           <TableCell className="text-center">
                             <span className={ws.seat_count > ws.seat_limit ? "text-destructive font-semibold" : ""}>
                               {ws.seat_count}/{ws.seat_limit}
                             </span>
                           </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <span className="text-sm font-medium">{moduleCount}/12</span>
-                              {moduleCount >= 8 ? <Rocket className="h-3.5 w-3.5 text-primary" /> :
-                               moduleCount >= 3 ? <TrendingUp className="h-3.5 w-3.5 text-primary" /> :
-                               <Circle className="h-3.5 w-3.5 text-muted-foreground/40" />}
-                            </div>
+                          <TableCell>
+                            <StageBadge stage={ws.followup_stage} />
                           </TableCell>
                           <TableCell>
-                            {ws.last_activity ? (
-                              <span className="text-sm text-muted-foreground">
-                                {formatDistanceToNow(new Date(ws.last_activity), { addSuffix: true })}
+                            {ws.followup_owner_email ? (
+                              <span className="text-xs text-foreground truncate max-w-[120px] block" title={ws.followup_owner_email}>
+                                {ws.followup_owner_email.split("@")[0]}
                               </span>
                             ) : (
-                              <span className="text-sm text-muted-foreground/50">None</span>
+                              <span className="text-xs text-muted-foreground/50">—</span>
                             )}
                           </TableCell>
-                          <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                            {format(new Date(ws.created_at), "dd MMM yyyy")}
+                          <TableCell>
+                            {ws.next_followup_date ? (
+                              <span className={`text-xs ${isOverdue ? "text-destructive font-semibold" : "text-foreground"}`}>
+                                {format(new Date(ws.next_followup_date), "dd MMM")}
+                                {isOverdue && " ⚠"}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground/50">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {ws.note_count > 0 ? (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="inline-flex items-center gap-0.5 text-xs text-foreground cursor-help">
+                                      <MessageSquare className="h-3 w-3" /> {ws.note_count}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    <p className="text-xs">{ws.last_note}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : (
+                              <span className="text-xs text-muted-foreground/30">0</span>
+                            )}
                           </TableCell>
                           <TableCell>
                             {flags.length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {flags.map((f) => (
-                                  <Badge key={f} variant="outline" className="text-xs bg-warning/10 text-warning border-warning/30">
+                              <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                {flags.slice(0, 2).map((f) => (
+                                  <Badge key={f} variant="outline" className="text-[10px] bg-warning/10 text-warning border-warning/30">
                                     {f}
                                   </Badge>
                                 ))}
+                                {flags.length > 2 && (
+                                  <Badge variant="outline" className="text-[10px]">
+                                    +{flags.length - 2}
+                                  </Badge>
+                                )}
                               </div>
                             ) : (
                               <CheckCircle2 className="h-4 w-4 text-primary" />
@@ -425,10 +533,10 @@ export default function PlatformDashboard() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Rocket className="h-5 w-5 text-primary" />
-              Module Adoption Across Workspaces
+              Module Adoption
             </CardTitle>
             <CardDescription>
-              First-use adoption per module — not usage volume. Based on product events.
+              First-use adoption per module — not usage volume.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -454,12 +562,18 @@ export default function PlatformDashboard() {
           </CardContent>
         </Card>
 
-        {/* Disclaimer */}
         <p className="text-xs text-muted-foreground text-center py-4">
-          This dashboard shows operational metadata only. No customer business data (invoices, contacts, financials) is exposed.
-          Revenue figures are not shown because billing is not yet automated.
+          Internal sales ops dashboard. No customer business data exposed. Follow-up metadata is visible only to platform admins.
         </p>
       </div>
+
+      {/* Follow-up Detail Sheet */}
+      <WorkspaceFollowupSheet
+        workspace={selectedWs}
+        open={!!selectedWs}
+        onOpenChange={(open) => { if (!open) setSelectedWs(null); }}
+        onUpdated={fetchData}
+      />
     </div>
   );
 }
