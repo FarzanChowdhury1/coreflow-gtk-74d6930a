@@ -194,6 +194,8 @@ export default function Invoices() {
                 <Plus className="mr-1 h-4 w-4" /> Create First Invoice
               </Button>
             </div>
+          ) : isMobile ? (
+            <InvoiceMobileCards invoices={invoices} onSelect={setSelectedInvoice} />
           ) : (
             <div className="rounded-lg border bg-card overflow-x-auto">
               <Table className="min-w-[700px]">
