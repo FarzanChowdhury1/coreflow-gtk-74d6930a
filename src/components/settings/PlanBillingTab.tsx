@@ -199,6 +199,8 @@ export function PlanBillingTab() {
           </div>
         </CardContent>
       </Card>
+      {/* Billing owner */}
+      <BillingOwnerSection />
     </div>
   );
 }
