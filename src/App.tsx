@@ -42,6 +42,7 @@ const Subscriptions = lazy(() => import("@/pages/Subscriptions"));
 const BudgetActual = lazy(() => import("@/pages/BudgetActual"));
 const Profitability = lazy(() => import("@/pages/Profitability"));
 const EmailHealth = lazy(() => import("@/pages/EmailHealth"));
+const DataExport = lazy(() => import("@/pages/DataExport"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const PlatformFeedback = lazy(() => import("@/pages/platform/PlatformFeedback"));
 const Landing = lazy(() => import("@/pages/Landing"));
@@ -118,6 +119,7 @@ const App = () => (
                 <Route path="/ops" element={<AdminGuard><OpsHealth /></AdminGuard>} />
                 <Route path="/beta-feedback" element={<AdminGuard><BetaFeedback /></AdminGuard>} />
                 <Route path="/email-health" element={<AdminGuard><EmailHealth /></AdminGuard>} />
+                <Route path="/data-export" element={<AdminGuard><DataExport /></AdminGuard>} />
               </Route>
 
             {/* Public landing page */}
