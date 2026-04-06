@@ -218,8 +218,17 @@ export default function Renewals() {
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground">Loading…</div>
       ) : renewals.length === 0 ? (
-        <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-          No renewals configured yet.
+        <div className="rounded-lg border bg-card p-10 text-center">
+          <RefreshCw className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
+          <h2 className="text-sm font-medium text-foreground mb-1">No renewals yet</h2>
+          <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+            Renewals help you track repeat billing, ongoing service cycles, and upcoming client renewals. Add renewals here so nothing important gets missed.
+          </p>
+          {isAdmin && (
+            <Button size="sm" onClick={() => { setEditing(null); setFormOpen(true); }}>
+              <Plus className="h-4 w-4 mr-1" /> Create First Renewal
+            </Button>
+          )}
         </div>
       ) : (
         <div className="space-y-6">

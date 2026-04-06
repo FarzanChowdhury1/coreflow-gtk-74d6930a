@@ -135,9 +135,22 @@ export default function Subscriptions() {
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : filtered.length === 0 ? (
-        <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">
-          {search ? "No subscriptions match." : "No subscriptions yet. Add your first recurring cost to start tracking."}
-        </CardContent></Card>
+        <div className="rounded-lg border bg-card p-10 text-center">
+          <CreditCard className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
+          <h2 className="text-sm font-medium text-foreground mb-1">
+            {search ? "No subscriptions match" : "No subscriptions yet"}
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+            {search
+              ? "Try adjusting your search term."
+              : "Subscriptions help you track recurring tools, software, and service costs. Add subscriptions here so monthly and yearly commitments stay visible."}
+          </p>
+          {!search && (
+            <Button size="sm" onClick={() => { setEditing(null); setFormOpen(true); }}>
+              <Plus className="h-4 w-4 mr-1" /> Add First Subscription
+            </Button>
+          )}
+        </div>
       ) : (
         <div className="rounded-md border">
           <Table>

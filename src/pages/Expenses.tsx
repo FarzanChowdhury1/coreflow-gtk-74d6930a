@@ -193,9 +193,22 @@ export default function Expenses() {
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : filtered.length === 0 ? (
-        <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">
-          {search || catFilter !== "all" ? "No expenses match your filters." : "No expenses recorded yet. Start by adding your first expense."}
-        </CardContent></Card>
+        <div className="rounded-lg border bg-card p-10 text-center">
+          <Receipt className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
+          <h2 className="text-sm font-medium text-foreground mb-1">
+            {search || catFilter !== "all" ? "No expenses match your filters" : "No expenses yet"}
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+            {search || catFilter !== "all"
+              ? "Try adjusting your search or filter criteria."
+              : "Expenses help you track business spending and understand where money is going. Add expenses here to keep your records accurate and easy to review."}
+          </p>
+          {!(search || catFilter !== "all") && (
+            <Button size="sm" onClick={() => { setEditing(null); setFormOpen(true); }}>
+              <Plus className="h-4 w-4 mr-1" /> Add First Expense
+            </Button>
+          )}
+        </div>
       ) : (
         <div className="rounded-md border">
           <Table>

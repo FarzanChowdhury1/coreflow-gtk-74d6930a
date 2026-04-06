@@ -5,7 +5,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, isPast, isToday } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -157,15 +156,16 @@ export default function Meetings() {
       {isLoading ? (
         <p className="text-center py-8 text-muted-foreground">Loading meetings…</p>
       ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center">
-            <Calendar className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
-            <h3 className="text-sm font-medium text-foreground mb-1">No meetings yet</h3>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto">
-              Schedule your first meeting to start tracking discussions, decisions, and follow-ups with your team and clients.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="rounded-lg border bg-card p-10 text-center">
+          <Calendar className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
+          <h2 className="text-sm font-medium text-foreground mb-1">No meetings yet</h2>
+          <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+            Meetings help you keep track of discussions, decisions, and follow-up actions. Add meetings here so your team can review what was discussed and what needs to happen next.
+          </p>
+          <Button size="sm" onClick={() => { setEditMeeting(null); setShowForm(true); }}>
+            <Plus className="h-4 w-4 mr-1" /> Schedule First Meeting
+          </Button>
+        </div>
       ) : (
         <div className="space-y-6">
           {upcoming.length > 0 && (

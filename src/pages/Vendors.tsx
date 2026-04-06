@@ -122,9 +122,22 @@ export default function Vendors() {
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : filtered.length === 0 ? (
-        <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">
-          {search ? "No vendors match your search." : "No vendors yet. Add your first vendor to start tracking supplier relationships."}
-        </CardContent></Card>
+        <div className="rounded-lg border bg-card p-10 text-center">
+          <Store className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
+          <h2 className="text-sm font-medium text-foreground mb-1">
+            {search ? "No vendors match your search" : "No vendors yet"}
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+            {search
+              ? "Try adjusting your search term."
+              : "Vendors help you manage the people and businesses you buy services or supplies from. Add vendors here to keep purchase-related information organized."}
+          </p>
+          {!search && isAdmin && (
+            <Button size="sm" onClick={() => { setEditing(null); setFormOpen(true); }}>
+              <Plus className="h-4 w-4 mr-1" /> Add First Vendor
+            </Button>
+          )}
+        </div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map((v) => (

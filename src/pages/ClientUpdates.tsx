@@ -162,8 +162,15 @@ export default function ClientUpdates() {
       {isLoading ? (
         <p className="text-center py-8 text-muted-foreground text-sm">Loading...</p>
       ) : filteredUpdates.length === 0 ? (
-        <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-          <p>No client updates yet. Create one to keep clients informed about project progress.</p>
+        <div className="rounded-lg border bg-card p-10 text-center">
+          <MessageSquare className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
+          <h2 className="text-sm font-medium text-foreground mb-1">No client updates yet</h2>
+          <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+            Client Updates help you share progress, decisions, and important status changes with clients in one place. Add updates here so communication stays clear and easy to track.
+          </p>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Create First Update
+          </Button>
         </div>
       ) : (
         <div className="space-y-3">
