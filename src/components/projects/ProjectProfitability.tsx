@@ -7,7 +7,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { TrendingUp, TrendingDown, Minus, BarChart3 } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+
 
 interface ProjectProfit {
   id: string;

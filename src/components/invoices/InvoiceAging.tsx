@@ -9,7 +9,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Clock, AlertTriangle } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+
 
 interface AgingBucket {
   label: string;
