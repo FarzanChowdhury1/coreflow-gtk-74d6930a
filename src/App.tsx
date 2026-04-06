@@ -45,6 +45,7 @@ const EmailHealth = lazy(() => import("@/pages/EmailHealth"));
 const DataExport = lazy(() => import("@/pages/DataExport"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const PlatformFeedback = lazy(() => import("@/pages/platform/PlatformFeedback"));
+const PlatformDashboard = lazy(() => import("@/pages/platform/PlatformDashboard"));
 const Landing = lazy(() => import("@/pages/Landing"));
 
 const PageFallback = () => (
@@ -81,6 +82,7 @@ const App = () => (
 
               {/* Platform admin routes (cross-workspace, no workspace context needed) */}
               <Route path="/platform/feedback" element={<Suspense fallback={<PageFallback />}><PlatformAdminGuard><PlatformFeedback /></PlatformAdminGuard></Suspense>} />
+              <Route path="/platform/dashboard" element={<Suspense fallback={<PageFallback />}><PlatformAdminGuard><PlatformDashboard /></PlatformAdminGuard></Suspense>} />
 
               {/* Internal authenticated routes */}
               <Route
