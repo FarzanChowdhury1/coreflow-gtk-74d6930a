@@ -85,9 +85,9 @@ Deno.serve(async (req) => {
 
     // --- COMPANIES ---
     const { data: companies, error: compErr } = await admin.from("companies").insert([
-      { workspace_id, legal_name: "Meridian Creative Agency", bin: "MC-2024-001", phone: "+1 555-0100", address: "45 Design District, Suite 200, New York, NY 10011" },
-      { workspace_id, legal_name: "Horizon Supply Co.", bin: "HS-2024-002", phone: "+1 555-0200", address: "780 Industrial Blvd, Chicago, IL 60614" },
-      { workspace_id, legal_name: "Apex Digital Solutions", bin: "AD-2024-003", phone: "+1 555-0300", address: "12 Tech Park Way, Austin, TX 78701" },
+      { workspace_id, legal_name: "Meridian Creative Agency", bin: "", phone: "+1 555-0100", address: "45 Design District, Suite 200, New York, NY 10011" },
+      { workspace_id, legal_name: "Horizon Supply Co.", bin: "", phone: "+1 555-0200", address: "780 Industrial Blvd, Chicago, IL 60614" },
+      { workspace_id, legal_name: "Apex Digital Solutions", bin: "", phone: "+1 555-0300", address: "12 Tech Park Way, Austin, TX 78701" },
     ]).select("id, legal_name");
 
     if (compErr || !companies || companies.length < 3) throw new Error("Failed to create companies: " + (compErr?.message ?? "unknown"));

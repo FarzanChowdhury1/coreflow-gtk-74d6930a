@@ -116,7 +116,7 @@ export function PlanBillingTab() {
                 Upgrade to Growth for advanced modules like expense tracking, approvals, audit logs, and unlimited seats.
               </p>
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" onClick={handleStartTrial} disabled={startingTrial}>
+                <Button size="sm" onClick={handleStartTrial} disabled={startingTrial || trialAlreadyUsed}>
                   {startingTrial ? (
                     <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                   ) : (
