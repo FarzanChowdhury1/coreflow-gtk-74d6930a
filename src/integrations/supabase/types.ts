@@ -1699,6 +1699,41 @@ export type Database = {
           },
         ]
       }
+      product_events: {
+        Row: {
+          created_at: string
+          event_name: string
+          id: string
+          metadata: Json | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_name: string
+          id?: string
+          metadata?: Json | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          event_name?: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -2646,7 +2681,10 @@ export type Database = {
           deleted_at: string | null
           id: string
           name: string
+          plan: string
+          seat_limit: number
           timezone: string
+          trial_ends_at: string | null
           updated_at: string
         }
         Insert: {
@@ -2655,7 +2693,10 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           name: string
+          plan?: string
+          seat_limit?: number
           timezone?: string
+          trial_ends_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -2664,7 +2705,10 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           name?: string
+          plan?: string
+          seat_limit?: number
           timezone?: string
+          trial_ends_at?: string | null
           updated_at?: string
         }
         Relationships: []
