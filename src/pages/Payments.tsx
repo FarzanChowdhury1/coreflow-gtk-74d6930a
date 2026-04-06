@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
-import { CreditCard, Plus, Download } from "lucide-react";
-import { Navigate } from "react-router-dom";
+import { CreditCard, Plus, Download, AlertTriangle, ShieldAlert } from "lucide-react";
+import { PageInfoButton } from "@/components/layout/PageInfoButton";
+import { Card, CardContent } from "@/components/ui/card";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,7 +59,18 @@ export default function Payments() {
   const totalReceived = payments.reduce((s, p) => s + Number(p.amount), 0);
 
   if (!isAdmin) {
-    return <Navigate to="/dashboard" replace />;
+    return (
+      <div>
+        <div className="mb-2 flex items-center gap-3">
+          <CreditCard className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-semibold text-foreground">Payment Ledger</h1>
+        </div>
+        <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">
+          <ShieldAlert className="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" />
+          Payment management is available to workspace admins only. Contact your workspace admin if you need access.
+        </CardContent></Card>
+      </div>
+    );
   }
 
   return (
