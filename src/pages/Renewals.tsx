@@ -177,38 +177,35 @@ export default function Renewals() {
           />
         </div>
         {isAdmin && (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                exportToCSV(
-                  renewals.map((r) => ({
-                    label: r.label,
-                    company: r.companies?.legal_name || "",
-                    amount: r.amount,
-                    currency: r.currency,
-                    interval: `${r.interval_months} mo`,
-                    next_billing_date: r.next_billing_date,
-                    is_active: r.is_active ? "Active" : "Paused",
-                    latest_invoice: r.invoices?.invoice_number || "",
-                  })),
-                  [
-                    { key: "label", label: "Label" },
-                    { key: "company", label: "Company" },
-                    { key: "amount", label: "Amount" },
-                    { key: "currency", label: "Currency" },
-                    { key: "interval", label: "Interval" },
-                    { key: "next_billing_date", label: "Next Billing" },
-                    { key: "is_active", label: "Status" },
-                    { key: "latest_invoice", label: "Latest Invoice" },
-                  ],
-                  "renewals-export"
-                )
-              }
-            >
-              <Download className="h-4 w-4 mr-1" /> Export
-            </Button>
+          {(() => {
+            const mapped = renewals.map((r) => ({
+              label: r.label,
+              company: r.companies?.legal_name || "",
+              amount: r.amount,
+              currency: r.currency,
+              interval: `${r.interval_months} mo`,
+              next_billing_date: r.next_billing_date,
+              is_active: r.is_active ? "Active" : "Paused",
+              latest_invoice: r.invoices?.invoice_number || "",
+            }));
+            const cols = [
+              { key: "label", label: "Label" },
+              { key: "company", label: "Company" },
+              { key: "amount", label: "Amount" },
+              { key: "currency", label: "Currency" },
+              { key: "interval", label: "Interval" },
+              { key: "next_billing_date", label: "Next Billing" },
+              { key: "is_active", label: "Status" },
+              { key: "latest_invoice", label: "Latest Invoice" },
+            ];
+            return (
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => exportToCSV(mapped, cols, "renewals-export")}>
+                  <Download className="h-4 w-4 mr-1" /> CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => exportToXLSX(mapped, cols, "renewals-export")}>
+                  <Download className="h-4 w-4 mr-1" /> XLSX
+                </Button>
             <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
               <Plus className="mr-1 h-4 w-4" /> New Renewal
             </Button>

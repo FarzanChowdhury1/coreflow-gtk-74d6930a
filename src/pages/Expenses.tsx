@@ -180,7 +180,10 @@ export default function Expenses() {
           <Plus className="mr-1 h-4 w-4" /> Add Expense
         </Button>
         <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
-          <Download className="mr-1 h-4 w-4" /> Export CSV
+          <Download className="mr-1 h-4 w-4" /> CSV
+        </Button>
+        <Button variant="outline" size="sm" onClick={handleExportXlsx} disabled={filtered.length === 0}>
+          <Download className="mr-1 h-4 w-4" /> XLSX
         </Button>
         <div className="flex items-center gap-2 ml-auto">
           <Switch id="show-archived-exp" checked={showArchived} onCheckedChange={setShowArchived} />
