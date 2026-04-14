@@ -70,14 +70,16 @@ export default function Notifications() {
   const [loading, setLoading] = useState(true);
   const [severityFilter, setSeverityFilter] = useState("all");
 
+  const { currentWorkspace } = useWorkspace();
+
   const fetchNotifications = useCallback(async () => {
-    if (!user) return;
+    if (!user || !currentWorkspace) return;
     setLoading(true);
     const { data } = await supabase
-      .rpc("fetch_prioritized_notifications", { _user_id: user.id, _limit: 50 });
+      .rpc("fetch_prioritized_notifications", { _user_id: user.id, _limit: 50, _workspace_id: currentWorkspace.id });
     setNotifications((data as any[]) || []);
     setLoading(false);
-  }, [user]);
+  }, [user, currentWorkspace]);
 
   useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
 

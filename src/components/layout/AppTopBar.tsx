@@ -6,6 +6,7 @@ import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { sortByPriority } from "@/lib/notification-utils";
