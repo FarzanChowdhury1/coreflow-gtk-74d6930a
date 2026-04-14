@@ -6,6 +6,7 @@ import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { sortByPriority } from "@/lib/notification-utils";
@@ -24,16 +25,17 @@ function SeverityIcon({ severity }: { severity: Severity }) {
 
 export function AppTopBar({ onMenuClick }: Props) {
   const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
 
   const fetchRecent = useCallback(async () => {
-    if (!user) return;
+    if (!user || !currentWorkspace) return;
     const { data } = await supabase
-      .rpc("fetch_prioritized_notifications", { _user_id: user.id, _limit: 8 });
+      .rpc("fetch_prioritized_notifications", { _user_id: user.id, _limit: 8, _workspace_id: currentWorkspace.id });
     setNotifications((data as any[]) || []);
-  }, [user]);
+  }, [user, currentWorkspace]);
 
   useEffect(() => { fetchRecent(); }, [fetchRecent]);
 
