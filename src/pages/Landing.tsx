@@ -110,6 +110,7 @@ export default function Landing() {
         </div>
       </header>
 
+      <main>
       {/* Hero */}
       <section className="mx-auto max-w-4xl px-4 py-20 text-center">
         <Badge variant="secondary" className="mb-4">Built for agencies & service firms</Badge>
@@ -245,6 +246,8 @@ export default function Landing() {
           </Button>
         </div>
       </section>
+
+      </main>
 
       {/* Footer */}
       <footer className="border-t py-8">
