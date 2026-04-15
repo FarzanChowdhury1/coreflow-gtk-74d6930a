@@ -2843,6 +2843,10 @@ export type Database = {
         Args: { _name?: string; _user_id: string }
         Returns: Json
       }
+      check_workspace_seat_capacity: {
+        Args: { _include_pending_invites?: boolean; _workspace_id: string }
+        Returns: boolean
+      }
       count_portal_tokens: { Args: { _workspace_id: string }; Returns: number }
       count_retention_candidates_notifications: { Args: never; Returns: Json }
       count_retention_candidates_ops_logs: { Args: never; Returns: Json }
