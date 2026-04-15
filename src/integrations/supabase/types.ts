@@ -1548,6 +1548,7 @@ export type Database = {
       notifications: {
         Row: {
           body: string | null
+          category: string
           created_at: string
           id: string
           is_read: boolean
@@ -1559,6 +1560,7 @@ export type Database = {
         }
         Insert: {
           body?: string | null
+          category?: string
           created_at?: string
           id?: string
           is_read?: boolean
@@ -1570,6 +1572,7 @@ export type Database = {
         }
         Update: {
           body?: string | null
+          category?: string
           created_at?: string
           id?: string
           is_read?: boolean
@@ -2948,6 +2951,7 @@ export type Database = {
             Args: { _limit?: number; _user_id: string; _workspace_id?: string }
             Returns: {
               body: string | null
+              category: string
               created_at: string
               id: string
               is_read: boolean
@@ -2968,6 +2972,7 @@ export type Database = {
             Args: { _limit?: number; _user_id: string }
             Returns: {
               body: string | null
+              category: string
               created_at: string
               id: string
               is_read: boolean
