@@ -18,6 +18,13 @@ export function AppLayout() {
 
   return (
     <div className="flex min-h-screen bg-background">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:text-sm focus:font-medium focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
+
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -32,7 +39,7 @@ export function AppLayout() {
         <AppTopBar onMenuClick={() => setSidebarOpen(true)} />
         <PendingInviteBanner />
         <EntitlementBanner />
-        <main className="flex-1 p-4 sm:p-6 animate-fade-in">
+        <main id="main-content" className="flex-1 p-4 sm:p-6 animate-fade-in">
           {loading ? (
             <div className="flex min-h-[50vh] items-center justify-center">
               <div className="flex flex-col items-center gap-3">
