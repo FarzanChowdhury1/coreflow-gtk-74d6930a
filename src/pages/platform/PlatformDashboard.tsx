@@ -436,7 +436,12 @@ export default function PlatformDashboard() {
                         >
                           <TableCell>
                             <div>
-                              <p className="font-medium text-foreground">{ws.name}</p>
+                              <p className="font-medium text-foreground">
+                                {ws.name}
+                                {ws.deleted_at && (
+                                  <Badge variant="destructive" className="ml-2 text-[10px] px-1.5 py-0">Deactivated</Badge>
+                                )}
+                              </p>
                               <p className="text-xs text-muted-foreground">
                                 {ws.company_count} client{ws.company_count !== 1 ? "s" : ""}
                                 {" · "}
