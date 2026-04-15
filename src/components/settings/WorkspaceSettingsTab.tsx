@@ -15,7 +15,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, Download } from "lucide-react";
+import { useEntitlement } from "@/hooks/use-entitlement";
+import { useNavigate } from "react-router-dom";
 
 const CURRENCIES = ["BDT", "USD", "EUR", "GBP", "INR", "AED", "SGD"];
 const TIMEZONES = [
@@ -40,6 +42,8 @@ type WorkspaceFormValues = z.infer<typeof workspaceSchema>;
 export function WorkspaceSettingsTab() {
   const { currentWorkspace, refreshWorkspaces } = useWorkspace();
   const { signOut } = useAuth();
+  const entitlement = useEntitlement();
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [confirmName, setConfirmName] = useState("");
   const [deactivating, setDeactivating] = useState(false);
@@ -223,6 +227,33 @@ export function WorkspaceSettingsTab() {
                 <li>You will be signed out after deactivation</li>
               </ul>
             </div>
+
+            {entitlement.features.csvExport ? (
+              <div className="rounded-md border border-primary/20 bg-primary/5 p-3">
+                <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Download className="h-4 w-4 text-primary" />
+                  Export your data before deactivating
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Once deactivated, you won't be able to access your workspace. Download a full export first.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => navigate("/data-export")}
+                >
+                  <Download className="h-3.5 w-3.5 mr-1.5" />
+                  Go to Data Export
+                </Button>
+              </div>
+            ) : (
+              <div className="rounded-md border border-muted bg-muted/30 p-3">
+                <p className="text-sm text-muted-foreground">
+                  <strong>About your data:</strong> All records are preserved after deactivation. No data is deleted. If you need a data export, upgrade to a Growth plan before deactivating, or contact support for assistance.
+                </p>
+              </div>
+            )}
 
             <AlertDialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setConfirmName(""); }}>
               <AlertDialogTrigger asChild>
