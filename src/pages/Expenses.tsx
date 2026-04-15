@@ -127,8 +127,8 @@ export default function Expenses() {
     { key: "notes", label: "Notes" },
   ];
   const expMapped = () => filtered.map((e) => ({ ...e, vendor_name: e.vendors?.name || "", project_name: e.projects?.name || "" }));
-  const handleExport = () => workspaceId && guardedExportToCSV(workspaceId, expMapped(), expCols, "expenses");
-  const handleExportXlsx = () => workspaceId && guardedExportToXLSX(workspaceId, expMapped(), expCols, "expenses");
+  const handleExport = () => currentWorkspace && guardedExportToCSV(currentWorkspace.id, expMapped(), expCols, "expenses");
+  const handleExportXlsx = () => currentWorkspace && guardedExportToXLSX(currentWorkspace.id, expMapped(), expCols, "expenses");
 
   if (!isAdmin) {
     return (
