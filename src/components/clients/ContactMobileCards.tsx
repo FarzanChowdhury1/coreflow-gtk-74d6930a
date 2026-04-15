@@ -31,7 +31,14 @@ export function ContactMobileCards({ contacts, isAdmin, getCompanyName, onEdit, 
                   <p className="text-xs text-muted-foreground">{contact.designation}</p>
                 )}
               </div>
-              {isArchived && <Badge variant="outline" className="text-[10px] shrink-0">Archived</Badge>}
+              <div className="flex gap-1 shrink-0">
+                {isArchived && <Badge variant="outline" className="text-[10px]">Archived</Badge>}
+                {!isArchived && (contact as any).lifecycle_status && (contact as any).lifecycle_status !== "active" && (
+                  <Badge variant="secondary" className="text-[10px]">
+                    {(contact as any).lifecycle_status === "left_company" ? "Left Company" : (contact as any).lifecycle_status === "bounced" ? "Bounced" : "Inactive"}
+                  </Badge>
+                )}
+              </div>
             </div>
 
             <div className="space-y-1 text-sm text-muted-foreground mb-3">

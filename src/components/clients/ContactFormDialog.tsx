@@ -113,6 +113,7 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
     designation: "",
     company_id: "",
     notes: "",
+    lifecycle_status: "active" as string,
   });
 
   useEffect(() => {
@@ -131,6 +132,7 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
         designation: contact.designation || "",
         company_id: contact.company_id || "",
         notes: contact.notes || "",
+        lifecycle_status: (contact as any).lifecycle_status || "active",
       });
     } else {
       setShowAltPhone(false);
@@ -139,6 +141,7 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
         phone_code: "+880", phone_local: "",
         alt_phone_code: "+880", alt_phone_local: "",
         designation: "", company_id: "", notes: "",
+        lifecycle_status: "active",
       });
     }
     setErrors({});
@@ -188,6 +191,7 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
       company_id: result.data.company_id || null,
       notes: result.data.notes || null,
       workspace_id: currentWorkspace.id,
+      lifecycle_status: form.lifecycle_status,
     } as any;
 
     if (contact) {
@@ -296,6 +300,20 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
               <Plus className="h-3 w-3" /> Add alternate phone
             </button>
           )}
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Status</label>
+            <select
+              value={form.lifecycle_status}
+              onChange={(e) => setForm((f) => ({ ...f, lifecycle_status: e.target.value }))}
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="left_company">Left Company</option>
+              <option value="bounced">Bounced / Unreachable</option>
+            </select>
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>

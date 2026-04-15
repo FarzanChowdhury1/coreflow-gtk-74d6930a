@@ -444,6 +444,11 @@ export default function Clients() {
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-foreground">{contact.full_name}</span>
                             {isArchived && <Badge variant="outline" className="text-[10px]">Archived</Badge>}
+                            {!isArchived && (contact as any).lifecycle_status && (contact as any).lifecycle_status !== "active" && (
+                              <Badge variant="secondary" className="text-[10px]">
+                                {(contact as any).lifecycle_status === "left_company" ? "Left Company" : (contact as any).lifecycle_status === "bounced" ? "Bounced" : "Inactive"}
+                              </Badge>
+                            )}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{contact.email || "—"}</td>
