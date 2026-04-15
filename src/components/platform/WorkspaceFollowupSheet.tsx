@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Send, Calendar, User, MessageSquare } from "lucide-react";
+import { Loader2, Send, Calendar, User, MessageSquare, RotateCcw, AlertTriangle } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
 const STAGES = [
@@ -59,6 +59,7 @@ interface WorkspaceData {
   followup_owner_email: string | null;
   last_note: string | null;
   note_count: number;
+  deleted_at: string | null;
 }
 
 interface NoteRow {
@@ -79,6 +80,7 @@ export function WorkspaceFollowupSheet({ workspace, open, onOpenChange, onUpdate
   const { toast } = useToast();
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [newNote, setNewNote] = useState("");
@@ -245,6 +247,26 @@ export function WorkspaceFollowupSheet({ workspace, open, onOpenChange, onUpdate
     setSaving(false);
   };
 
+  const handleReactivate = async () => {
+    if (!workspace) return;
+    setReactivating(true);
+    const { data, error } = await supabase.rpc("reactivate_workspace" as any, {
+      _workspace_id: workspace.id,
+    });
+    setReactivating(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    const result = data as any;
+    if (!result?.success) {
+      toast({ title: "Error", description: result?.error || "Reactivation failed", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Workspace reactivated", description: `${workspace.name} is now active again.` });
+    onUpdated();
+  };
+
   if (!workspace) return null;
 
   return (
@@ -366,6 +388,31 @@ export function WorkspaceFollowupSheet({ workspace, open, onOpenChange, onUpdate
               Save Follow-up
             </Button>
           </div>
+
+          {workspace.deleted_at && (
+            <>
+              <Separator />
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
+                <h3 className="text-sm font-semibold flex items-center gap-2 text-destructive">
+                  <AlertTriangle className="h-4 w-4" /> Workspace Deactivated
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Deactivated {formatDistanceToNow(new Date(workspace.deleted_at), { addSuffix: true })}.
+                  Members cannot access this workspace. Data is preserved.
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleReactivate}
+                  disabled={reactivating}
+                >
+                  {reactivating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <RotateCcw className="h-3 w-3 mr-1" />}
+                  Reactivate Workspace
+                </Button>
+              </div>
+            </>
+          )}
 
           <Separator />
 
