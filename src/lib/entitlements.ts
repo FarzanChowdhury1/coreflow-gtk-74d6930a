@@ -104,8 +104,6 @@ export function resolveEntitlement(
   const planId = (plan === "growth" || plan === "enterprise" ? plan : "free") as PlanId;
   const config = PLANS[planId];
 
-  const effectiveSeatLimit = seatLimit ?? config.seatLimit;
-
   // Trial logic
   const now = new Date();
   const trialEnd = trialEndsAt ? new Date(trialEndsAt) : null;
@@ -114,6 +112,12 @@ export function resolveEntitlement(
   const trialDaysLeft = trialEnd
     ? Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
     : 0;
+
+  // When trial expired, enforce Free-plan limits and features
+  const effectiveConfig = trialExpired ? PLANS.free : config;
+  const effectiveSeatLimit = trialExpired
+    ? PLANS.free.seatLimit
+    : (seatLimit ?? config.seatLimit);
 
   const isOverSeatLimit = effectiveSeatLimit !== null && currentSeatCount > effectiveSeatLimit;
   const canAddSeat = effectiveSeatLimit === null || currentSeatCount < effectiveSeatLimit;
