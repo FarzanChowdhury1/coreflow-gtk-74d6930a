@@ -620,6 +620,7 @@ export type Database = {
           email: string | null
           full_name: string
           id: string
+          lifecycle_status: Database["public"]["Enums"]["contact_lifecycle_status"]
           notes: string | null
           phone: string | null
           updated_at: string
@@ -634,6 +635,7 @@ export type Database = {
           email?: string | null
           full_name: string
           id?: string
+          lifecycle_status?: Database["public"]["Enums"]["contact_lifecycle_status"]
           notes?: string | null
           phone?: string | null
           updated_at?: string
@@ -648,6 +650,7 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+          lifecycle_status?: Database["public"]["Enums"]["contact_lifecycle_status"]
           notes?: string | null
           phone?: string | null
           updated_at?: string
@@ -3095,6 +3098,11 @@ export type Database = {
         | "submitted"
         | "approved"
         | "revision_requested"
+      contact_lifecycle_status:
+        | "active"
+        | "inactive"
+        | "left_company"
+        | "bounced"
       feedback_category:
         | "bug"
         | "ui_ux"
@@ -3274,6 +3282,12 @@ export const Constants = {
         "submitted",
         "approved",
         "revision_requested",
+      ],
+      contact_lifecycle_status: [
+        "active",
+        "inactive",
+        "left_company",
+        "bounced",
       ],
       feedback_category: [
         "bug",
