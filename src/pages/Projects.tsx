@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { FolderKanban, Plus, Search, Building2, Wrench, Download, AlertTriangle } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { exportToCSV } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -51,6 +52,33 @@ export default function Projects() {
     enabled: !!workspaceId,
     staleTime: 30000,
   });
+
+  // Fetch task counts per project for progress bars
+  const projectIds = projects.map((p) => p.id);
+  const { data: taskCounts = [] } = useQuery({
+    queryKey: ["project-task-counts", workspaceId, projectIds.join(",")],
+    queryFn: async () => {
+      if (!projectIds.length) return [];
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("project_id, status")
+        .in("project_id", projectIds);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: projectIds.length > 0,
+    staleTime: 30000,
+  });
+
+  const progressByProject = useMemo(() => {
+    const map: Record<string, { total: number; done: number }> = {};
+    for (const t of taskCounts) {
+      if (!map[t.project_id]) map[t.project_id] = { total: 0, done: 0 };
+      map[t.project_id].total++;
+      if (t.status === "done") map[t.project_id].done++;
+    }
+    return map;
+  }, [taskCounts]);
 
   const filtered = projects
     .filter((p) => {
@@ -178,27 +206,40 @@ export default function Projects() {
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((project) => (
-            <div
-              key={project.id}
-              onClick={() => setSelectedProjectId(project.id)}
-              className="rounded-lg border bg-card p-4 hover:border-primary/30 transition-colors cursor-pointer"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <h2 className="font-medium text-foreground text-sm leading-tight">{project.name}</h2>
-                <Badge variant="secondary" className={`text-xs shrink-0 ml-2 ${statusColors[project.status]}`}>
-                  {project.status.replace("_", " ")}
-                </Badge>
+          {filtered.map((project) => {
+            const prog = progressByProject[project.id];
+            const pct = prog && prog.total > 0 ? Math.round((prog.done / prog.total) * 100) : 0;
+            return (
+              <div
+                key={project.id}
+                onClick={() => setSelectedProjectId(project.id)}
+                className="rounded-lg border bg-card p-4 hover:border-primary/30 transition-colors cursor-pointer"
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <h2 className="font-medium text-foreground text-sm leading-tight">{project.name}</h2>
+                  <Badge variant="secondary" className={`text-xs shrink-0 ml-2 ${statusColors[project.status]}`}>
+                    {project.status.replace("_", " ")}
+                  </Badge>
+                </div>
+                <p className="text-xs text-foreground/70 mb-3">
+                  {(project.companies as any)?.legal_name ?? <span className="italic text-foreground/50">Internal project</span>}
+                </p>
+                {prog && prog.total > 0 && (
+                  <div className="mb-2">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                      <span>{prog.done}/{prog.total} tasks done</span>
+                      <span>{pct}%</span>
+                    </div>
+                    <Progress value={pct} className="h-1.5" />
+                  </div>
+                )}
+                <div className="flex gap-4 text-xs text-foreground/60">
+                  {project.start_date && <span>Start: {project.start_date}</span>}
+                  {project.target_end_date && <span>Target: {project.target_end_date}</span>}
+                </div>
               </div>
-              <p className="text-xs text-foreground/70 mb-3">
-                {(project.companies as any)?.legal_name ?? <span className="italic text-foreground/50">Internal project</span>}
-              </p>
-              <div className="flex gap-4 text-xs text-foreground/60">
-                {project.start_date && <span>Start: {project.start_date}</span>}
-                {project.target_end_date && <span>Target: {project.target_end_date}</span>}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
