@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Send, Calendar, User, MessageSquare } from "lucide-react";
+import { Loader2, Send, Calendar, User, MessageSquare, RotateCcw, AlertTriangle } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
 const STAGES = [
