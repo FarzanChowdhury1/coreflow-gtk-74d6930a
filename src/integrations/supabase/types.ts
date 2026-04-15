@@ -2839,6 +2839,7 @@ export type Database = {
         Args: { _workspace_id: string }
         Returns: Json
       }
+      assert_export_allowed: { Args: { _workspace_id: string }; Returns: Json }
       bootstrap_workspace: {
         Args: { _name?: string; _user_id: string }
         Returns: Json

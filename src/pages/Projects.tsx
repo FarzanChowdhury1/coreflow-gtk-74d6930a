@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { FolderKanban, Plus, Search, Building2, Wrench, Download, AlertTriangle } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
-import { exportToCSV } from "@/lib/csv-export";
+import { guardedExportToCSV } from "@/lib/guarded-export";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -112,7 +112,7 @@ export default function Projects() {
             size="sm"
             variant="outline"
             onClick={() =>
-              exportToCSV(
+              workspaceId && guardedExportToCSV(workspaceId,
                 filtered.map((p: any) => ({
                   name: p.name,
                   company: p.companies?.legal_name || "Internal",

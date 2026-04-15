@@ -3,8 +3,7 @@ import { Receipt, Plus, Archive, ArchiveRestore, Pencil, Download, CheckCircle2,
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ExpenseMobileCards } from "@/components/expenses/ExpenseMobileCards";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
-import { exportToCSV } from "@/lib/csv-export";
-import { exportToXLSX } from "@/lib/xlsx-export";
+import { guardedExportToCSV, guardedExportToXLSX } from "@/lib/guarded-export";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
@@ -128,8 +127,8 @@ export default function Expenses() {
     { key: "notes", label: "Notes" },
   ];
   const expMapped = () => filtered.map((e) => ({ ...e, vendor_name: e.vendors?.name || "", project_name: e.projects?.name || "" }));
-  const handleExport = () => exportToCSV(expMapped(), expCols, "expenses");
-  const handleExportXlsx = () => exportToXLSX(expMapped(), expCols, "expenses");
+  const handleExport = () => currentWorkspace && guardedExportToCSV(currentWorkspace.id, expMapped(), expCols, "expenses");
+  const handleExportXlsx = () => currentWorkspace && guardedExportToXLSX(currentWorkspace.id, expMapped(), expCols, "expenses");
 
   if (!isAdmin) {
     return (

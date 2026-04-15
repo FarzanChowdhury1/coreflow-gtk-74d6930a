@@ -1,8 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { PieChart, Plus, Pencil, Trash2, Download, AlertTriangle } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
-import { exportToCSV } from "@/lib/csv-export";
-import { exportToXLSX } from "@/lib/xlsx-export";
+import { guardedExportToCSV, guardedExportToXLSX } from "@/lib/guarded-export";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -180,10 +179,10 @@ export default function BudgetActual() {
         <Button size="sm" onClick={() => { setEditingBudget(null); setFormOpen(true); }}>
           <Plus className="mr-1 h-4 w-4" /> Set Budget Target
         </Button>
-        <Button variant="outline" size="sm" onClick={() => exportToCSV(rows, budgetExportCols, "budget-vs-actual")} disabled={rows.length === 0}>
+        <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToCSV(currentWorkspace.id, rows, budgetExportCols, "budget-vs-actual")} disabled={rows.length === 0}>
           <Download className="mr-1 h-4 w-4" /> CSV
         </Button>
-        <Button variant="outline" size="sm" onClick={() => exportToXLSX(rows, budgetExportCols, "budget-vs-actual")} disabled={rows.length === 0}>
+        <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToXLSX(currentWorkspace.id, rows, budgetExportCols, "budget-vs-actual")} disabled={rows.length === 0}>
           <Download className="mr-1 h-4 w-4" /> XLSX
         </Button>
       </div>

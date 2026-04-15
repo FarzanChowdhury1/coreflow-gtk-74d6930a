@@ -5,8 +5,7 @@ import { Receipt, Plus, Download, Clock } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { InvoiceAging } from "@/components/invoices/InvoiceAging";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { exportToCSV } from "@/lib/csv-export";
-import { exportToXLSX } from "@/lib/xlsx-export";
+import { guardedExportToCSV, guardedExportToXLSX } from "@/lib/guarded-export";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Button } from "@/components/ui/button";
@@ -149,10 +148,10 @@ export default function Invoices() {
             ];
             return (
               <>
-                <Button variant="outline" size="sm" onClick={() => exportToCSV(mapped, cols, "invoices-export")}>
+                <Button variant="outline" size="sm" onClick={() => workspaceId && guardedExportToCSV(workspaceId, mapped, cols, "invoices-export")}>
                   <Download className="h-4 w-4 mr-1" /> CSV
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => exportToXLSX(mapped, cols, "invoices-export")}>
+                <Button variant="outline" size="sm" onClick={() => workspaceId && guardedExportToXLSX(workspaceId, mapped, cols, "invoices-export")}>
                   <Download className="h-4 w-4 mr-1" /> XLSX
                 </Button>
               </>

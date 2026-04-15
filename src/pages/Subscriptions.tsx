@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { CreditCard, Plus, Pause, Play, Pencil, Download, AlertTriangle } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
-import { exportToCSV } from "@/lib/csv-export";
+import { guardedExportToCSV } from "@/lib/guarded-export";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -75,7 +75,8 @@ export default function Subscriptions() {
   };
 
   const handleExport = () => {
-    exportToCSV(filtered.map((s) => ({ ...s, vendor_name: s.vendors?.name || "" })), [
+    if (!currentWorkspace) return;
+    guardedExportToCSV(currentWorkspace.id, filtered.map((s) => ({ ...s, vendor_name: s.vendors?.name || "" })), [
       { key: "name", label: "Subscription" },
       { key: "vendor_name", label: "Vendor" },
       { key: "amount", label: "Amount" },

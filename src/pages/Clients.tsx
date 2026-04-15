@@ -4,8 +4,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { CompanyMobileCards } from "@/components/clients/CompanyMobileCards";
 import { ContactMobileCards } from "@/components/clients/ContactMobileCards";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
-import { exportToCSV } from "@/lib/csv-export";
-import { exportToXLSX } from "@/lib/xlsx-export";
+import { guardedExportToCSV, guardedExportToXLSX } from "@/lib/guarded-export";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -198,16 +197,16 @@ export default function Clients() {
             ];
             return (
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => exportToCSV(displayCompanies, companyCols, "companies-export")}>
+                <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToCSV(currentWorkspace.id, displayCompanies, companyCols, "companies-export")}>
                   <Download className="h-4 w-4 mr-1" /> CSV
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => exportToXLSX(displayCompanies, companyCols, "companies-export")}>
+                <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToXLSX(currentWorkspace.id, displayCompanies, companyCols, "companies-export")}>
                   <Download className="h-4 w-4 mr-1" /> XLSX
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => exportToCSV(contactData, contactCols, "contacts-export")}>
+                <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToCSV(currentWorkspace.id, contactData, contactCols, "contacts-export")}>
                   <Download className="h-4 w-4 mr-1" /> Contacts CSV
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => exportToXLSX(contactData, contactCols, "contacts-export")}>
+                <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToXLSX(currentWorkspace.id, contactData, contactCols, "contacts-export")}>
                   <Download className="h-4 w-4 mr-1" /> Contacts XLSX
                 </Button>
                 <Button variant="outline" onClick={() => setPortalLinkOpen(true)}>

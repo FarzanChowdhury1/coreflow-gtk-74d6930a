@@ -16,7 +16,7 @@ import { Plus, Calendar, Search, Video, Building2, Clock, FileText, Download, Al
 import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
 import { MeetingDetail } from "@/components/meetings/MeetingDetail";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
-import { exportToCSV } from "@/lib/csv-export";
+import { guardedExportToCSV } from "@/lib/guarded-export";
 
 const STATUS_STYLES: Record<string, string> = {
   scheduled: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -100,7 +100,7 @@ export default function Meetings() {
             variant="outline"
             size="sm"
             onClick={() =>
-              exportToCSV(
+              wsId && guardedExportToCSV(wsId,
                 filtered.map((m: any) => ({
                   title: m.title,
                   type: m.meeting_type,

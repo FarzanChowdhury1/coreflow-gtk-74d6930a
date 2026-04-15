@@ -3,8 +3,7 @@ import { Inbox, Plus, Search, FileText, Calendar, Archive, RotateCcw, Download }
 import { useIsMobile } from "@/hooks/use-mobile";
 import { LeadMobileCards } from "@/components/leads/LeadMobileCards";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
-import { exportToCSV } from "@/lib/csv-export";
-import { exportToXLSX } from "@/lib/xlsx-export";
+import { guardedExportToCSV, guardedExportToXLSX } from "@/lib/guarded-export";
 import { Button } from "@/components/ui/button";
 import { LeadTasksPanel } from "@/components/leads/LeadTasksPanel";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -260,10 +259,10 @@ export default function Leads() {
             ];
             return (
               <>
-                <Button size="sm" variant="outline" onClick={() => exportToCSV(displayLeads, cols, "leads-export")}>
+                <Button size="sm" variant="outline" onClick={() => workspaceId && guardedExportToCSV(workspaceId, displayLeads, cols, "leads-export")}>
                   <Download className="h-4 w-4 mr-1" /> CSV
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => exportToXLSX(displayLeads, cols, "leads-export")}>
+                <Button size="sm" variant="outline" onClick={() => workspaceId && guardedExportToXLSX(workspaceId, displayLeads, cols, "leads-export")}>
                   <Download className="h-4 w-4 mr-1" /> XLSX
                 </Button>
               </>

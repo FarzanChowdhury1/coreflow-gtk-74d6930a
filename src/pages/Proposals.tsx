@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { FileText, Plus, Search, Download, AlertTriangle } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
-import { exportToCSV } from "@/lib/csv-export";
+import { guardedExportToCSV } from "@/lib/guarded-export";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -96,7 +96,7 @@ export default function Proposals() {
               size="sm"
               variant="outline"
               onClick={() =>
-                exportToCSV(
+                workspaceId && guardedExportToCSV(workspaceId,
                   filtered.map((p: any) => ({
                     title: p.title,
                     company: p.companies?.legal_name || "",

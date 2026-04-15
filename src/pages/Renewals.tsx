@@ -1,8 +1,7 @@
 import { useState, useMemo } from "react";
 import { RefreshCw, Plus, Pause, Play, Receipt, FileText, CheckCircle2, Loader2, Download, AlertTriangle } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
-import { exportToCSV } from "@/lib/csv-export";
-import { exportToXLSX } from "@/lib/xlsx-export";
+import { guardedExportToCSV, guardedExportToXLSX } from "@/lib/guarded-export";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -199,10 +198,10 @@ export default function Renewals() {
             ];
             return (
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => exportToCSV(mapped, cols, "renewals-export")}>
+                <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToCSV(currentWorkspace.id, mapped, cols, "renewals-export")}>
                   <Download className="h-4 w-4 mr-1" /> CSV
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => exportToXLSX(mapped, cols, "renewals-export")}>
+                <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToXLSX(currentWorkspace.id, mapped, cols, "renewals-export")}>
                   <Download className="h-4 w-4 mr-1" /> XLSX
                 </Button>
                 <Button onClick={() => { setEditing(null); setFormOpen(true); }}>

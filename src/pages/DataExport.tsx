@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
-import { exportMultiSheetXLSX } from "@/lib/xlsx-export";
+import { guardedExportMultiSheetXLSX } from "@/lib/guarded-export";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -165,7 +165,7 @@ export default function DataExport() {
       }
 
       const dateStr = format(new Date(), "yyyy-MM-dd");
-      exportMultiSheetXLSX(sheets, `coreflow-export-${dateStr}`);
+      await guardedExportMultiSheetXLSX(currentWorkspace.id, sheets, `coreflow-export-${dateStr}`);
       toast.success("Workspace data exported successfully");
     } catch {
       toast.error("Export failed. Please try again.");

@@ -2,8 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { CreditCard, Plus, Download, AlertTriangle, ShieldAlert } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { Card, CardContent } from "@/components/ui/card";
-import { exportToCSV } from "@/lib/csv-export";
-import { exportToXLSX } from "@/lib/xlsx-export";
+import { guardedExportToCSV, guardedExportToXLSX } from "@/lib/guarded-export";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { Button } from "@/components/ui/button";
@@ -114,10 +113,10 @@ export default function Payments() {
             ];
             return (
               <>
-                <Button variant="outline" size="sm" onClick={() => exportToCSV(mapped, cols, "payments-export")}>
+                <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToCSV(currentWorkspace.id, mapped, cols, "payments-export")}>
                   <Download className="h-4 w-4 mr-1" /> CSV
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => exportToXLSX(mapped, cols, "payments-export")}>
+                <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToXLSX(currentWorkspace.id, mapped, cols, "payments-export")}>
                   <Download className="h-4 w-4 mr-1" /> XLSX
                 </Button>
               </>
