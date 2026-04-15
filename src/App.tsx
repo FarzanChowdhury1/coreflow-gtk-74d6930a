@@ -9,6 +9,7 @@ import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminGuard } from "@/components/auth/AdminGuard";
 import { PlatformAdminGuard } from "@/components/auth/PlatformAdminGuard";
+import { FeatureGate } from "@/components/auth/FeatureGate";
 import { AppLayout } from "@/components/layout/AppLayout";
 
 // Critical path – loaded eagerly
