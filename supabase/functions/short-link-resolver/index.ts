@@ -6,6 +6,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// Rate-limit config: shared with portal-verify for defense-in-depth
+const MAX_ATTEMPTS = 10;
+const WINDOW_MINUTES = 15;
+
 // Allowlisted URL prefixes for safe redirect targets
 const ALLOWED_PREFIXES = [
   "/portal",
@@ -28,6 +32,14 @@ function isSafeRedirect(url: string, supabaseUrl: string): boolean {
   } catch {
     return false;
   }
+}
+
+function getClientIp(req: Request): string {
+  return (
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown"
+  );
 }
 
 Deno.serve(async (req) => {
@@ -57,6 +69,23 @@ Deno.serve(async (req) => {
       );
     }
 
+    const ip = getClientIp(req);
+
+    // --- IP-based rate limiting (shared pool with portal-verify) ---
+    const windowStart = new Date(Date.now() - WINDOW_MINUTES * 60 * 1000).toISOString();
+    const { count } = await supabase
+      .from("portal_failed_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("ip_address", ip)
+      .gte("attempted_at", windowStart);
+
+    if ((count ?? 0) >= MAX_ATTEMPTS) {
+      return new Response(
+        JSON.stringify({ error: "Too many attempts. Please try again later." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { data: link, error } = await supabase
       .from("short_links")
       .select("*")
@@ -64,6 +93,8 @@ Deno.serve(async (req) => {
       .single();
 
     if (error || !link) {
+      // Record failed attempt
+      await supabase.from("portal_failed_attempts").insert({ ip_address: ip });
       return new Response(
         JSON.stringify({ error: "Short link not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -71,6 +102,8 @@ Deno.serve(async (req) => {
     }
 
     if (new Date(link.expires_at) < new Date()) {
+      // Record failed attempt for expired links too (prevents enumeration)
+      await supabase.from("portal_failed_attempts").insert({ ip_address: ip });
       return new Response(
         JSON.stringify({ error: "Short link has expired" }),
         { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
