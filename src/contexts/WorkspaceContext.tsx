@@ -14,7 +14,7 @@ interface WorkspaceContextType {
   setCurrentWorkspaceId: (id: string) => void;
   loading: boolean;
   pendingInvites: PendingInvite[];
-  refreshWorkspaces: () => void;
+  refreshWorkspaces: () => Promise<void>;
 }
 
 interface PendingInvite {
@@ -34,7 +34,7 @@ const WorkspaceContext = createContext<WorkspaceContextType>({
   setCurrentWorkspaceId: () => {},
   loading: true,
   pendingInvites: [],
-  refreshWorkspaces: () => {},
+  refreshWorkspaces: () => Promise.resolve(),
 });
 
 // Module-level cache + in-flight dedup
@@ -47,6 +47,9 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // In-flight promise dedup — prevents duplicate concurrent fetches
 let inflightPromise: Promise<void> | null = null;
+
+// Pending resolvers for awaitable refreshWorkspaces calls
+let pendingRefreshResolvers: Array<() => void> = [];
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -71,13 +74,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   );
   const [fetchKey, setFetchKey] = useState(0);
 
-  const refreshWorkspaces = useCallback(() => {
+  const refreshWorkspaces = useCallback((): Promise<void> => {
     cachedWorkspaces = null;
     cachedMemberships = null;
     cachedInvites = null;
     cacheTimestamp = 0;
     inflightPromise = null;
-    setFetchKey((k) => k + 1);
+    return new Promise<void>((resolve) => {
+      pendingRefreshResolvers.push(resolve);
+      setFetchKey((k) => k + 1);
+    });
   }, []);
 
   useEffect(() => {
@@ -190,7 +196,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      if (!cancelled) setLoading(false);
+      if (!cancelled) {
+        setLoading(false);
+        // Flush awaitable refresh resolvers
+        const resolvers = pendingRefreshResolvers.splice(0);
+        resolvers.forEach((r) => r());
+      }
       inflightPromise = null;
     };
 
