@@ -411,6 +411,67 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
             )}
           </div>
 
+          {/* ── Cash Conversion ── */}
+          <div>
+            <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-primary" />
+              Cash Conversion
+            </h3>
+            {revenueLoading ? (
+              <FinanceSkeletonRow count={3} />
+            ) : revenueError ? (
+              <FinanceErrorBanner message="Could not load cash conversion metrics." />
+            ) : (() => {
+              const invoiced = revenueData?.invoicedThisMonth ?? 0;
+              const collected = revenueData?.collectedThisMonth ?? 0;
+              const outstanding = revenueData?.outstandingReceivable ?? 0;
+              const monthRate = invoiced > 0 ? Math.round((collected / invoiced) * 100) : null;
+              const allTimeRate = totalInvoiced > 0 ? Math.round((totalCollected / totalInvoiced) * 100) : null;
+              const receivableRatio = totalInvoiced > 0 ? Math.round((outstanding / totalInvoiced) * 100) : null;
+
+              return (
+                <div className="grid gap-3 md:grid-cols-3">
+                  <Card className="overflow-hidden">
+                    <CardContent className="pt-4 pb-4 px-4 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <p className="text-xs text-muted-foreground truncate">Collection Rate</p>
+                        <CreditCard className={`h-4 w-4 shrink-0 ${monthRate !== null && monthRate >= 70 ? "text-success" : "text-warning"}`} />
+                      </div>
+                      <p className={`text-lg font-semibold tabular-nums ${monthRate !== null && monthRate >= 70 ? "text-success" : monthRate !== null ? "text-warning" : "text-muted-foreground"}`}>
+                        {monthRate !== null ? `${monthRate}%` : "—"}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">This month (collected / invoiced)</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="overflow-hidden">
+                    <CardContent className="pt-4 pb-4 px-4 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <p className="text-xs text-muted-foreground truncate">Overall Collection Rate</p>
+                        <TrendingUp className={`h-4 w-4 shrink-0 ${allTimeRate !== null && allTimeRate >= 70 ? "text-success" : "text-warning"}`} />
+                      </div>
+                      <p className={`text-lg font-semibold tabular-nums ${allTimeRate !== null && allTimeRate >= 70 ? "text-success" : allTimeRate !== null ? "text-warning" : "text-muted-foreground"}`}>
+                        {allTimeRate !== null ? `${allTimeRate}%` : "—"}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{TIME_LABELS[range]}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="overflow-hidden">
+                    <CardContent className="pt-4 pb-4 px-4 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <p className="text-xs text-muted-foreground truncate">Receivable Ratio</p>
+                        <Receipt className={`h-4 w-4 shrink-0 ${receivableRatio !== null && receivableRatio <= 30 ? "text-success" : "text-warning"}`} />
+                      </div>
+                      <p className={`text-lg font-semibold tabular-nums ${receivableRatio !== null && receivableRatio <= 30 ? "text-success" : receivableRatio !== null ? "text-warning" : "text-muted-foreground"}`}>
+                        {receivableRatio !== null ? `${receivableRatio}%` : "—"}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Outstanding / total invoiced</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            })()}
+          </div>
+
           {/* ── Spend ── */}
           <div>
             <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
