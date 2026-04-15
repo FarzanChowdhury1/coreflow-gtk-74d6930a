@@ -14,7 +14,7 @@ interface WorkspaceContextType {
   setCurrentWorkspaceId: (id: string) => void;
   loading: boolean;
   pendingInvites: PendingInvite[];
-  refreshWorkspaces: () => void;
+  refreshWorkspaces: () => Promise<void>;
 }
 
 interface PendingInvite {
@@ -34,7 +34,7 @@ const WorkspaceContext = createContext<WorkspaceContextType>({
   setCurrentWorkspaceId: () => {},
   loading: true,
   pendingInvites: [],
-  refreshWorkspaces: () => {},
+  refreshWorkspaces: () => Promise.resolve(),
 });
 
 // Module-level cache + in-flight dedup
