@@ -9,6 +9,7 @@ import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminGuard } from "@/components/auth/AdminGuard";
 import { PlatformAdminGuard } from "@/components/auth/PlatformAdminGuard";
+import { FeatureGate } from "@/components/auth/FeatureGate";
 import { AppLayout } from "@/components/layout/AppLayout";
 
 // Critical path – loaded eagerly
@@ -101,7 +102,7 @@ const App = () => (
                 <Route path="/leads" element={<Leads />} />
                 <Route path="/clients" element={<Clients />} />
                 <Route path="/proposals" element={<Proposals />} />
-                <Route path="/approvals" element={<ApprovalsPage />} />
+                <Route path="/approvals" element={<FeatureGate feature="approvalWorkflows" label="Approval Workflows"><ApprovalsPage /></FeatureGate>} />
                 <Route path="/projects" element={<Projects />} />
                 <Route path="/meetings" element={<Meetings />} />
                 <Route path="/notifications" element={<Notifications />} />
@@ -112,12 +113,12 @@ const App = () => (
                 <Route path="/invoices" element={<AdminGuard><Invoices /></AdminGuard>} />
                 <Route path="/payments" element={<AdminGuard><Payments /></AdminGuard>} />
                 <Route path="/renewals" element={<AdminGuard><Renewals /></AdminGuard>} />
-                <Route path="/vendors" element={<AdminGuard><Vendors /></AdminGuard>} />
-                <Route path="/expenses" element={<AdminGuard><Expenses /></AdminGuard>} />
-                <Route path="/subscriptions" element={<AdminGuard><Subscriptions /></AdminGuard>} />
-                <Route path="/budget" element={<AdminGuard><BudgetActual /></AdminGuard>} />
-                <Route path="/profitability" element={<AdminGuard><Profitability /></AdminGuard>} />
-                <Route path="/audit" element={<AdminGuard><AuditLog /></AdminGuard>} />
+                <Route path="/vendors" element={<AdminGuard><FeatureGate feature="vendorManagement" label="Vendor Management"><Vendors /></FeatureGate></AdminGuard>} />
+                <Route path="/expenses" element={<AdminGuard><FeatureGate feature="expenseTracking" label="Expense Tracking"><Expenses /></FeatureGate></AdminGuard>} />
+                <Route path="/subscriptions" element={<AdminGuard><FeatureGate feature="subscriptionTracking" label="Subscription Tracking"><Subscriptions /></FeatureGate></AdminGuard>} />
+                <Route path="/budget" element={<AdminGuard><FeatureGate feature="budgetVsActual" label="Budget vs Actual"><BudgetActual /></FeatureGate></AdminGuard>} />
+                <Route path="/profitability" element={<AdminGuard><FeatureGate feature="profitability" label="Project Profitability"><Profitability /></FeatureGate></AdminGuard>} />
+                <Route path="/audit" element={<AdminGuard><FeatureGate feature="auditLog" label="Audit Log"><AuditLog /></FeatureGate></AdminGuard>} />
                 <Route path="/team" element={<AdminGuard><Team /></AdminGuard>} />
                 <Route path="/digest-inspector" element={<AdminGuard><DigestInspector /></AdminGuard>} />
                 <Route path="/ops" element={<AdminGuard><OpsHealth /></AdminGuard>} />
