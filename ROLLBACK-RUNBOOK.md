@@ -116,3 +116,10 @@ Before any destructive migration:
 - Service role key rotation: must be done in Cloud settings
 - No automated migration rollback tooling — all rollbacks are manual SQL
 - Edge Function log access: via Cloud → Edge Function Logs
+
+---
+
+## Related Documents
+
+- [BACKUP-RESTORE-RUNBOOK.md](./BACKUP-RESTORE-RUNBOOK.md) — Full backup/restore procedures, RTO/RPO, recovery scenarios, pre-release checklists
+- [PILOT-OPERATIONS.md](./PILOT-OPERATIONS.md) — Pilot launch checklists, daily monitoring, triage structure
