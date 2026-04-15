@@ -42,6 +42,8 @@ type WorkspaceFormValues = z.infer<typeof workspaceSchema>;
 export function WorkspaceSettingsTab() {
   const { currentWorkspace, refreshWorkspaces } = useWorkspace();
   const { signOut } = useAuth();
+  const entitlement = useEntitlement();
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [confirmName, setConfirmName] = useState("");
   const [deactivating, setDeactivating] = useState(false);
