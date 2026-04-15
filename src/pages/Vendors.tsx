@@ -77,7 +77,8 @@ export default function Vendors() {
   };
 
   const handleExport = () => {
-    exportToCSV(filtered, [
+    if (!workspaceId) return;
+    guardedExportToCSV(workspaceId, filtered, [
       { key: "name", label: "Vendor Name" },
       { key: "category", label: "Category" },
       { key: "contact_name", label: "Contact" },

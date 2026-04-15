@@ -96,7 +96,7 @@ export default function Proposals() {
               size="sm"
               variant="outline"
               onClick={() =>
-                exportToCSV(
+                workspaceId && guardedExportToCSV(workspaceId,
                   filtered.map((p: any) => ({
                     title: p.title,
                     company: p.companies?.legal_name || "",

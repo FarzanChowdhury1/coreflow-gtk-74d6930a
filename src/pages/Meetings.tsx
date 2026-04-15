@@ -100,7 +100,7 @@ export default function Meetings() {
             variant="outline"
             size="sm"
             onClick={() =>
-              exportToCSV(
+              wsId && guardedExportToCSV(wsId,
                 filtered.map((m: any) => ({
                   title: m.title,
                   type: m.meeting_type,

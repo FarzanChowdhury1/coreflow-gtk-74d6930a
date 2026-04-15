@@ -198,10 +198,10 @@ export default function Renewals() {
             ];
             return (
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => exportToCSV(mapped, cols, "renewals-export")}>
+                <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToCSV(currentWorkspace.id, mapped, cols, "renewals-export")}>
                   <Download className="h-4 w-4 mr-1" /> CSV
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => exportToXLSX(mapped, cols, "renewals-export")}>
+                <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToXLSX(currentWorkspace.id, mapped, cols, "renewals-export")}>
                   <Download className="h-4 w-4 mr-1" /> XLSX
                 </Button>
                 <Button onClick={() => { setEditing(null); setFormOpen(true); }}>

@@ -112,7 +112,7 @@ export default function Projects() {
             size="sm"
             variant="outline"
             onClick={() =>
-              exportToCSV(
+              workspaceId && guardedExportToCSV(workspaceId,
                 filtered.map((p: any) => ({
                   name: p.name,
                   company: p.companies?.legal_name || "Internal",

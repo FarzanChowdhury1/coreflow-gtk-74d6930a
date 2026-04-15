@@ -197,16 +197,16 @@ export default function Clients() {
             ];
             return (
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => exportToCSV(displayCompanies, companyCols, "companies-export")}>
+                <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToCSV(currentWorkspace.id, displayCompanies, companyCols, "companies-export")}>
                   <Download className="h-4 w-4 mr-1" /> CSV
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => exportToXLSX(displayCompanies, companyCols, "companies-export")}>
+                <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToXLSX(currentWorkspace.id, displayCompanies, companyCols, "companies-export")}>
                   <Download className="h-4 w-4 mr-1" /> XLSX
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => exportToCSV(contactData, contactCols, "contacts-export")}>
+                <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToCSV(currentWorkspace.id, contactData, contactCols, "contacts-export")}>
                   <Download className="h-4 w-4 mr-1" /> Contacts CSV
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => exportToXLSX(contactData, contactCols, "contacts-export")}>
+                <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToXLSX(currentWorkspace.id, contactData, contactCols, "contacts-export")}>
                   <Download className="h-4 w-4 mr-1" /> Contacts XLSX
                 </Button>
                 <Button variant="outline" onClick={() => setPortalLinkOpen(true)}>

@@ -75,7 +75,8 @@ export default function Subscriptions() {
   };
 
   const handleExport = () => {
-    exportToCSV(filtered.map((s) => ({ ...s, vendor_name: s.vendors?.name || "" })), [
+    if (!workspaceId) return;
+    guardedExportToCSV(workspaceId, filtered.map((s) => ({ ...s, vendor_name: s.vendors?.name || "" })), [
       { key: "name", label: "Subscription" },
       { key: "vendor_name", label: "Vendor" },
       { key: "amount", label: "Amount" },
