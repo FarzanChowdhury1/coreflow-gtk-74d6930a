@@ -47,6 +47,8 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 const PlatformFeedback = lazy(() => import("@/pages/platform/PlatformFeedback"));
 const PlatformDashboard = lazy(() => import("@/pages/platform/PlatformDashboard"));
 const Landing = lazy(() => import("@/pages/Landing"));
+const Terms = lazy(() => import("@/pages/Terms"));
+const Privacy = lazy(() => import("@/pages/Privacy"));
 
 const PageFallback = () => (
   <div className="flex min-h-[50vh] items-center justify-center">
@@ -124,8 +126,10 @@ const App = () => (
                 <Route path="/data-export" element={<AdminGuard><DataExport /></AdminGuard>} />
               </Route>
 
-            {/* Public landing page */}
+            {/* Public pages */}
             <Route path="/" element={<Suspense fallback={<PageFallback />}><Landing /></Suspense>} />
+            <Route path="/terms" element={<Suspense fallback={<PageFallback />}><Terms /></Suspense>} />
+            <Route path="/privacy" element={<Suspense fallback={<PageFallback />}><Privacy /></Suspense>} />
             <Route path="*" element={<Suspense fallback={<PageFallback />}><NotFound /></Suspense>} />
           </Routes>
         </BrowserRouter>

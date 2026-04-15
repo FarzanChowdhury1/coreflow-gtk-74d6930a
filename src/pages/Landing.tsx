@@ -251,9 +251,12 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="border-t py-8">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-4 text-sm text-muted-foreground sm:flex-row sm:justify-between">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 text-sm text-muted-foreground sm:flex-row sm:justify-between">
           <span>© {new Date().getFullYear()} CoreFlow. All rights reserved.</span>
-          <span>Built for agencies, service firms, and distributor-supplier businesses.</span>
+          <div className="flex items-center gap-4">
+            <Link to="/terms" className="hover:text-foreground transition-colors">Terms</Link>
+            <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
+          </div>
         </div>
       </footer>
     </div>
