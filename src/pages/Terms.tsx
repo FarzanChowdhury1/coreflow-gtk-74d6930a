@@ -27,14 +27,14 @@ export default function Terms() {
           <section>
             <h2 className="text-lg font-semibold text-foreground">2. Accounts &amp; Workspaces</h2>
             <p className="text-muted-foreground leading-relaxed">
-              You must provide a valid email address and verify it before accessing the Service. Each user account may belong to one or more workspaces. You are responsible for maintaining the security of your account credentials and for all activity under your account.
+              You must provide a valid email address to create an account. Email verification may be required before full access is granted. Each user account may belong to one or more workspaces. You are responsible for maintaining the security of your account credentials and for all activity under your account.
             </p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-foreground">3. Plans &amp; Billing</h2>
             <p className="text-muted-foreground leading-relaxed">
-              CoreFlow offers three tiers: <strong>Free</strong> (up to 3 seats, free forever), <strong>Growth</strong> ($4.99 per seat per month, with a one-time 14-day free trial per workspace), and <strong>Enterprise</strong> (custom pricing). Billing is per seat per workspace. Users belonging to multiple workspaces are billed separately in each. Plan features and limits are described on the landing page and may be updated with notice.
+              CoreFlow offers three tiers: <strong>Free</strong> (up to 3 seats, free forever), <strong>Growth</strong> ($4.99 per seat per month, with a one-time 14-day free trial per workspace), and <strong>Enterprise</strong> (custom pricing). Billing is per seat per workspace. Users belonging to multiple workspaces are billed separately in each. Paid plan billing will be collected once payment integration is active. Plan features and limits are described on the landing page and may be updated with notice.
             </p>
           </section>
 
@@ -76,7 +76,7 @@ export default function Terms() {
           <section>
             <h2 className="text-lg font-semibold text-foreground">9. Changes to Terms</h2>
             <p className="text-muted-foreground leading-relaxed">
-              We may update these terms from time to time. Continued use of the Service after changes constitutes acceptance of the updated terms. Material changes will be communicated via email or in-app notification.
+              We may update these terms from time to time. Continued use of the Service after changes constitutes acceptance of the updated terms. We will make reasonable efforts to notify users of material changes.
             </p>
           </section>
 
