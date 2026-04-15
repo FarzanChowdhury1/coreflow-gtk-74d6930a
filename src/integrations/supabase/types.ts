@@ -2761,6 +2761,7 @@ export type Database = {
           deleted_at: string | null
           id: string
           name: string
+          offboarding_export_used_at: string | null
           plan: string
           seat_limit: number
           timezone: string
@@ -2774,6 +2775,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           name: string
+          offboarding_export_used_at?: string | null
           plan?: string
           seat_limit?: number
           timezone?: string
@@ -2787,6 +2789,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           name?: string
+          offboarding_export_used_at?: string | null
           plan?: string
           seat_limit?: number
           timezone?: string
@@ -2847,6 +2850,10 @@ export type Database = {
       check_workspace_seat_capacity: {
         Args: { _include_pending_invites?: boolean; _workspace_id: string }
         Returns: boolean
+      }
+      claim_offboarding_export: {
+        Args: { _workspace_id: string }
+        Returns: Json
       }
       count_portal_tokens: { Args: { _workspace_id: string }; Returns: number }
       count_retention_candidates_notifications: { Args: never; Returns: Json }
