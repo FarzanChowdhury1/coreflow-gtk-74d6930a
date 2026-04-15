@@ -436,6 +436,7 @@ export function WorkspaceFollowupSheet({ workspace, open, onOpenChange, onUpdate
                 className="h-auto self-end"
                 onClick={addNote}
                 disabled={saving || !newNote.trim()}
+                aria-label="Submit note"
               >
                 <Send className="h-4 w-4" />
               </Button>

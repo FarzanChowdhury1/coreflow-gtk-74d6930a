@@ -208,7 +208,7 @@ export default function ClientUpdates() {
                       variant="ghost"
                       className="h-7 w-7"
                       onClick={() => togglePublish(update.id, update.is_published)}
-                      title={update.is_published ? "Unpublish" : "Publish"}
+                      aria-label={update.is_published ? "Unpublish update" : "Publish update"}
                     >
                       {update.is_published ? <EyeOff className="h-3 w-3" /> : <Send className="h-3 w-3" />}
                     </Button>

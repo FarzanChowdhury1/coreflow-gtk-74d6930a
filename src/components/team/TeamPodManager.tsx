@@ -272,7 +272,7 @@ export function TeamPodManager() {
                         )}
                       </div>
                       <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(team)}>
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(team)} aria-label={`Edit team ${team.name}`}>
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
@@ -280,6 +280,7 @@ export function TeamPodManager() {
                           size="icon"
                           className="text-destructive hover:text-destructive"
                           onClick={() => handleDelete(team)}
+                          aria-label={`Delete team ${team.name}`}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -299,6 +300,7 @@ export function TeamPodManager() {
                                 size="icon"
                                 className="h-7 w-7 text-muted-foreground hover:text-destructive"
                                 onClick={() => handleRemoveMember(tm.id)}
+                                aria-label={`Remove ${getProfileName(tm.user_id)} from team`}
                               >
                                 <X className="h-3.5 w-3.5" />
                               </Button>

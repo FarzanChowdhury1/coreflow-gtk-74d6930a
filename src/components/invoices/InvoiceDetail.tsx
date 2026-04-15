@@ -179,7 +179,7 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={onBack}>
+          <Button variant="ghost" size="icon" onClick={onBack} aria-label="Back to invoices">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h2 className="text-xl font-semibold text-foreground">{invoice.invoice_number}</h2>
