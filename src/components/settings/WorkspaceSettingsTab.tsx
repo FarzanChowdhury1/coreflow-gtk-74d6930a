@@ -126,6 +126,28 @@ export function WorkspaceSettingsTab() {
     }, 1500);
   };
 
+  const handleClaimOffboardingExport = async () => {
+    if (!currentWorkspace) return;
+    setClaimingExport(true);
+    const { data, error } = await supabase.rpc("claim_offboarding_export", {
+      _workspace_id: currentWorkspace.id,
+    });
+    setClaimingExport(false);
+
+    if (error) {
+      toast.error("Failed to claim offboarding export.");
+      return;
+    }
+    const result = data as unknown as { success: boolean; error?: string; expires_at?: string } | null;
+    if (!result?.success) {
+      toast.error(result?.error || "Could not claim offboarding export.");
+      return;
+    }
+    setExportClaimed(true);
+    toast.success("Offboarding export unlocked for 1 hour. Redirecting to Data Export…");
+    setTimeout(() => navigate("/data-export"), 1200);
+  };
+
   const nameMatches = currentWorkspace && confirmName.trim() === currentWorkspace.name.trim();
 
   return (
