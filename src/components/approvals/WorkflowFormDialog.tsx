@@ -175,7 +175,7 @@ export function WorkflowFormDialog({ open, onOpenChange, onCreated, members }: P
                     </SelectContent>
                   </Select>
                   {steps.length > 1 && (
-                    <Button type="button" size="icon" variant="ghost" onClick={() => removeStep(idx)}>
+                    <Button type="button" size="icon" variant="ghost" onClick={() => removeStep(idx)} aria-label={`Remove approval step ${idx + 1}`}>
                       <Trash2 className="h-3 w-3 text-destructive" />
                     </Button>
                   )}

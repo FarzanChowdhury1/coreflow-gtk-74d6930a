@@ -175,7 +175,7 @@ export function DepartmentManager() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(dept)}>
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(dept)} aria-label={`Edit department ${dept.name}`}>
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
@@ -183,6 +183,7 @@ export function DepartmentManager() {
                       size="icon"
                       className="text-destructive hover:text-destructive"
                       onClick={() => handleDelete(dept)}
+                      aria-label={`Delete department ${dept.name}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

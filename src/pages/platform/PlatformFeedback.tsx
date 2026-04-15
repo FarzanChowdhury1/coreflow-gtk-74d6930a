@@ -141,7 +141,7 @@ export default function PlatformFeedback() {
       <div className="mx-auto max-w-7xl px-4 py-8 space-y-6">
         <div className="flex items-center gap-3">
           <Link to="/dashboard">
-            <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" aria-label="Back to dashboard"><ArrowLeft className="h-4 w-4" /></Button>
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Platform Feedback Inbox</h1>

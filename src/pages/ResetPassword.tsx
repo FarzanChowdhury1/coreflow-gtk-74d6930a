@@ -129,7 +129,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
+    <main className="flex min-h-screen items-center justify-center bg-background">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
@@ -143,9 +143,10 @@ export default function ResetPassword() {
         <form onSubmit={handleReset} className="rounded-lg border bg-card p-6">
           <div className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">New Password</label>
+              <label htmlFor="reset-password" className="mb-1.5 block text-sm font-medium text-foreground">New Password</label>
               <div className="relative">
                 <input
+                  id="reset-password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => {
@@ -172,9 +173,10 @@ export default function ResetPassword() {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Confirm New Password</label>
+              <label htmlFor="reset-confirm-password" className="mb-1.5 block text-sm font-medium text-foreground">Confirm New Password</label>
               <div className="relative">
                 <input
+                  id="reset-confirm-password"
                   type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => {
@@ -208,6 +210,6 @@ export default function ResetPassword() {
           </div>
         </form>
       </div>
-    </div>
+    </main>
   );
 }
