@@ -124,7 +124,7 @@ const App = () => (
                 <Route path="/ops" element={<AdminGuard><OpsHealth /></AdminGuard>} />
                 <Route path="/beta-feedback" element={<AdminGuard><BetaFeedback /></AdminGuard>} />
                 <Route path="/email-health" element={<AdminGuard><EmailHealth /></AdminGuard>} />
-                <Route path="/data-export" element={<AdminGuard><DataExport /></AdminGuard>} />
+                <Route path="/data-export" element={<AdminGuard><FeatureGate feature="csvExport" label="Data Export"><DataExport /></FeatureGate></AdminGuard>} />
               </Route>
 
             {/* Public pages */}
