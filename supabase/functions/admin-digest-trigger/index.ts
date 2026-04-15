@@ -165,6 +165,7 @@ Deno.serve(async (req) => {
             title: "Daily Digest",
             body: notifBody,
             link: "/dashboard",
+            category: "daily_digest",
           }))
         );
       }

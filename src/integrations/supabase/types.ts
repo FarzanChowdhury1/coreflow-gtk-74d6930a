@@ -1548,6 +1548,7 @@ export type Database = {
       notifications: {
         Row: {
           body: string | null
+          category: string
           created_at: string
           id: string
           is_read: boolean
@@ -1559,6 +1560,7 @@ export type Database = {
         }
         Insert: {
           body?: string | null
+          category?: string
           created_at?: string
           id?: string
           is_read?: boolean
@@ -1570,6 +1572,7 @@ export type Database = {
         }
         Update: {
           body?: string | null
+          category?: string
           created_at?: string
           id?: string
           is_read?: boolean
@@ -2943,47 +2946,27 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
-      fetch_prioritized_notifications:
-        | {
-            Args: { _limit?: number; _user_id: string; _workspace_id?: string }
-            Returns: {
-              body: string | null
-              created_at: string
-              id: string
-              is_read: boolean
-              link: string | null
-              severity: string
-              title: string
-              user_id: string
-              workspace_id: string
-            }[]
-            SetofOptions: {
-              from: "*"
-              to: "notifications"
-              isOneToOne: false
-              isSetofReturn: true
-            }
-          }
-        | {
-            Args: { _limit?: number; _user_id: string }
-            Returns: {
-              body: string | null
-              created_at: string
-              id: string
-              is_read: boolean
-              link: string | null
-              severity: string
-              title: string
-              user_id: string
-              workspace_id: string
-            }[]
-            SetofOptions: {
-              from: "*"
-              to: "notifications"
-              isOneToOne: false
-              isSetofReturn: true
-            }
-          }
+      fetch_prioritized_notifications: {
+        Args: { _limit?: number; _user_id: string; _workspace_id?: string }
+        Returns: {
+          body: string | null
+          category: string
+          created_at: string
+          id: string
+          is_read: boolean
+          link: string | null
+          severity: string
+          title: string
+          user_id: string
+          workspace_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "notifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       generate_due_renewal_invoices: { Args: never; Returns: Json }
       generate_portal_token: {
         Args: {
