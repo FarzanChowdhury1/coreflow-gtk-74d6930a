@@ -41,7 +41,7 @@ export default function Privacy() {
           <section>
             <h2 className="text-lg font-semibold text-foreground">4. Third-Party Services</h2>
             <p className="text-muted-foreground leading-relaxed">
-              The Service uses the following third-party providers to operate: cloud database and authentication infrastructure, email delivery services for transactional notifications, and Cloudflare for bot protection on authentication surfaces. We do not sell your data to third parties.
+              The Service uses the following third-party providers to operate: cloud database and authentication infrastructure, and email delivery services for transactional notifications. Additional security services (such as bot protection) may be enabled over time. We do not sell your data to third parties.
             </p>
           </section>
 
