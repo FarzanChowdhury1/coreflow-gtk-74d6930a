@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Lock, ArrowUpRight } from "lucide-react";
 import { useEntitlement } from "@/hooks/use-entitlement";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useAuth } from "@/contexts/AuthContext";
 import type { PlanConfig } from "@/lib/entitlements";
 
 interface FeatureGateProps {
@@ -12,22 +13,24 @@ interface FeatureGateProps {
 
 /**
  * Renders children only when the workspace has the required feature enabled,
- * or when a one-time offboarding export window is active (csvExport only).
+ * or when a one-time offboarding export window is active (csvExport only, claiming admin only).
  */
 export function FeatureGate({ feature, children, label }: FeatureGateProps) {
   const ent = useEntitlement();
   const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
 
   // Normal entitlement pass
   if (ent.features[feature]) {
     return <>{children}</>;
   }
 
-  // Narrow offboarding exception: csvExport only, 1-hour window
+  // Narrow offboarding exception: csvExport only, 1-hour window, claiming admin only
   if (feature === "csvExport") {
     const ws = currentWorkspace as any;
     const claimedAt = ws?.offboarding_export_used_at;
-    if (claimedAt) {
+    const claimedBy = ws?.offboarding_export_claimed_by;
+    if (claimedAt && claimedBy && user?.id && claimedBy === user.id) {
       const elapsed = Date.now() - new Date(claimedAt).getTime();
       if (elapsed < 60 * 60 * 1000) {
         return <>{children}</>;
