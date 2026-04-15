@@ -274,11 +274,48 @@ export function WorkspaceSettingsTab() {
                   Go to Data Export
                 </Button>
               </div>
+            ) : alreadyClaimed || exportClaimed ? (
+              <div className="rounded-md border border-primary/20 bg-primary/5 p-3">
+                <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Download className="h-4 w-4 text-primary" />
+                  Offboarding export claimed
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Your one-time export window is active. Go to Data Export now to download your data before deactivating.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => navigate("/data-export")}
+                >
+                  <Download className="h-3.5 w-3.5 mr-1.5" />
+                  Go to Data Export
+                </Button>
+              </div>
             ) : (
               <div className="rounded-md border border-muted bg-muted/30 p-3">
-                <p className="text-sm text-muted-foreground">
-                  <strong>About your data:</strong> All records are preserved after deactivation. No data is deleted. If you need a data export, upgrade to a Growth plan before deactivating, or contact support for assistance.
+                <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Download className="h-4 w-4 text-muted-foreground" />
+                  Export your data before leaving
                 </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  As part of offboarding, you can claim a <strong>one-time data export</strong>. This unlocks a 1-hour window to download all your workspace data. This right can only be used once.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={handleClaimOffboardingExport}
+                  disabled={claimingExport}
+                >
+                  {claimingExport ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  ) : (
+                    <Download className="h-3.5 w-3.5 mr-1.5" />
+                  )}
+                  Claim One-Time Export
+                </Button>
               </div>
             )}
 
