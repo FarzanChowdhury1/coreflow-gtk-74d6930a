@@ -389,6 +389,31 @@ export function WorkspaceFollowupSheet({ workspace, open, onOpenChange, onUpdate
             </Button>
           </div>
 
+          {workspace.deleted_at && (
+            <>
+              <Separator />
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
+                <h3 className="text-sm font-semibold flex items-center gap-2 text-destructive">
+                  <AlertTriangle className="h-4 w-4" /> Workspace Deactivated
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Deactivated {formatDistanceToNow(new Date(workspace.deleted_at), { addSuffix: true })}.
+                  Members cannot access this workspace. Data is preserved.
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleReactivate}
+                  disabled={reactivating}
+                >
+                  {reactivating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <RotateCcw className="h-3 w-3 mr-1" />}
+                  Reactivate Workspace
+                </Button>
+              </div>
+            </>
+          )}
+
           <Separator />
 
           {/* Notes */}
