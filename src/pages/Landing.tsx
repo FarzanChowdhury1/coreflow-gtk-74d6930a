@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -85,6 +86,45 @@ const BENEFITS = [
 ];
 
 export default function Landing() {
+  useEffect(() => {
+    const id = "coreflow-jsonld";
+    if (!document.getElementById(id)) {
+      const script = document.createElement("script");
+      script.id = id;
+      script.type = "application/ld+json";
+      script.textContent = JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        name: "CoreFlow",
+        url: "https://coreflow-gtk.lovable.app/",
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web",
+        description:
+          "Operational backbone for agencies and service firms. Manage leads, proposals, projects, invoicing, payments, and renewals with a client portal.",
+        offers: [
+          {
+            "@type": "Offer",
+            price: "0",
+            priceCurrency: "USD",
+            name: "Free",
+            description: "Up to 3 seats per workspace",
+          },
+          {
+            "@type": "Offer",
+            price: "4.99",
+            priceCurrency: "USD",
+            name: "Growth",
+            description: "Per seat per month, unlimited seats",
+          },
+        ],
+      });
+      document.head.appendChild(script);
+    }
+    return () => {
+      document.getElementById(id)?.remove();
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
