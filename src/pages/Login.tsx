@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
@@ -339,6 +339,10 @@ export default function Login() {
             </div>
           </form>
         )}
+      </div>
+      <div className="mt-6 flex justify-center gap-4 text-xs text-muted-foreground">
+        <Link to="/terms" className="hover:text-foreground transition-colors">Terms</Link>
+        <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
       </div>
     </main>
   );
