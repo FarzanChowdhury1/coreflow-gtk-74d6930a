@@ -113,10 +113,10 @@ export default function Payments() {
             ];
             return (
               <>
-                <Button variant="outline" size="sm" onClick={() => exportToCSV(mapped, cols, "payments-export")}>
+                <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToCSV(currentWorkspace.id, mapped, cols, "payments-export")}>
                   <Download className="h-4 w-4 mr-1" /> CSV
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => exportToXLSX(mapped, cols, "payments-export")}>
+                <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToXLSX(currentWorkspace.id, mapped, cols, "payments-export")}>
                   <Download className="h-4 w-4 mr-1" /> XLSX
                 </Button>
               </>
