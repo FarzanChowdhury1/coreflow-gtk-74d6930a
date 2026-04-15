@@ -1507,6 +1507,44 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          category: Database["public"]["Enums"]["notification_category"]
+          email_enabled: boolean
+          id: string
+          in_app_enabled: boolean
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["notification_category"]
+          email_enabled?: boolean
+          id?: string
+          in_app_enabled?: boolean
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["notification_category"]
+          email_enabled?: boolean
+          id?: string
+          in_app_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string | null
@@ -3144,6 +3182,13 @@ export type Database = {
       lead_task_status: "todo" | "in_progress" | "done" | "blocked"
       meeting_status: "scheduled" | "completed" | "cancelled"
       meeting_type: "internal" | "client"
+      notification_category:
+        | "daily_digest"
+        | "approval_request"
+        | "invoice_overdue"
+        | "lead_followup"
+        | "renewal_upcoming"
+        | "system_alert"
       payment_method:
         | "bank_transfer"
         | "cash"
@@ -3332,6 +3377,14 @@ export const Constants = {
       lead_task_status: ["todo", "in_progress", "done", "blocked"],
       meeting_status: ["scheduled", "completed", "cancelled"],
       meeting_type: ["internal", "client"],
+      notification_category: [
+        "daily_digest",
+        "approval_request",
+        "invoice_overdue",
+        "lead_followup",
+        "renewal_upcoming",
+        "system_alert",
+      ],
       payment_method: [
         "bank_transfer",
         "cash",
