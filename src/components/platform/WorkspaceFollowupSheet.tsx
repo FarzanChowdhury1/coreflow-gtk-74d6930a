@@ -80,6 +80,7 @@ export function WorkspaceFollowupSheet({ workspace, open, onOpenChange, onUpdate
   const { toast } = useToast();
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
   const [notes, setNotes] = useState<NoteRow[]>([]);
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [newNote, setNewNote] = useState("");
