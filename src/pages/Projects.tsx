@@ -53,6 +53,33 @@ export default function Projects() {
     staleTime: 30000,
   });
 
+  // Fetch task counts per project for progress bars
+  const projectIds = projects.map((p) => p.id);
+  const { data: taskCounts = [] } = useQuery({
+    queryKey: ["project-task-counts", workspaceId, projectIds.join(",")],
+    queryFn: async () => {
+      if (!projectIds.length) return [];
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("project_id, status")
+        .in("project_id", projectIds);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: projectIds.length > 0,
+    staleTime: 30000,
+  });
+
+  const progressByProject = useMemo(() => {
+    const map: Record<string, { total: number; done: number }> = {};
+    for (const t of taskCounts) {
+      if (!map[t.project_id]) map[t.project_id] = { total: 0, done: 0 };
+      map[t.project_id].total++;
+      if (t.status === "done") map[t.project_id].done++;
+    }
+    return map;
+  }, [taskCounts]);
+
   const filtered = projects
     .filter((p) => {
       if (filterType === "client") return p.company_id != null;
