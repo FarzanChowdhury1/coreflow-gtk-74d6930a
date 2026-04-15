@@ -247,6 +247,26 @@ export function WorkspaceFollowupSheet({ workspace, open, onOpenChange, onUpdate
     setSaving(false);
   };
 
+  const handleReactivate = async () => {
+    if (!workspace) return;
+    setReactivating(true);
+    const { data, error } = await supabase.rpc("reactivate_workspace" as any, {
+      _workspace_id: workspace.id,
+    });
+    setReactivating(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    const result = data as any;
+    if (!result?.success) {
+      toast({ title: "Error", description: result?.error || "Reactivation failed", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Workspace reactivated", description: `${workspace.name} is now active again.` });
+    onUpdated();
+  };
+
   if (!workspace) return null;
 
   return (
