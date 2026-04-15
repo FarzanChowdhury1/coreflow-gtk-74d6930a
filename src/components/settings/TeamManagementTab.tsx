@@ -312,10 +312,17 @@ export function TeamManagementTab() {
             <CardTitle>Internal Team Members</CardTitle>
             <CardDescription>Your internal workspace members. Clients are managed separately in the Clients section.</CardDescription>
           </div>
-          <Button size="sm" onClick={() => { setInviteOpen(true); setLastCreatedToken(null); setLastCreatedInviteId(null); setEmailStatus("idle"); setEmailError(null); }} disabled={!ent.canAddSeat}>
-            <Plus className="mr-2 h-4 w-4" />
-            Invite Member
-          </Button>
+          <div className="flex items-center gap-2">
+            {!ent.canAddSeat && (
+              <span className="text-xs text-muted-foreground">
+                {ent.seatLimit ? `${ent.seatCount}/${ent.seatLimit} seats used` : ""}
+              </span>
+            )}
+            <Button size="sm" onClick={() => { setInviteOpen(true); setLastCreatedToken(null); setLastCreatedInviteId(null); setEmailStatus("idle"); setEmailError(null); }} disabled={!ent.canAddSeat}>
+              <Plus className="mr-2 h-4 w-4" />
+              Invite Member
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
