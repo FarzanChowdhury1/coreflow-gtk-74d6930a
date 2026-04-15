@@ -196,7 +196,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      if (!cancelled) setLoading(false);
+      if (!cancelled) {
+        setLoading(false);
+        // Flush awaitable refresh resolvers
+        const resolvers = pendingRefreshResolvers.splice(0);
+        resolvers.forEach((r) => r());
+      }
       inflightPromise = null;
     };
 
