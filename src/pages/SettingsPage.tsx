@@ -1,10 +1,11 @@
-import { Settings, Building2, UserCircle, Crown, Rocket } from "lucide-react";
+import { Settings, Building2, UserCircle, Crown, Rocket, Bell } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkspaceSettingsTab } from "@/components/settings/WorkspaceSettingsTab";
 import { ProfileSettingsTab } from "@/components/settings/ProfileSettingsTab";
 import { PlanBillingTab } from "@/components/settings/PlanBillingTab";
 import { ActivationTab } from "@/components/settings/ActivationTab";
+import { NotificationPreferencesTab } from "@/components/settings/NotificationPreferencesTab";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 export default function SettingsPage() {
