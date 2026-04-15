@@ -145,9 +145,11 @@ export function WorkspaceSettingsTab() {
     }
     setExportClaimed(true);
     toast.success("Offboarding export unlocked for 1 hour. Redirecting to Data Export…");
-    // Refresh workspace context so FeatureGate sees the updated offboarding_export_used_at
+    // Refresh workspace context, then navigate deterministically
     refreshWorkspaces();
-    setTimeout(() => navigate("/data-export"), 1500);
+    // Navigate immediately — the export page checks entitlement via RPC/backend,
+    // not stale context state, so no timing dependency is needed
+    navigate("/data-export");
   };
 
   const nameMatches = currentWorkspace && confirmName.trim() === currentWorkspace.name.trim();

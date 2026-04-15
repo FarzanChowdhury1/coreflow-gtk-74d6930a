@@ -145,17 +145,29 @@ export default function DataExport() {
     if (!currentWorkspace) return;
     setExporting(true);
     try {
+      const ROW_LIMIT = 5000;
       const sheets: { name: string; data: Record<string, any>[]; columns: typeof COLUMN_MAPS["leads"] }[] = [];
+      const truncatedEntities: string[] = [];
 
-      for (const entity of ENTITY_SETS) {
-        const { data, error } = await (supabase
-          .from(entity.table as any)
-          .select(entity.select) as any)
-          .eq("workspace_id", currentWorkspace.id)
-          .order("created_at", { ascending: false })
-          .limit(5000);
+      // Fetch all entities in parallel
+      const results = await Promise.all(
+        ENTITY_SETS.map(async (entity) => {
+          const { data, error } = await (supabase
+            .from(entity.table as any)
+            .select(entity.select) as any)
+            .eq("workspace_id", currentWorkspace.id)
+            .order("created_at", { ascending: false })
+            .limit(ROW_LIMIT);
 
+          return { entity, data, error };
+        })
+      );
+
+      for (const { entity, data, error } of results) {
         if (!error && data) {
+          if (data.length === ROW_LIMIT) {
+            truncatedEntities.push(entity.label);
+          }
           sheets.push({
             name: entity.sheet,
             data: data as Record<string, any>[],
@@ -166,7 +178,15 @@ export default function DataExport() {
 
       const dateStr = format(new Date(), "yyyy-MM-dd");
       await guardedExportMultiSheetXLSX(currentWorkspace.id, sheets, `coreflow-export-${dateStr}`);
-      toast.success("Workspace data exported successfully");
+
+      if (truncatedEntities.length > 0) {
+        toast.warning(
+          `Export capped at ${ROW_LIMIT.toLocaleString()} rows for: ${truncatedEntities.join(", ")}. Contact us if you need a full extract.`,
+          { duration: 8000 }
+        );
+      } else {
+        toast.success("Workspace data exported successfully");
+      }
     } catch {
       toast.error("Export failed. Please try again.");
     } finally {
