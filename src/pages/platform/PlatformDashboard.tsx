@@ -45,6 +45,7 @@ interface WorkspaceRow {
   followup_owner_email: string | null;
   last_note: string | null;
   note_count: number;
+  deleted_at: string | null;
 }
 
 interface Summary {
