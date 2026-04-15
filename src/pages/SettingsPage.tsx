@@ -59,6 +59,10 @@ export default function SettingsPage() {
           <ProfileSettingsTab />
         </TabsContent>
 
+        <TabsContent value="notifications">
+          <NotificationPreferencesTab />
+        </TabsContent>
+
         {isAdmin && (
           <TabsContent value="workspace">
             <WorkspaceSettingsTab />
