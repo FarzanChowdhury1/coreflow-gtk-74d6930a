@@ -2881,6 +2881,10 @@ export type Database = {
         }
         Returns: Json
       }
+      deactivate_workspace: {
+        Args: { _confirm_name: string; _workspace_id: string }
+        Returns: Json
+      }
       decline_workspace_invite: { Args: { _invite_id: string }; Returns: Json }
       delete_email: {
         Args: { message_id: number; queue_name: string }
