@@ -31,6 +31,10 @@ export default function SettingsPage() {
             <UserCircle className="h-4 w-4" />
             Profile
           </TabsTrigger>
+          <TabsTrigger value="notifications" className="gap-2">
+            <Bell className="h-4 w-4" />
+            Notifications
+          </TabsTrigger>
           {isAdmin && (
             <TabsTrigger value="workspace" className="gap-2">
               <Building2 className="h-4 w-4" />
