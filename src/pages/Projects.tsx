@@ -206,27 +206,40 @@ export default function Projects() {
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((project) => (
-            <div
-              key={project.id}
-              onClick={() => setSelectedProjectId(project.id)}
-              className="rounded-lg border bg-card p-4 hover:border-primary/30 transition-colors cursor-pointer"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <h2 className="font-medium text-foreground text-sm leading-tight">{project.name}</h2>
-                <Badge variant="secondary" className={`text-xs shrink-0 ml-2 ${statusColors[project.status]}`}>
-                  {project.status.replace("_", " ")}
-                </Badge>
+          {filtered.map((project) => {
+            const prog = progressByProject[project.id];
+            const pct = prog && prog.total > 0 ? Math.round((prog.done / prog.total) * 100) : 0;
+            return (
+              <div
+                key={project.id}
+                onClick={() => setSelectedProjectId(project.id)}
+                className="rounded-lg border bg-card p-4 hover:border-primary/30 transition-colors cursor-pointer"
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <h2 className="font-medium text-foreground text-sm leading-tight">{project.name}</h2>
+                  <Badge variant="secondary" className={`text-xs shrink-0 ml-2 ${statusColors[project.status]}`}>
+                    {project.status.replace("_", " ")}
+                  </Badge>
+                </div>
+                <p className="text-xs text-foreground/70 mb-3">
+                  {(project.companies as any)?.legal_name ?? <span className="italic text-foreground/50">Internal project</span>}
+                </p>
+                {prog && prog.total > 0 && (
+                  <div className="mb-2">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                      <span>{prog.done}/{prog.total} tasks done</span>
+                      <span>{pct}%</span>
+                    </div>
+                    <Progress value={pct} className="h-1.5" />
+                  </div>
+                )}
+                <div className="flex gap-4 text-xs text-foreground/60">
+                  {project.start_date && <span>Start: {project.start_date}</span>}
+                  {project.target_end_date && <span>Target: {project.target_end_date}</span>}
+                </div>
               </div>
-              <p className="text-xs text-foreground/70 mb-3">
-                {(project.companies as any)?.legal_name ?? <span className="italic text-foreground/50">Internal project</span>}
-              </p>
-              <div className="flex gap-4 text-xs text-foreground/60">
-                {project.start_date && <span>Start: {project.start_date}</span>}
-                {project.target_end_date && <span>Target: {project.target_end_date}</span>}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
