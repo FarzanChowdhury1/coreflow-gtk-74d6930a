@@ -2761,6 +2761,7 @@ export type Database = {
           deleted_at: string | null
           id: string
           name: string
+          offboarding_export_claimed_by: string | null
           offboarding_export_used_at: string | null
           plan: string
           seat_limit: number
@@ -2775,6 +2776,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           name: string
+          offboarding_export_claimed_by?: string | null
           offboarding_export_used_at?: string | null
           plan?: string
           seat_limit?: number
@@ -2789,6 +2791,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           name?: string
+          offboarding_export_claimed_by?: string | null
           offboarding_export_used_at?: string | null
           plan?: string
           seat_limit?: number
