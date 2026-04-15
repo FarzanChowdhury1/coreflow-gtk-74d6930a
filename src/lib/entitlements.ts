@@ -140,7 +140,7 @@ export function resolveEntitlement(
     trialDaysLeft,
     trialExpired,
     canAddSeat,
-    features: config.features,
+    features: effectiveConfig.features,
     upgradeCta,
   };
 }
