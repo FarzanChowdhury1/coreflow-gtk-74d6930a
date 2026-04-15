@@ -151,8 +151,9 @@ export default function Login() {
             <form onSubmit={handleForgotPassword} className="rounded-lg border bg-card p-6">
               <div className="space-y-4">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
+                  <label htmlFor="forgot-email" className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
                   <input
+                    id="forgot-email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -203,8 +204,9 @@ export default function Login() {
             <div className="space-y-4">
               {isSignUp && (
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-foreground">Full Name</label>
+                  <label htmlFor="signup-name" className="mb-1.5 block text-sm font-medium text-foreground">Full Name</label>
                   <input
+                    id="signup-name"
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
@@ -215,8 +217,9 @@ export default function Login() {
                 </div>
               )}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
+                <label htmlFor="login-email" className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
                 <input
+                    id="login-email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -228,9 +231,10 @@ export default function Login() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Password</label>
+                <label htmlFor="login-password" className="mb-1.5 block text-sm font-medium text-foreground">Password</label>
                 <div className="relative">
                   <input
+                    id="login-password"
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => {
