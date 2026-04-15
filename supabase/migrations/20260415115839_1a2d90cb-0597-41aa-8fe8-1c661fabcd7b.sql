@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.fetch_prioritized_notifications(uuid, integer);
