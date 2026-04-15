@@ -3088,6 +3088,10 @@ export type Database = {
         Args: { _version_id: string; _workspace_id: string }
         Returns: Json
       }
+      workspace_has_active_feature: {
+        Args: { _feature: string; _workspace_id: string }
+        Returns: boolean
+      }
       workspace_has_members: {
         Args: { _workspace_id: string }
         Returns: boolean
