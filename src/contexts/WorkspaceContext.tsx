@@ -74,13 +74,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   );
   const [fetchKey, setFetchKey] = useState(0);
 
-  const refreshWorkspaces = useCallback(() => {
+  const refreshWorkspaces = useCallback((): Promise<void> => {
     cachedWorkspaces = null;
     cachedMemberships = null;
     cachedInvites = null;
     cacheTimestamp = 0;
     inflightPromise = null;
-    setFetchKey((k) => k + 1);
+    return new Promise<void>((resolve) => {
+      pendingRefreshResolvers.push(resolve);
+      setFetchKey((k) => k + 1);
+    });
   }, []);
 
   useEffect(() => {
