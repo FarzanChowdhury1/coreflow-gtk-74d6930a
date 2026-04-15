@@ -48,6 +48,11 @@ export function WorkspaceSettingsTab() {
   const [confirmName, setConfirmName] = useState("");
   const [deactivating, setDeactivating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [claimingExport, setClaimingExport] = useState(false);
+  const [exportClaimed, setExportClaimed] = useState(false);
+
+  const ws = currentWorkspace as any;
+  const alreadyClaimed = !!ws?.offboarding_export_used_at;
 
   const form = useForm<WorkspaceFormValues>({
     resolver: zodResolver(workspaceSchema),
