@@ -15,7 +15,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, Download } from "lucide-react";
+import { useEntitlement } from "@/hooks/use-entitlement";
+import { useNavigate } from "react-router-dom";
 
 const CURRENCIES = ["BDT", "USD", "EUR", "GBP", "INR", "AED", "SGD"];
 const TIMEZONES = [
