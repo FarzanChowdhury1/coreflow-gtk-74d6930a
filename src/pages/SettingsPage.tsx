@@ -1,10 +1,11 @@
-import { Settings, Building2, UserCircle, Crown, Rocket } from "lucide-react";
+import { Settings, Building2, UserCircle, Crown, Rocket, Bell } from "lucide-react";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkspaceSettingsTab } from "@/components/settings/WorkspaceSettingsTab";
 import { ProfileSettingsTab } from "@/components/settings/ProfileSettingsTab";
 import { PlanBillingTab } from "@/components/settings/PlanBillingTab";
 import { ActivationTab } from "@/components/settings/ActivationTab";
+import { NotificationPreferencesTab } from "@/components/settings/NotificationPreferencesTab";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 export default function SettingsPage() {
@@ -30,6 +31,10 @@ export default function SettingsPage() {
             <UserCircle className="h-4 w-4" />
             Profile
           </TabsTrigger>
+          <TabsTrigger value="notifications" className="gap-2">
+            <Bell className="h-4 w-4" />
+            Notifications
+          </TabsTrigger>
           {isAdmin && (
             <TabsTrigger value="workspace" className="gap-2">
               <Building2 className="h-4 w-4" />
@@ -52,6 +57,10 @@ export default function SettingsPage() {
 
         <TabsContent value="profile">
           <ProfileSettingsTab />
+        </TabsContent>
+
+        <TabsContent value="notifications">
+          <NotificationPreferencesTab />
         </TabsContent>
 
         {isAdmin && (
