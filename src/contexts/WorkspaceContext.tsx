@@ -48,6 +48,9 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 // In-flight promise dedup — prevents duplicate concurrent fetches
 let inflightPromise: Promise<void> | null = null;
 
+// Pending resolvers for awaitable refreshWorkspaces calls
+let pendingRefreshResolvers: Array<() => void> = [];
+
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   // Stabilize on user.id to avoid re-fetching on token refresh (new user object ref)
