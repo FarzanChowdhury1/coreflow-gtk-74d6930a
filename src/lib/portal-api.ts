@@ -72,6 +72,13 @@ export interface PortalSessionInfo {
   company_name: string;
 }
 
+export interface PortalBranding {
+  workspace_name: string;
+  accent_color: string | null;
+  logo_url: string | null;
+  support_email: string | null;
+}
+
 // --------------- API methods ---------------
 
 /**
@@ -80,7 +87,7 @@ export interface PortalSessionInfo {
  */
 export async function portalVerifyToken(
   token: string
-): Promise<{ success: boolean; session?: PortalSessionInfo; error?: string }> {
+): Promise<{ success: boolean; session?: PortalSessionInfo; branding?: PortalBranding; error?: string }> {
   const res = await portalFetch("portal-verify", {
     method: "POST",
     body: JSON.stringify({ token }),
@@ -107,7 +114,27 @@ export async function portalVerifyToken(
       contact_email: data.contact_email,
       company_name: data.company_name,
     },
+    branding: data.branding || undefined,
   };
+}
+
+/**
+ * Peek at workspace branding using a portal token (pre-session, no consumption).
+ */
+export async function portalPeekBranding(
+  token: string
+): Promise<PortalBranding | null> {
+  try {
+    const res = await fetch(
+      `${FUNCTIONS_BASE}/portal-verify?peek_token=${encodeURIComponent(token)}`,
+      { method: "GET", credentials: "include" }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.branding || null;
+  } catch {
+    return null;
+  }
 }
 
 /**

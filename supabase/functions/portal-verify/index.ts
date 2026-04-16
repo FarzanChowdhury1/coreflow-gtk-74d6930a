@@ -45,7 +45,7 @@ function corsHeaders(origin: string | null): Record<string, string> {
     "Access-Control-Allow-Origin": allowed || "",
     "Access-Control-Allow-Headers":
       "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-    "Access-Control-Allow-Methods": "POST, DELETE, OPTIONS",
+    "Access-Control-Allow-Methods": "POST, GET, DELETE, OPTIONS",
     "Access-Control-Allow-Credentials": "true",
     "Cache-Control": "no-store",
     Vary: "Origin",
@@ -87,6 +87,54 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true }, 200, hdrs, {
       "Set-Cookie": `${COOKIE_NAME}=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0`,
     });
+  }
+
+  // --- GET: Peek branding for a token (no consumption) ---
+  if (req.method === "GET") {
+    const url = new URL(req.url);
+    const peekToken = url.searchParams.get("peek_token");
+    if (!peekToken || peekToken.length > 200) {
+      return jsonResponse({ error: "peek_token required" }, 400, hdrs);
+    }
+
+    const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+
+    // Look up token → workspace, but do NOT consume
+    const { data: tokenRow } = await supabase
+      .from("portal_tokens")
+      .select("workspace_id")
+      .eq("token", peekToken)
+      .is("consumed_at", null)
+      .is("revoked_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+
+    if (!tokenRow) {
+      return jsonResponse({ branding: null }, 200, hdrs);
+    }
+
+    const { data: ws } = await supabase
+      .from("workspaces")
+      .select("name, portal_accent_color, portal_logo_storage_path, portal_support_email")
+      .eq("id", tokenRow.workspace_id)
+      .single();
+
+    let logo_url: string | null = null;
+    if (ws?.portal_logo_storage_path) {
+      const { data: signedUrl } = await supabase.storage
+        .from("workspace-files")
+        .createSignedUrl(ws.portal_logo_storage_path, 3600);
+      logo_url = signedUrl?.signedUrl || null;
+    }
+
+    return jsonResponse({
+      branding: {
+        workspace_name: ws?.name || "",
+        accent_color: ws?.portal_accent_color || null,
+        logo_url,
+        support_email: ws?.portal_support_email || null,
+      },
+    }, 200, hdrs);
   }
 
   if (req.method !== "POST") {
@@ -164,11 +212,20 @@ Deno.serve(async (req) => {
 
     const tokenRecord = consumedTokens[0];
 
-    // --- Fetch contact and company info ---
-    const [{ data: contact }, { data: company }] = await Promise.all([
+    // --- Fetch contact, company, and branding info ---
+    const [{ data: contact }, { data: company }, { data: ws }] = await Promise.all([
       supabase.from("contacts").select("full_name, email").eq("id", tokenRecord.contact_id).single(),
       supabase.from("companies").select("legal_name").eq("id", tokenRecord.company_id).single(),
+      supabase.from("workspaces").select("name, portal_accent_color, portal_logo_storage_path, portal_support_email").eq("id", tokenRecord.workspace_id).single(),
     ]);
+
+    let branding_logo_url: string | null = null;
+    if (ws?.portal_logo_storage_path) {
+      const { data: signedUrl } = await supabase.storage
+        .from("workspace-files")
+        .createSignedUrl(ws.portal_logo_storage_path, 3600);
+      branding_logo_url = signedUrl?.signedUrl || null;
+    }
 
     // --- Sign JWT ---
     const now = Math.floor(Date.now() / 1000);
@@ -200,6 +257,12 @@ Deno.serve(async (req) => {
         contact_name: contact?.full_name || "",
         contact_email: contact?.email || "",
         company_name: company?.legal_name || "",
+        branding: {
+          workspace_name: ws?.name || "",
+          accent_color: ws?.portal_accent_color || null,
+          logo_url: branding_logo_url,
+          support_email: ws?.portal_support_email || null,
+        },
       },
       200,
       hdrs,
