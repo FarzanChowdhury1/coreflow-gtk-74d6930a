@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Upload, AlertTriangle, CheckCircle2, RotateCw, X, FileText, Sparkles } from "lucide-react";
+import { Loader2, Upload, AlertTriangle, CheckCircle2, RotateCw, X, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,7 +23,8 @@ import {
 import { EXPENSE_CATEGORIES } from "@/pages/Expenses";
 
 const PAYMENT_METHODS = ["bank_transfer", "cash", "credit_card", "mobile_banking", "cheque", "other"];
-const SUPPORTED_TYPES = ["image/png", "image/jpeg", "image/webp", "application/pdf"];
+// PDFs are intentionally not supported by the current vision provider; we reject up-front.
+const SUPPORTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const MAX_FILE_SIZE = 8 * 1024 * 1024; // 8MB matches edge-function limit
 
 interface Props {
@@ -32,6 +33,8 @@ interface Props {
   workspaceId: string;
   defaultCurrency: string;
   onExpenseCreated: () => void;
+  /** Optional: reopen an existing extraction job (e.g. from history). */
+  initialJob?: ExtractionJob | null;
 }
 
 function ConfidenceBadge({ value }: { value: number | undefined }) {
@@ -42,7 +45,7 @@ function ConfidenceBadge({ value }: { value: number | undefined }) {
 }
 
 export function ReceiptExtractionDialog({
-  open, onOpenChange, workspaceId, defaultCurrency, onExpenseCreated,
+  open, onOpenChange, workspaceId, defaultCurrency, onExpenseCreated, initialJob,
 }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -66,7 +69,7 @@ export function ReceiptExtractionDialog({
   const norm = job?.normalized_data_json as NormalizedExtraction | null;
   const confidence = norm?.field_confidence ?? {};
 
-  // Reset on close
+  // Reset on close; seed from initialJob on open (reopen-from-history flow)
   useEffect(() => {
     if (!open) {
       setJob(null);
@@ -83,8 +86,10 @@ export function ReceiptExtractionDialog({
       setPaymentMethod("bank_transfer");
       setPaymentStatus("paid");
       setNotes("");
+    } else if (initialJob) {
+      setJob(initialJob);
     }
-  }, [open, defaultCurrency]);
+  }, [open, defaultCurrency, initialJob]);
 
   // Seed editable fields when extraction completes
   useEffect(() => {
@@ -156,7 +161,7 @@ export function ReceiptExtractionDialog({
     if (!f) return;
     if (!user) { toast.error("Not authenticated"); return; }
     if (!SUPPORTED_TYPES.includes(f.type)) {
-      toast.error("Only PNG, JPG, WebP, or PDF receipts are supported");
+      toast.error("Only PNG, JPG, or WebP receipts are supported. Convert PDFs to an image first.");
       return;
     }
     if (f.size > MAX_FILE_SIZE) {
@@ -256,12 +261,12 @@ export function ReceiptExtractionDialog({
             <Upload className="mx-auto h-8 w-8 text-muted-foreground/60 mb-2" />
             <p className="text-sm text-foreground font-medium">Upload a bill or receipt</p>
             <p className="text-xs text-muted-foreground mb-3">
-              PNG, JPG, WebP, or PDF up to 8MB. Extraction runs server-side. Nothing is posted until you review and approve.
+              PNG, JPG, or WebP up to 8MB. Extraction runs server-side. Nothing is posted until you review and approve.
             </p>
             <label className="inline-flex">
               <input
                 type="file"
-                accept="image/png,image/jpeg,image/webp,application/pdf"
+                accept="image/png,image/jpeg,image/webp"
                 className="hidden"
                 onChange={handleFile}
                 disabled={busy}
@@ -340,14 +345,7 @@ export function ReceiptExtractionDialog({
               {/* Preview column */}
               <div className="rounded-md border bg-muted/30 p-2 min-h-[260px] flex items-center justify-center">
                 {previewUrl ? (
-                  job.source_mime_type === "application/pdf" ? (
-                    <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-primary">
-                      <FileText className="h-10 w-10 mb-2" />
-                      <span className="text-xs">Open PDF preview</span>
-                    </a>
-                  ) : (
-                    <img src={previewUrl} alt="Receipt" className="max-h-[400px] object-contain rounded" />
-                  )
+                  <img src={previewUrl} alt="Receipt" className="max-h-[400px] object-contain rounded" />
                 ) : (
                   <p className="text-xs text-muted-foreground">Loading preview…</p>
                 )}

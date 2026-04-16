@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Receipt, Plus, Archive, ArchiveRestore, Pencil, Download, CheckCircle2, AlertTriangle, Sparkles } from "lucide-react";
+import { Receipt, Plus, Archive, ArchiveRestore, Pencil, Download, CheckCircle2, AlertTriangle, Sparkles, History } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ExpenseMobileCards } from "@/components/expenses/ExpenseMobileCards";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
@@ -20,6 +20,8 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ExpenseFormDialog } from "@/components/expenses/ExpenseFormDialog";
 import { ReceiptExtractionDialog } from "@/components/expenses/ReceiptExtractionDialog";
+import { ExtractionHistoryDialog } from "@/components/expenses/ExtractionHistoryDialog";
+import type { ExtractionJob } from "@/lib/extraction-api";
 
 export interface Expense {
   id: string;
@@ -55,6 +57,8 @@ export default function Expenses() {
   const isAdmin = currentRole === "admin";
   const [formOpen, setFormOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [reopenJob, setReopenJob] = useState<ExtractionJob | null>(null);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("all");
@@ -180,8 +184,11 @@ export default function Expenses() {
         <Button size="sm" onClick={() => { setEditing(null); setFormOpen(true); }}>
           <Plus className="mr-1 h-4 w-4" /> Add Expense
         </Button>
-        <Button size="sm" variant="secondary" onClick={() => setScanOpen(true)}>
+        <Button size="sm" variant="secondary" onClick={() => { setReopenJob(null); setScanOpen(true); }}>
           <Sparkles className="mr-1 h-4 w-4" /> Scan Receipt
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setHistoryOpen(true)}>
+          <History className="mr-1 h-4 w-4" /> Scan History
         </Button>
         <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
           <Download className="mr-1 h-4 w-4" /> CSV
@@ -304,10 +311,20 @@ export default function Expenses() {
       {scanOpen && currentWorkspace && (
         <ReceiptExtractionDialog
           open={scanOpen}
-          onOpenChange={setScanOpen}
+          onOpenChange={(o) => { setScanOpen(o); if (!o) setReopenJob(null); }}
           workspaceId={currentWorkspace.id}
           defaultCurrency={currency}
+          initialJob={reopenJob}
           onExpenseCreated={() => queryClient.invalidateQueries({ queryKey: ["expenses"] })}
+        />
+      )}
+
+      {historyOpen && currentWorkspace && (
+        <ExtractionHistoryDialog
+          open={historyOpen}
+          onOpenChange={setHistoryOpen}
+          workspaceId={currentWorkspace.id}
+          onReopen={(job) => { setReopenJob(job); setScanOpen(true); }}
         />
       )}
     </div>
