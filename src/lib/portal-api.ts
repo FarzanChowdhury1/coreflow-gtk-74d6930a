@@ -125,13 +125,28 @@ export async function portalPeekBranding(
   token: string
 ): Promise<PortalBranding | null> {
   try {
-    const res = await fetch(
+    const res = await portalFetch("portal-verify", {
+      method: "GET",
+      headers: {
+        // GET doesn't need Content-Type: application/json but portalFetch sets it;
+        // override is harmless. We use portalFetch to get credentials: "include".
+      },
+    });
+    // portalFetch doesn't support query params, so build manually
+    const jwt = getStoredToken();
+    const headers: Record<string, string> = {};
+    if (jwt) headers["Authorization"] = `Bearer ${jwt}`;
+
+    const peekRes = await fetch(
       `${FUNCTIONS_BASE}/portal-verify?peek_token=${encodeURIComponent(token)}`,
-      { method: "GET", credentials: "include" }
+      { method: "GET", credentials: "include", headers }
     );
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.branding || null;
+    if (!peekRes.ok) return null;
+    const data = await peekRes.json();
+    const b = data.branding;
+    // If workspace_name is empty, treat as no branding (invalid/expired token)
+    if (!b || !b.workspace_name) return null;
+    return b;
   } catch {
     return null;
   }
