@@ -166,6 +166,7 @@ export function WorkspaceSettingsTab() {
   };
 
 
+  const handleDeactivate = async () => {
     if (!currentWorkspace) return;
     setDeactivating(true);
 
