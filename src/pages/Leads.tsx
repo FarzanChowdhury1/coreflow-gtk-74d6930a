@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Inbox, Plus, Search, FileText, Calendar, Archive, RotateCcw, Download } from "lucide-react";
+import { Inbox, Plus, Search, FileText, Calendar, Archive, RotateCcw, Download, LayoutList, Columns3 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { LeadMobileCards } from "@/components/leads/LeadMobileCards";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
@@ -17,6 +17,7 @@ import { LeadFormDialog } from "@/components/leads/LeadFormDialog";
 import { ProposalFormDialog } from "@/components/proposals/ProposalFormDialog";
 import type { ProposalFormPrefill } from "@/components/proposals/ProposalFormDialog";
 import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
+import { LeadKanbanBoard } from "@/components/leads/LeadKanbanBoard";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
