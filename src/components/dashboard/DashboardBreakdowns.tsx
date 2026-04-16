@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -11,8 +12,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { subDays, subMonths, startOfDay, startOfMonth, endOfMonth, format } from "date-fns";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { subDays, subMonths, startOfDay, endOfDay, startOfMonth, endOfMonth, format } from "date-fns";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   TrendingUp,
   TrendingDown,
@@ -29,13 +38,14 @@ import {
 
 /* ── Time range helpers ── */
 
-type TimeRange = "7d" | "30d" | "90d" | "12m" | "all";
+type TimeRange = "7d" | "30d" | "90d" | "12m" | "all" | "custom";
 const TIME_LABELS: Record<TimeRange, string> = {
   "7d": "Last 7 days",
   "30d": "Last 30 days",
   "90d": "Last 90 days",
   "12m": "Last 12 months",
   all: "All time",
+  custom: "Custom range",
 };
 
 function getRangeStart(range: TimeRange): string | null {
@@ -46,6 +56,7 @@ function getRangeStart(range: TimeRange): string | null {
     case "90d": return startOfDay(subDays(now, 90)).toISOString();
     case "12m": return startOfDay(subMonths(now, 12)).toISOString();
     case "all": return null;
+    case "custom": return null; // handled separately
   }
 }
 
@@ -149,7 +160,29 @@ function FinanceErrorBanner({ message }: { message: string }) {
 
 export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   const [range, setRange] = useState<TimeRange>("30d");
-  const rangeStart = useMemo(() => getRangeStart(range), [range]);
+  const [customFrom, setCustomFrom] = useState<Date | undefined>(undefined);
+  const [customTo, setCustomTo] = useState<Date | undefined>(undefined);
+
+  const effectiveStart = useMemo(() => {
+    if (range === "custom") {
+      return customFrom ? startOfDay(customFrom).toISOString() : null;
+    }
+    return getRangeStart(range);
+  }, [range, customFrom]);
+
+  const effectiveEnd = useMemo(() => {
+    if (range === "custom" && customTo) {
+      return endOfDay(customTo).toISOString();
+    }
+    return null;
+  }, [range, customTo]);
+
+  const rangeLabel = useMemo(() => {
+    if (range === "custom" && customFrom && customTo) {
+      return `${format(customFrom, "dd MMM yyyy")} – ${format(customTo, "dd MMM yyyy")}`;
+    }
+    return TIME_LABELS[range];
+  }, [range, customFrom, customTo]);
   const { currentRole } = useWorkspace();
   const isAdmin = currentRole === "admin";
 
@@ -162,12 +195,13 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   /* ══════════════ PIPELINE QUERIES (range-based) ══════════════ */
 
   const { data: leads = [], isLoading: ll } = useQuery({
-    queryKey: ["dash-leads", workspaceId, rangeStart],
+    queryKey: ["dash-leads", workspaceId, effectiveStart, effectiveEnd],
     enabled: !!workspaceId,
     staleTime: 60_000,
     queryFn: async () => {
       let q = supabase.from("leads").select("status").eq("workspace_id", workspaceId).is("deleted_at", null);
-      if (rangeStart) q = q.gte("created_at", rangeStart);
+      if (effectiveStart) q = q.gte("created_at", effectiveStart);
+      if (effectiveEnd) q = q.lte("created_at", effectiveEnd);
       const { data, error } = await q;
       if (error) throw error;
       return data || [];
@@ -175,12 +209,13 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   });
 
   const { data: proposalVersions = [], isLoading: pl } = useQuery({
-    queryKey: ["dash-proposals", workspaceId, rangeStart],
+    queryKey: ["dash-proposals", workspaceId, effectiveStart, effectiveEnd],
     enabled: !!workspaceId,
     staleTime: 60_000,
     queryFn: async () => {
       let q = supabase.from("proposal_versions").select("status, proposal_id, version_number").eq("workspace_id", workspaceId);
-      if (rangeStart) q = q.gte("created_at", rangeStart);
+      if (effectiveStart) q = q.gte("created_at", effectiveStart);
+      if (effectiveEnd) q = q.lte("created_at", effectiveEnd);
       q = q.order("version_number", { ascending: false });
       const { data, error } = await q;
       if (error) throw error;
@@ -195,12 +230,13 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   });
 
   const { data: projects = [], isLoading: prl } = useQuery({
-    queryKey: ["dash-projects", workspaceId, rangeStart],
+    queryKey: ["dash-projects", workspaceId, effectiveStart, effectiveEnd],
     enabled: !!workspaceId,
     staleTime: 60_000,
     queryFn: async () => {
       let q = supabase.from("projects").select("status").eq("workspace_id", workspaceId).is("deleted_at", null);
-      if (rangeStart) q = q.gte("created_at", rangeStart);
+      if (effectiveStart) q = q.gte("created_at", effectiveStart);
+      if (effectiveEnd) q = q.lte("created_at", effectiveEnd);
       const { data, error } = await q;
       if (error) throw error;
       return data || [];
@@ -208,12 +244,13 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   });
 
   const { data: invoices = [], isLoading: il } = useQuery({
-    queryKey: ["dash-invoices", workspaceId, rangeStart],
+    queryKey: ["dash-invoices", workspaceId, effectiveStart, effectiveEnd],
     enabled: !!workspaceId,
     staleTime: 60_000,
     queryFn: async () => {
       let q = supabase.from("invoices").select("status, grand_total, amount_paid").eq("workspace_id", workspaceId).is("deleted_at", null);
-      if (rangeStart) q = q.gte("created_at", rangeStart);
+      if (effectiveStart) q = q.gte("created_at", effectiveStart);
+      if (effectiveEnd) q = q.lte("created_at", effectiveEnd);
       const { data, error } = await q;
       if (error) throw error;
       return data || [];
@@ -282,18 +319,62 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   return (
     <div className="mt-6 space-y-6">
       {/* ════════════════════════ PIPELINE ════════════════════════ */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <h2 className="text-sm font-medium text-foreground">Pipeline</h2>
-        <Select value={range} onValueChange={(v) => setRange(v as TimeRange)}>
-          <SelectTrigger className="w-[160px] h-8 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {(Object.keys(TIME_LABELS) as TimeRange[]).map((k) => (
-              <SelectItem key={k} value={k}>{TIME_LABELS[k]}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={range} onValueChange={(v) => setRange(v as TimeRange)}>
+            <SelectTrigger className="w-[160px] h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(TIME_LABELS) as TimeRange[]).map((k) => (
+                <SelectItem key={k} value={k}>{TIME_LABELS[k]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {range === "custom" && (
+            <div className="flex items-center gap-1.5">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("h-8 text-xs gap-1.5 w-[130px] justify-start", !customFrom && "text-muted-foreground")}>
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                    {customFrom ? format(customFrom, "dd MMM yyyy") : "From"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={customFrom}
+                    onSelect={setCustomFrom}
+                    disabled={(d) => (customTo ? d > customTo : false) || d > new Date()}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+              <span className="text-xs text-muted-foreground">–</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("h-8 text-xs gap-1.5 w-[130px] justify-start", !customTo && "text-muted-foreground")}>
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                    {customTo ? format(customTo, "dd MMM yyyy") : "To"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={customTo}
+                    onSelect={setCustomTo}
+                    disabled={(d) => (customFrom ? d < customFrom : false) || d > new Date()}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+        </div>
       </div>
 
       {pipelineLoading ? (
@@ -366,9 +447,9 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
 
           {/* Range-based invoice summary — clearly labelled with selected range */}
           <div className="grid gap-3 md:grid-cols-3">
-            <KpiCard label="Total Invoiced" value={fmt(totalInvoiced)} icon={Receipt} iconColor="text-primary" sub={TIME_LABELS[range]} />
-            <KpiCard label="Total Collected" value={fmt(totalCollected)} icon={CreditCard} iconColor="text-success" sub={TIME_LABELS[range]} />
-            <KpiCard label="Outstanding Receivable" value={fmt(totalReceivable)} icon={TrendingUp} iconColor="text-warning" sub={TIME_LABELS[range]} />
+            <KpiCard label="Total Invoiced" value={fmt(totalInvoiced)} icon={Receipt} iconColor="text-primary" sub={rangeLabel} />
+            <KpiCard label="Total Collected" value={fmt(totalCollected)} icon={CreditCard} iconColor="text-success" sub={rangeLabel} />
+            <KpiCard label="Outstanding Receivable" value={fmt(totalReceivable)} icon={TrendingUp} iconColor="text-warning" sub={rangeLabel} />
           </div>
         </>
       )}
@@ -452,7 +533,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
                       <p className={`text-lg font-semibold tabular-nums ${allTimeRate !== null && allTimeRate >= 70 ? "text-success" : allTimeRate !== null ? "text-warning" : "text-muted-foreground"}`}>
                         {allTimeRate !== null ? `${allTimeRate}%` : "—"}
                       </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{TIME_LABELS[range]}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{rangeLabel}</p>
                     </CardContent>
                   </Card>
                   <Card className="overflow-hidden">
