@@ -60,7 +60,7 @@ function parseCookies(header: string | null): Record<string, string> {
   );
 }
 
-const ALLOWED_OWNER_TYPES = ["project", "invoice", "company", "payment_proof", "client_update", "meeting"];
+const ALLOWED_OWNER_TYPES = ["project", "invoice", "company", "payment_proof", "client_update", "meeting", "expense_receipt", "expense"];
 const ALLOWED_MIME_TYPES = [
   "application/pdf",
   "image/png",
