@@ -2,14 +2,14 @@ import { useState } from "react";
 import { Calendar, Clock, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { portalPostAction, type PortalSessionInfo } from "@/lib/portal-api";
+import { portalAction, type PortalSessionInfo } from "@/lib/portal-api";
 import { format } from "date-fns";
 
 interface Props {
   session: PortalSessionInfo;
 }
 
-export function PortalMeetingRequest({ session }: Props) {
+export function PortalMeetingRequest({ session: _session }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [preferredDate, setPreferredDate] = useState("");
@@ -24,7 +24,7 @@ export function PortalMeetingRequest({ session }: Props) {
     setLoading(true);
     setError(null);
 
-    const { data, error: err } = await portalPostAction("request_meeting", {
+    const { error: err } = await portalAction("request_meeting", {
       title: title.trim(),
       description: description.trim() || null,
       preferred_date: preferredDate || null,
