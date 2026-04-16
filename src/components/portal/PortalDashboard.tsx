@@ -6,9 +6,10 @@ import { PortalPayments } from "./PortalPayments";
 import { PortalUpdates } from "./PortalUpdates";
 import { PortalDocuments } from "./PortalDocuments";
 import { PortalOnboarding } from "./PortalOnboarding";
+import { PortalMeetingRequest } from "./PortalMeetingRequest";
 import {
   Building2, FileText, Receipt, CreditCard, LogOut, MessageSquare,
-  FolderOpen, AlertCircle, Clock, CheckCircle2, ClipboardList,
+  FolderOpen, AlertCircle, Clock, CheckCircle2, ClipboardList, Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -133,6 +134,9 @@ export function PortalDashboard({ session, initialBranding }: Props) {
                   {summary.onboarding_pending}
                 </Badge>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="meetings" className="gap-1.5">
+              <Calendar className="h-4 w-4" /> Meetings
             </TabsTrigger>
           </TabsList>
 
@@ -323,6 +327,9 @@ export function PortalDashboard({ session, initialBranding }: Props) {
           </TabsContent>
           <TabsContent value="onboarding">
             <PortalOnboarding session={session} />
+          </TabsContent>
+          <TabsContent value="meetings">
+            <PortalMeetingRequest session={session} />
           </TabsContent>
         </Tabs>
 

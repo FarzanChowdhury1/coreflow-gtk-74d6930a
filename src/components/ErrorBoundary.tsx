@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   children: ReactNode;
@@ -7,6 +8,27 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+}
+
+/**
+ * Report error to client_errors table.
+ * Fire-and-forget — never blocks the UI.
+ */
+async function reportError(error: Error, componentStack?: string) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from("client_errors").insert({
+      user_id: user?.id || null,
+      workspace_id: null, // workspace context may not be available
+      error_message: error.message?.slice(0, 2000) || "Unknown error",
+      error_stack: error.stack?.slice(0, 4000) || null,
+      component_stack: componentStack?.slice(0, 4000) || null,
+      url: window.location.href,
+      user_agent: navigator.userAgent?.slice(0, 500) || null,
+    });
+  } catch {
+    // Silently fail — error reporting must never crash the app
+  }
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -21,6 +43,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("[ErrorBoundary] Uncaught error:", error, info.componentStack);
+    reportError(error, info.componentStack ?? undefined);
   }
 
   private handleReload = () => {

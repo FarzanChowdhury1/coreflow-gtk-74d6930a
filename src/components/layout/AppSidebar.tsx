@@ -59,6 +59,7 @@ const navItems: NavItem[] = [
   { label: "Subscriptions", icon: CreditCard, path: "/subscriptions", section: "Spend", adminOnly: true },
   { label: "Budget vs Actual", icon: PieChart, path: "/budget", section: "Spend", adminOnly: true },
   { label: "Profitability", icon: BarChart3, path: "/profitability", section: "Revenue", adminOnly: true },
+  { label: "Reports", icon: BarChart3, path: "/reports", section: "Revenue", adminOnly: true },
   { label: "Internal Team", icon: Users, path: "/team", section: "Workspace", adminOnly: true },
   { label: "Notifications", icon: Bell, path: "/notifications", section: "Workspace" },
   { label: "Digest Inspector", icon: FileSearch, path: "/digest-inspector", section: "Workspace", adminOnly: true },
