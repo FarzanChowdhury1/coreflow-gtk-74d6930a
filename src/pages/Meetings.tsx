@@ -38,6 +38,7 @@ export default function Meetings() {
 
   const [showForm, setShowForm] = useState(false);
   const [editMeeting, setEditMeeting] = useState<any>(null);
+  const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -228,6 +229,7 @@ export default function Meetings() {
       {/* Client meeting requests review */}
       <MeetingRequestsReview
         onScheduleMeeting={(prefill) => {
+          setActiveRequestId(prefill.requestId);
           setEditMeeting({ title: prefill.title, company_id: prefill.companyId, contact_id: prefill.contactId });
           setShowForm(true);
         }}
@@ -235,9 +237,16 @@ export default function Meetings() {
 
       <MeetingFormDialog
         open={showForm}
-        onOpenChange={setShowForm}
-        onSaved={invalidate}
+        onOpenChange={(open) => {
+          setShowForm(open);
+          if (!open) setActiveRequestId(null);
+        }}
+        onSaved={() => {
+          invalidate();
+          queryClient.invalidateQueries({ queryKey: ["meeting-requests"] });
+        }}
         editMeeting={editMeeting}
+        meetingRequestId={activeRequestId || undefined}
       />
 
       <MeetingDetail

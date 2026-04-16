@@ -3261,6 +3261,10 @@ export type Database = {
       purge_old_notifications: { Args: never; Returns: Json }
       purge_operational_logs: { Args: never; Returns: Json }
       purge_stale_file_rows: { Args: never; Returns: Json }
+      purge_workspace_data: {
+        Args: { _request_id: string; _workspace_id: string }
+        Returns: Json
+      }
       reactivate_workspace: { Args: { _workspace_id: string }; Returns: Json }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
