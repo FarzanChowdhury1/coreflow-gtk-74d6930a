@@ -304,7 +304,86 @@ export function WorkspaceSettingsTab() {
         </CardContent>
       </Card>
 
-      {/* Danger zone — workspace deactivation */}
+      {/* Portal Branding */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Palette className="h-5 w-5 text-primary" />
+            Portal Branding
+          </CardTitle>
+          <CardDescription>
+            Customize the appearance of your client portal. Clients will see your branding when they access their portal.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="max-w-md space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Accent Color</label>
+              <div className="flex items-center gap-3">
+                <Input
+                  value={portalAccentColor}
+                  onChange={(e) => setPortalAccentColor(e.target.value)}
+                  placeholder="#3B82F6"
+                  className="font-mono max-w-[140px]"
+                  maxLength={7}
+                />
+                {portalAccentColor && /^#[0-9a-fA-F]{6}$/.test(portalAccentColor) && (
+                  <div
+                    className="h-8 w-8 rounded-md border"
+                    style={{ backgroundColor: portalAccentColor }}
+                  />
+                )}
+                <span className="text-xs text-muted-foreground">Hex format</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Support Email</label>
+              <Input
+                type="email"
+                value={portalSupportEmail}
+                onChange={(e) => setPortalSupportEmail(e.target.value)}
+                placeholder="support@yourcompany.com"
+              />
+              <p className="text-xs text-muted-foreground">Shown in the portal footer so clients know how to reach you.</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Portal Logo</label>
+              <div className="flex items-center gap-3">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  disabled={uploadingLogo}
+                  className="max-w-[260px]"
+                />
+                {uploadingLogo && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              </div>
+              {portalLogoPath && (
+                <p className="text-xs text-muted-foreground">
+                  Logo set: <span className="font-mono">{portalLogoPath.split("/").pop()}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPortalLogoPath("")}
+                    className="ml-2 text-destructive hover:underline"
+                  >
+                    Remove
+                  </button>
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">Max 2 MB. Displayed at 36×36px in the portal header.</p>
+            </div>
+
+            <Button onClick={handleSaveBranding} disabled={savingBranding}>
+              {savingBranding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Branding
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+
       <Card className="border-destructive/30">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-destructive">
