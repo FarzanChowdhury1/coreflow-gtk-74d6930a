@@ -189,8 +189,9 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   // Recalculates on every render — lightweight and never stale across month boundaries
   const month = getLocalMonthBounds();
 
-  const fmt = (n: number) =>
-    new Intl.NumberFormat("en-BD", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+  const fmtCur = (n: number, cur: string = currency) =>
+    new Intl.NumberFormat("en-BD", { style: "currency", currency: cur, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+  const fmt = (n: number) => fmtCur(n, currency);
 
   /* ══════════════ PIPELINE QUERIES (range-based) ══════════════ */
 
@@ -248,7 +249,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
     enabled: !!workspaceId,
     staleTime: 60_000,
     queryFn: async () => {
-      let q = supabase.from("invoices").select("status, grand_total, amount_paid").eq("workspace_id", workspaceId).is("deleted_at", null);
+      let q = supabase.from("invoices").select("status, grand_total, amount_paid, currency").eq("workspace_id", workspaceId).is("deleted_at", null);
       if (effectiveStart) q = q.gte("created_at", effectiveStart);
       if (effectiveEnd) q = q.lte("created_at", effectiveEnd);
       const { data, error } = await q;
@@ -270,7 +271,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
         _workspace_id: workspaceId,
       });
       if (error) throw error;
-      const d = data as unknown as Record<string, number>;
+      const d = data as unknown as Record<string, any>;
       return {
         collectedThisMonth: d.collected_this_month ?? 0,
         invoicedThisMonth: d.invoiced_this_month ?? 0,
@@ -282,6 +283,10 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
         activeSubsCount: d.active_subs_count ?? 0,
         vendorsCount: d.vendors_count ?? 0,
         totalBudget: d.total_budget ?? 0,
+        revenueByCurrency: (d.revenue_by_currency ?? []) as Array<{ currency: string; collected_this_month: number; invoiced_this_month: number; outstanding_receivable: number; overdue_count: number }>,
+        spendByCurrency: (d.spend_by_currency ?? []) as Array<{ currency: string; expense_this_month: number; total_budget: number }>,
+        isMultiCurrency: d.is_multi_currency ?? false,
+        currencies: (d.currencies ?? [currency]) as string[],
       };
     },
   });
@@ -307,12 +312,26 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   const projectCounts = useMemo(() => countByStatus(projects), [projects]);
   const invoiceCounts = useMemo(() => countByStatus(invoices), [invoices]);
 
+  // Group invoice totals by currency
+  const invoiceTotalsByCurrency = useMemo(() => {
+    const map: Record<string, { invoiced: number; collected: number; receivable: number }> = {};
+    invoices.forEach((i: any) => {
+      const cur = i.currency || currency;
+      if (!map[cur]) map[cur] = { invoiced: 0, collected: 0, receivable: 0 };
+      map[cur].invoiced += Number(i.grand_total);
+      map[cur].collected += Number(i.amount_paid);
+      if (i.status !== "void" && i.status !== "paid") {
+        map[cur].receivable += Number(i.grand_total) - Number(i.amount_paid);
+      }
+    });
+    return map;
+  }, [invoices, currency]);
+
+  const pipelineCurrencies = Object.keys(invoiceTotalsByCurrency);
+
+  // Legacy single-currency totals (for single-currency workspaces / cash conversion)
   const totalInvoiced = invoices.reduce((s: number, i: any) => s + Number(i.grand_total), 0);
   const totalCollected = invoices.reduce((s: number, i: any) => s + Number(i.amount_paid), 0);
-  const totalReceivable = invoices.reduce((s: number, i: any) => {
-    if (i.status === "void" || i.status === "paid") return s;
-    return s + (Number(i.grand_total) - Number(i.amount_paid));
-  }, 0);
 
   const pipelineLoading = ll || pl || prl || il;
 
@@ -445,12 +464,28 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
             </Card>
           </div>
 
-          {/* Range-based invoice summary — clearly labelled with selected range */}
-          <div className="grid gap-3 md:grid-cols-3">
-            <KpiCard label="Total Invoiced" value={fmt(totalInvoiced)} icon={Receipt} iconColor="text-primary" sub={rangeLabel} />
-            <KpiCard label="Total Collected" value={fmt(totalCollected)} icon={CreditCard} iconColor="text-success" sub={rangeLabel} />
-            <KpiCard label="Outstanding Receivable" value={fmt(totalReceivable)} icon={TrendingUp} iconColor="text-warning" sub={rangeLabel} />
-          </div>
+          {/* Range-based invoice summary — per-currency when mixed */}
+          {pipelineCurrencies.length <= 1 ? (
+            <div className="grid gap-3 md:grid-cols-3">
+              <KpiCard label="Total Invoiced" value={fmtCur(invoiceTotalsByCurrency[pipelineCurrencies[0]]?.invoiced ?? totalInvoiced, pipelineCurrencies[0] || currency)} icon={Receipt} iconColor="text-primary" sub={rangeLabel} />
+              <KpiCard label="Total Collected" value={fmtCur(invoiceTotalsByCurrency[pipelineCurrencies[0]]?.collected ?? totalCollected, pipelineCurrencies[0] || currency)} icon={CreditCard} iconColor="text-success" sub={rangeLabel} />
+              <KpiCard label="Outstanding Receivable" value={fmtCur(invoiceTotalsByCurrency[pipelineCurrencies[0]]?.receivable ?? 0, pipelineCurrencies[0] || currency)} icon={TrendingUp} iconColor="text-warning" sub={rangeLabel} />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-1.5">
+                <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0" />
+                <p className="text-xs text-muted-foreground">Multiple currencies detected — totals shown per currency. Cross-currency totals are not summed.</p>
+              </div>
+              {pipelineCurrencies.sort().map((cur) => (
+                <div key={cur} className="grid gap-3 md:grid-cols-3">
+                  <KpiCard label={`Total Invoiced (${cur})`} value={fmtCur(invoiceTotalsByCurrency[cur].invoiced, cur)} icon={Receipt} iconColor="text-primary" sub={rangeLabel} />
+                  <KpiCard label={`Total Collected (${cur})`} value={fmtCur(invoiceTotalsByCurrency[cur].collected, cur)} icon={CreditCard} iconColor="text-success" sub={rangeLabel} />
+                  <KpiCard label={`Outstanding (${cur})`} value={fmtCur(invoiceTotalsByCurrency[cur].receivable, cur)} icon={TrendingUp} iconColor="text-warning" sub={rangeLabel} />
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
 
@@ -473,21 +508,53 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
             ) : revenueError ? (
               <FinanceErrorBanner message="Could not load revenue metrics. Try refreshing the page." />
             ) : (
-              <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
-                <KpiCard label="Total Invoiced" value={fmt(revenueData?.invoicedThisMonth ?? 0)} icon={DollarSign} iconColor="text-primary" sub="This month" />
-                <KpiCard label="Total Collected" value={fmt(revenueData?.collectedThisMonth ?? 0)} icon={CreditCard} iconColor="text-success" sub="This month" />
-                <KpiCard label="Outstanding Receivable" value={fmt(revenueData?.outstandingReceivable ?? 0)} icon={Receipt} iconColor="text-warning" sub="All open invoices" />
-                <Card className="overflow-hidden">
-                  <CardContent className="pt-4 pb-4 px-4 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <p className="text-xs text-muted-foreground truncate">Overdue Invoices</p>
-                      {(revenueData?.overdueCount ?? 0) > 0 && <Badge variant="destructive" className="text-[10px] px-1.5 py-0 shrink-0 whitespace-nowrap">Action needed</Badge>}
+              <div className="space-y-2">
+                {(revenueData?.isMultiCurrency) && (
+                  <div className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-1.5">
+                    <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0" />
+                    <p className="text-xs text-muted-foreground">Multiple currencies — revenue shown per currency. No cross-currency conversion applied.</p>
+                  </div>
+                )}
+                {(revenueData?.revenueByCurrency ?? []).length > 0 ? (
+                  revenueData!.revenueByCurrency.map((rc) => (
+                    <div key={rc.currency} className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
+                      <KpiCard label={`Invoiced${revenueData!.isMultiCurrency ? ` (${rc.currency})` : ""}`} value={fmtCur(rc.invoiced_this_month, rc.currency)} icon={DollarSign} iconColor="text-primary" sub="This month" />
+                      <KpiCard label={`Collected${revenueData!.isMultiCurrency ? ` (${rc.currency})` : ""}`} value={fmtCur(rc.collected_this_month, rc.currency)} icon={CreditCard} iconColor="text-success" sub="This month" />
+                      <KpiCard label={`Outstanding${revenueData!.isMultiCurrency ? ` (${rc.currency})` : ""}`} value={fmtCur(rc.outstanding_receivable, rc.currency)} icon={Receipt} iconColor="text-warning" sub="All open invoices" />
+                      <Card className="overflow-hidden">
+                        <CardContent className="pt-4 pb-4 px-4 min-w-0">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <p className="text-xs text-muted-foreground truncate">Overdue{revenueData!.isMultiCurrency ? ` (${rc.currency})` : ""}</p>
+                            {rc.overdue_count > 0 && <Badge variant="destructive" className="text-[10px] px-1.5 py-0 shrink-0 whitespace-nowrap">Action needed</Badge>}
+                          </div>
+                          <p className="text-lg font-semibold text-foreground tabular-nums">{rc.overdue_count}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">All time</p>
+                        </CardContent>
+                      </Card>
+                      {/* Renewals only on first row */}
+                      {rc === revenueData!.revenueByCurrency[0] && (
+                        <KpiCard label="Active Renewals" value={revenueData?.renewalsCount ?? "—"} icon={RefreshCw} iconColor="text-primary" />
+                      )}
                     </div>
-                    <p className="text-lg font-semibold text-foreground tabular-nums">{revenueData?.overdueCount ?? 0}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">All time</p>
-                  </CardContent>
-                </Card>
-                <KpiCard label="Active Renewals" value={revenueData?.renewalsCount ?? "—"} icon={RefreshCw} iconColor="text-primary" />
+                  ))
+                ) : (
+                  <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
+                    <KpiCard label="Total Invoiced" value={fmt(revenueData?.invoicedThisMonth ?? 0)} icon={DollarSign} iconColor="text-primary" sub="This month" />
+                    <KpiCard label="Total Collected" value={fmt(revenueData?.collectedThisMonth ?? 0)} icon={CreditCard} iconColor="text-success" sub="This month" />
+                    <KpiCard label="Outstanding Receivable" value={fmt(revenueData?.outstandingReceivable ?? 0)} icon={Receipt} iconColor="text-warning" sub="All open invoices" />
+                    <Card className="overflow-hidden">
+                      <CardContent className="pt-4 pb-4 px-4 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <p className="text-xs text-muted-foreground truncate">Overdue Invoices</p>
+                          {(revenueData?.overdueCount ?? 0) > 0 && <Badge variant="destructive" className="text-[10px] px-1.5 py-0 shrink-0 whitespace-nowrap">Action needed</Badge>}
+                        </div>
+                        <p className="text-lg font-semibold text-foreground tabular-nums">{revenueData?.overdueCount ?? 0}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">All time</p>
+                      </CardContent>
+                    </Card>
+                    <KpiCard label="Active Renewals" value={revenueData?.renewalsCount ?? "—"} icon={RefreshCw} iconColor="text-primary" />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -503,6 +570,15 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
             ) : revenueError ? (
               <FinanceErrorBanner message="Could not load cash conversion metrics." />
             ) : (() => {
+              // If multi-currency, cash conversion ratios across currencies are misleading
+              if (revenueData?.isMultiCurrency) {
+                return (
+                  <div className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-1.5">
+                    <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0" />
+                    <p className="text-xs text-muted-foreground">Cash conversion ratios are not shown for multi-currency workspaces — cross-currency percentages would be misleading.</p>
+                  </div>
+                );
+              }
               const invoiced = revenueData?.invoicedThisMonth ?? 0;
               const collected = revenueData?.collectedThisMonth ?? 0;
               const outstanding = revenueData?.outstandingReceivable ?? 0;
@@ -598,6 +674,17 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
             ) : (revenueError || spendError) ? (
               <FinanceErrorBanner message="Could not load net position. Revenue or spend data is unavailable." />
             ) : (() => {
+              // If multi-currency, net position is only safe for matching currencies
+              if (revenueData?.isMultiCurrency) {
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-1.5">
+                      <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0" />
+                      <p className="text-xs text-muted-foreground">Multi-currency workspace — net position cannot be computed without exchange rates. Per-currency breakdowns are shown above.</p>
+                    </div>
+                  </div>
+                );
+              }
               const collected = revenueData?.collectedThisMonth ?? 0;
               const spent = spendData?.expenseThisMonth ?? 0;
               const net = collected - spent;
