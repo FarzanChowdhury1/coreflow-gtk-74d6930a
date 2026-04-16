@@ -375,6 +375,22 @@ export default function Leads() {
           }}
           onMeeting={(lead) => setMeetingContext({ lead_id: lead.id, company_id: lead.company_id || undefined, contact_id: lead.contact_id || undefined })}
         />
+      ) : viewMode === "kanban" ? (
+        <LeadKanbanBoard
+          leads={displayLeads}
+          companies={companies}
+          contacts={contacts}
+          isAdmin={isAdmin}
+          userId={user?.id}
+          onEdit={(lead) => { setEditingLead(lead); setDialogOpen(true); }}
+          onArchive={handleArchive}
+          onConvert={(lead) => {
+            if (lead.company_id) {
+              setProposalPrefill({ title: lead.title, company_id: lead.company_id, notes: lead.notes || undefined, lead_id: lead.id });
+            }
+          }}
+          onMeeting={(lead) => setMeetingContext({ lead_id: lead.id, company_id: lead.company_id || undefined, contact_id: lead.contact_id || undefined })}
+        />
       ) : (
         <div className="rounded-lg border bg-card overflow-x-auto">
           <table className="w-full text-sm min-w-[700px]">
