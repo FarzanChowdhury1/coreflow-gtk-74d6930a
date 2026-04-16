@@ -3166,6 +3166,10 @@ export type Database = {
         Returns: Json
       }
       get_billing_owner: { Args: { _workspace_id: string }; Returns: Json }
+      get_company_financial_health: {
+        Args: { _company_id: string }
+        Returns: Json
+      }
       get_company_payment_reliability: {
         Args: { _company_id: string }
         Returns: Json
