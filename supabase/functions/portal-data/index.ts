@@ -541,6 +541,42 @@ async function handleAction(
       return jsonResponse({ success: true }, 200, hdrs);
     }
 
+    case "request_meeting": {
+      const title = body.title as string;
+      if (!title || typeof title !== "string" || title.trim().length === 0 || title.length > 200) {
+        return jsonResponse({ error: "Valid title required (max 200 chars)" }, 400, hdrs);
+      }
+
+      const description = (body.description as string) || null;
+      const preferredDate = (body.preferred_date as string) || null;
+      const preferredTime = (body.preferred_time as string) || null;
+
+      // Validate preferred_time if provided
+      const validTimes = ["morning", "afternoon", "evening"];
+      if (preferredTime && !validTimes.includes(preferredTime)) {
+        return jsonResponse({ error: "Invalid preferred_time" }, 400, hdrs);
+      }
+
+      const { error: insertErr } = await supabase
+        .from("meeting_requests")
+        .insert({
+          workspace_id: session.workspace_id,
+          company_id: session.company_id,
+          contact_id: session.contact_id,
+          title: title.trim(),
+          description: description?.slice(0, 1000) || null,
+          preferred_date: preferredDate,
+          preferred_time: preferredTime,
+          status: "pending",
+        });
+
+      if (insertErr) {
+        return jsonResponse({ error: "Failed to submit request" }, 500, hdrs);
+      }
+
+      return jsonResponse({ success: true }, 200, hdrs);
+    }
+
     default:
       return jsonResponse({ error: "Unknown action" }, 400, hdrs);
   }
