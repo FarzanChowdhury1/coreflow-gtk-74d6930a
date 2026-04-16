@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Receipt, Plus, Archive, ArchiveRestore, Pencil, Download, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Receipt, Plus, Archive, ArchiveRestore, Pencil, Download, CheckCircle2, AlertTriangle, Sparkles } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ExpenseMobileCards } from "@/components/expenses/ExpenseMobileCards";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
@@ -19,6 +19,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ExpenseFormDialog } from "@/components/expenses/ExpenseFormDialog";
+import { ReceiptExtractionDialog } from "@/components/expenses/ReceiptExtractionDialog";
 
 export interface Expense {
   id: string;
@@ -53,6 +54,7 @@ export default function Expenses() {
   const isMobile = useIsMobile();
   const isAdmin = currentRole === "admin";
   const [formOpen, setFormOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("all");
@@ -178,6 +180,9 @@ export default function Expenses() {
         <Button size="sm" onClick={() => { setEditing(null); setFormOpen(true); }}>
           <Plus className="mr-1 h-4 w-4" /> Add Expense
         </Button>
+        <Button size="sm" variant="secondary" onClick={() => setScanOpen(true)}>
+          <Sparkles className="mr-1 h-4 w-4" /> Scan Receipt
+        </Button>
         <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
           <Download className="mr-1 h-4 w-4" /> CSV
         </Button>
@@ -293,6 +298,16 @@ export default function Expenses() {
           workspaceId={currentWorkspace!.id}
           currency={currency}
           onSaved={() => { queryClient.invalidateQueries({ queryKey: ["expenses"] }); setFormOpen(false); setEditing(null); }}
+        />
+      )}
+
+      {scanOpen && currentWorkspace && (
+        <ReceiptExtractionDialog
+          open={scanOpen}
+          onOpenChange={setScanOpen}
+          workspaceId={currentWorkspace.id}
+          defaultCurrency={currency}
+          onExpenseCreated={() => queryClient.invalidateQueries({ queryKey: ["expenses"] })}
         />
       )}
     </div>
