@@ -1,4 +1,5 @@
-import { Settings, Building2, UserCircle, Crown, Rocket, Bell } from "lucide-react";
+import { Settings, Building2, UserCircle, Crown, Rocket, Bell, Shield } from "lucide-react";
+import { DataErasureTab } from "@/components/settings/DataErasureTab";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkspaceSettingsTab } from "@/components/settings/WorkspaceSettingsTab";
@@ -53,6 +54,12 @@ export default function SettingsPage() {
               Activation
             </TabsTrigger>
           )}
+          {isAdmin && (
+            <TabsTrigger value="data-erasure" className="gap-2">
+              <Shield className="h-4 w-4" />
+              Data Erasure
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="profile">
@@ -78,6 +85,12 @@ export default function SettingsPage() {
         {isAdmin && (
           <TabsContent value="activation">
             <ActivationTab />
+          </TabsContent>
+        )}
+
+        {isAdmin && (
+          <TabsContent value="data-erasure">
+            <DataErasureTab />
           </TabsContent>
         )}
       </Tabs>
