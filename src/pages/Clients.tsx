@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Building2, Plus, Search, Link2, User, Calendar, Shield, Archive, RotateCcw, Download, ClipboardList, Upload, Activity } from "lucide-react";
+import { Building2, Plus, Search, Link2, User, Calendar, Shield, Archive, RotateCcw, Download, ClipboardList, Upload, Activity, HeartPulse } from "lucide-react";
 import { PaymentReliabilityDialog } from "@/components/clients/PaymentReliabilityDialog";
+import { CompanyHealthDialog } from "@/components/clients/CompanyHealthDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CompanyMobileCards } from "@/components/clients/CompanyMobileCards";
 import { ContactMobileCards } from "@/components/clients/ContactMobileCards";
@@ -48,6 +49,7 @@ export default function Clients() {
   const [activeTab, setActiveTab] = useState("companies");
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [reliabilityCompany, setReliabilityCompany] = useState<Company | null>(null);
+  const [healthCompany, setHealthCompany] = useState<Company | null>(null);
   const highlightRef = useRef<HTMLTableRowElement>(null);
 
   const workspaceId = currentWorkspace?.id;
@@ -350,6 +352,9 @@ export default function Clients() {
                                    <Button variant="ghost" size="sm" onClick={() => setReliabilityCompany(company)} title="Payment reliability">
                                      <Activity className="h-3.5 w-3.5 mr-1" /> Reliability
                                    </Button>
+                                   <Button variant="ghost" size="sm" onClick={() => setHealthCompany(company)} title="Financial health">
+                                     <HeartPulse className="h-3.5 w-3.5 mr-1" /> Health
+                                   </Button>
                                   <Button variant="ghost" size="sm" onClick={() => { setEditingCompany(company); setCompanyDialogOpen(true); }}>
                                     Edit
                                   </Button>
@@ -561,6 +566,12 @@ export default function Clients() {
         onOpenChange={(o) => { if (!o) setReliabilityCompany(null); }}
         companyId={reliabilityCompany?.id ?? null}
         companyName={reliabilityCompany?.legal_name}
+      />
+      <CompanyHealthDialog
+        open={!!healthCompany}
+        onOpenChange={(o) => { if (!o) setHealthCompany(null); }}
+        companyId={healthCompany?.id ?? null}
+        companyName={healthCompany?.legal_name}
       />
     </div>
   );
