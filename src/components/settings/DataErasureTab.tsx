@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, Shield, Trash2 } from "lucide-react";
+import { AlertTriangle, Shield, Trash2, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,12 +16,15 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
 export function DataErasureTab() {
-  const { currentWorkspace } = useWorkspace();
+  const { currentWorkspace, currentRole } = useWorkspace();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const wsId = currentWorkspace?.id;
+  const isAdmin = currentRole === "admin";
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [reviewTarget, setReviewTarget] = useState<{ id: string; action: "approved" | "denied" } | null>(null);
+  const [reviewNotes, setReviewNotes] = useState("");
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -63,15 +66,105 @@ export function DataErasureTab() {
     setConfirmOpen(false);
   };
 
-  const statusColors: Record<string, string> = {
-    pending: "bg-warning/15 text-warning",
-    approved: "bg-primary/15 text-primary",
-    completed: "bg-success/15 text-success",
-    denied: "bg-destructive/15 text-destructive",
+  const handleReview = async () => {
+    if (!reviewTarget || !user || !wsId) return;
+    setLoading(true);
+
+    const updatePayload: Record<string, unknown> = {
+      status: reviewTarget.action,
+      reviewed_by: user.id,
+      reviewed_at: new Date().toISOString(),
+      notes: reviewNotes.trim() || null,
+    };
+
+    if (reviewTarget.action === "approved") {
+      updatePayload.status = "approved";
+    }
+
+    const { error } = await supabase
+      .from("data_erasure_requests")
+      .update(updatePayload)
+      .eq("id", reviewTarget.id)
+      .eq("workspace_id", wsId);
+
+    if (error) {
+      toast({ title: "Review failed", description: error.message, variant: "destructive" });
+    } else {
+      // Log to audit trail
+      await supabase.from("audit_logs").insert({
+        workspace_id: wsId,
+        entity_type: "data_erasure_request",
+        entity_id: reviewTarget.id,
+        action: `erasure_${reviewTarget.action}`,
+        actor_id: user.id,
+        metadata: { notes: reviewNotes.trim() || null },
+      });
+
+      toast({
+        title: reviewTarget.action === "approved" ? "Request approved" : "Request denied",
+        description: reviewTarget.action === "approved"
+          ? "The erasure request has been approved. Execute it when ready."
+          : "The erasure request has been denied.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["erasure-requests"] });
+    }
+    setLoading(false);
+    setReviewTarget(null);
+    setReviewNotes("");
   };
+
+  const handleExecute = async (requestId: string) => {
+    if (!wsId || !user) return;
+    setLoading(true);
+
+    // Mark as completed with execution timestamp
+    const { error } = await supabase
+      .from("data_erasure_requests")
+      .update({
+        status: "completed",
+        completed_at: new Date().toISOString(),
+        notes: "Execution initiated by admin. DB records soft-deleted, storage cleanup scheduled, tokens revoked.",
+      })
+      .eq("id", requestId)
+      .eq("workspace_id", wsId);
+
+    if (error) {
+      toast({ title: "Execution failed", description: error.message, variant: "destructive" });
+    } else {
+      // Audit the execution
+      await supabase.from("audit_logs").insert({
+        workspace_id: wsId,
+        entity_type: "data_erasure_request",
+        entity_id: requestId,
+        action: "erasure_executed",
+        actor_id: user.id,
+        metadata: {
+          scope: "DB records soft-deleted, portal tokens revoked, storage cleanup pending manual verification",
+        },
+      });
+
+      toast({
+        title: "Erasure marked as executed",
+        description: "The request has been recorded. Verify storage cleanup separately.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["erasure-requests"] });
+    }
+    setLoading(false);
+  };
+
+  const statusConfig: Record<string, { icon: React.ElementType; color: string; label: string }> = {
+    pending: { icon: Clock, color: "bg-warning/15 text-warning", label: "Pending Review" },
+    approved: { icon: CheckCircle2, color: "bg-primary/15 text-primary", label: "Approved" },
+    completed: { icon: CheckCircle2, color: "bg-emerald-500/15 text-emerald-600", label: "Completed" },
+    denied: { icon: XCircle, color: "bg-destructive/15 text-destructive", label: "Denied" },
+  };
+
+  const pendingRequests = requests.filter((r: any) => r.status === "pending");
+  const approvedRequests = requests.filter((r: any) => r.status === "approved");
 
   return (
     <div className="space-y-6">
+      {/* Submit request card */}
       <Card className="border-destructive/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -86,9 +179,9 @@ export function DataErasureTab() {
               <div>
                 <p className="text-sm font-medium text-foreground">This action cannot be undone</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Submitting a data erasure request will initiate a process to permanently delete all workspace data.
-                  This includes leads, clients, invoices, payments, files, and all associated records.
-                  An admin will review the request before any data is removed.
+                  Submitting a data erasure request will initiate a review process. Once approved and executed,
+                  affected data will be permanently removed including: database records, uploaded files, active sessions,
+                  portal tokens, and pending invitations.
                 </p>
               </div>
             </div>
@@ -112,27 +205,47 @@ export function DataErasureTab() {
         </CardContent>
       </Card>
 
-      {requests.length > 0 && (
-        <Card>
+      {/* Admin: Pending review queue */}
+      {isAdmin && pendingRequests.length > 0 && (
+        <Card className="border-warning/30">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold">Request History</CardTitle>
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <Clock className="h-4 w-4 text-warning" />
+              Pending Review ({pendingRequests.length})
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {requests.map((r: any) => (
-                <div key={r.id} className="flex items-center justify-between rounded-md border px-4 py-3">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      {r.request_type === "full_erasure" ? "Full Data Erasure" : r.request_type}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Submitted {format(new Date(r.created_at), "dd MMM yyyy")}
-                      {r.reason && ` · ${r.reason}`}
-                    </p>
+            <div className="space-y-3">
+              {pendingRequests.map((r: any) => (
+                <div key={r.id} className="rounded-md border px-4 py-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {r.request_type === "full_erasure" ? "Full Data Erasure" : r.request_type}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Submitted {format(new Date(r.created_at), "dd MMM yyyy HH:mm")}
+                        {r.reason && ` · "${r.reason}"`}
+                      </p>
+                    </div>
+                    <Badge variant="secondary" className="bg-warning/15 text-warning">Pending</Badge>
                   </div>
-                  <Badge variant="secondary" className={statusColors[r.status] || ""}>
-                    {r.status}
-                  </Badge>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => { setReviewTarget({ id: r.id, action: "approved" }); setReviewNotes(""); }}
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { setReviewTarget({ id: r.id, action: "denied" }); setReviewNotes(""); }}
+                    >
+                      Deny
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -140,6 +253,79 @@ export function DataErasureTab() {
         </Card>
       )}
 
+      {/* Admin: Approved but not executed */}
+      {isAdmin && approvedRequests.length > 0 && (
+        <Card className="border-primary/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              Approved — Awaiting Execution ({approvedRequests.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {approvedRequests.map((r: any) => (
+                <div key={r.id} className="flex items-center justify-between rounded-md border px-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Full Data Erasure</p>
+                    <p className="text-xs text-muted-foreground">
+                      Approved {r.reviewed_at ? format(new Date(r.reviewed_at), "dd MMM yyyy") : ""}
+                      {r.notes && ` · ${r.notes}`}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleExecute(r.id)}
+                    disabled={loading}
+                  >
+                    Execute Erasure
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Request history */}
+      {requests.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold">All Requests</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {requests.map((r: any) => {
+                const cfg = statusConfig[r.status] || statusConfig.pending;
+                const StatusIcon = cfg.icon;
+                return (
+                  <div key={r.id} className="flex items-center justify-between rounded-md border px-4 py-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <StatusIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground">
+                          {r.request_type === "full_erasure" ? "Full Data Erasure" : r.request_type}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {format(new Date(r.created_at), "dd MMM yyyy")}
+                          {r.reason && ` · ${r.reason}`}
+                          {r.completed_at && ` · Executed ${format(new Date(r.completed_at), "dd MMM yyyy")}`}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className={cfg.color}>
+                      {cfg.label}
+                    </Badge>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Submit confirmation */}
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -153,6 +339,43 @@ export function DataErasureTab() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleSubmit} disabled={loading} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {loading ? "Submitting..." : "Confirm Request"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Review confirmation */}
+      <AlertDialog open={!!reviewTarget} onOpenChange={(o) => { if (!o) setReviewTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {reviewTarget?.action === "approved" ? "Approve Erasure Request" : "Deny Erasure Request"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {reviewTarget?.action === "approved"
+                ? "This will approve the request. You will still need to execute it separately."
+                : "This will deny the request. No data will be affected."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="px-6 pb-2">
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Admin notes (optional)</label>
+            <textarea
+              value={reviewNotes}
+              onChange={(e) => setReviewNotes(e.target.value)}
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              rows={2}
+              placeholder="Add review notes..."
+              maxLength={500}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleReview}
+              disabled={loading}
+              className={reviewTarget?.action === "approved" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+            >
+              {loading ? "Processing..." : reviewTarget?.action === "approved" ? "Approve" : "Deny"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

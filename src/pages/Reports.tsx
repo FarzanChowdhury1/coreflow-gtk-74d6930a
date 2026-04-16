@@ -70,9 +70,10 @@ export default function Reports() {
   const { data: payments = [] } = useQuery({
     queryKey: ["report-payments", wsId, fromISO, toISO],
     queryFn: async () => {
+      // Payments don't have currency — join via invoice
       const { data } = await supabase
         .from("payments")
-        .select("id, amount, method, paid_at")
+        .select("id, amount, method, paid_at, invoice_id")
         .eq("workspace_id", wsId!)
         .gte("paid_at", fromISO)
         .lte("paid_at", toISO);
@@ -128,6 +129,15 @@ export default function Reports() {
     enabled: !!wsId,
   });
 
+  // Build an invoice-id → currency map for payment currency resolution
+  const invoiceCurrencyMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const inv of invoices) {
+      m.set((inv as any).id, (inv as any).currency || "BDT");
+    }
+    return m;
+  }, [invoices]);
+
   // Compute report rows grouped by currency
   const report = useMemo(() => {
     const rows: ReportRow[] = [];
@@ -149,10 +159,18 @@ export default function Reports() {
       rows.push({ category: "Revenue", metric: "Outstanding", value: v.total - v.paid, currency: cur, count: v.count - v.paidCount });
     }
 
-    // Payments
-    const totalPayments = payments.reduce((s, p) => s + Number((p as any).amount || 0), 0);
-    if (payments.length > 0) {
-      rows.push({ category: "Revenue", metric: "Payment Transactions", value: totalPayments, currency: invByCurrency.size === 1 ? [...invByCurrency.keys()][0] : "BDT", count: payments.length });
+    // Payments — group by currency derived from their invoice
+    const payByCurrency = new Map<string, { total: number; count: number }>();
+    for (const p of payments) {
+      const invId = (p as any).invoice_id as string;
+      const cur = invoiceCurrencyMap.get(invId) || "BDT";
+      const entry = payByCurrency.get(cur) || { total: 0, count: 0 };
+      entry.total += Number((p as any).amount || 0);
+      entry.count++;
+      payByCurrency.set(cur, entry);
+    }
+    for (const [cur, v] of payByCurrency) {
+      rows.push({ category: "Revenue", metric: "Payment Transactions", value: v.total, currency: cur, count: v.count });
     }
 
     // Spend by currency
@@ -168,24 +186,31 @@ export default function Reports() {
       rows.push({ category: "Spend", metric: "Total Expenses", value: v.total, currency: cur, count: v.count });
     }
 
-    // Expense by category
-    const catMap = new Map<string, number>();
+    // Expense by category+currency — no false cross-currency grouping
+    const catCurMap = new Map<string, { amount: number; currency: string }>();
     for (const exp of expenses) {
       const cat = (exp as any).category || "general";
-      catMap.set(cat, (catMap.get(cat) || 0) + Number((exp as any).amount || 0));
+      const cur = (exp as any).currency || "BDT";
+      const key = `${cat}|${cur}`;
+      const entry = catCurMap.get(key) || { amount: 0, currency: cur };
+      entry.amount += Number((exp as any).amount || 0);
+      catCurMap.set(key, entry);
     }
-    for (const [cat, val] of catMap) {
-      rows.push({ category: "Spend Breakdown", metric: cat.charAt(0).toUpperCase() + cat.slice(1), value: val, currency: expenses[0] ? ((expenses[0] as any).currency || "BDT") : "BDT", count: 0 });
+    for (const [key, v] of catCurMap) {
+      const cat = key.split("|")[0];
+      rows.push({ category: "Spend Breakdown", metric: cat.charAt(0).toUpperCase() + cat.slice(1), value: v.amount, currency: v.currency, count: 0 });
     }
 
-    // Pipeline
+    // Pipeline — uses real enum statuses
     rows.push({ category: "Pipeline", metric: "New Leads", value: 0, currency: "", count: leads.length });
-    const wonLeads = leads.filter((l) => (l as any).status === "won");
-    rows.push({ category: "Pipeline", metric: "Leads Won", value: 0, currency: "", count: wonLeads.length });
+    const convertedLeads = leads.filter((l) => (l as any).status === "converted");
+    rows.push({ category: "Pipeline", metric: "Leads Converted", value: 0, currency: "", count: convertedLeads.length });
+    const qualifiedLeads = leads.filter((l) => (l as any).status === "qualified");
+    rows.push({ category: "Pipeline", metric: "Leads Qualified", value: 0, currency: "", count: qualifiedLeads.length });
     rows.push({ category: "Pipeline", metric: "Proposals Created", value: 0, currency: "", count: proposals.length });
 
     return rows;
-  }, [invoices, payments, expenses, leads, proposals]);
+  }, [invoices, payments, expenses, leads, proposals, invoiceCurrencyMap]);
 
   const exportRows = report.map((r) => ({
     category: r.category,
@@ -291,7 +316,10 @@ export default function Reports() {
                 {catRows.map((row, i) => (
                   <div key={i} className="flex items-center justify-between rounded-md border px-4 py-3">
                     <div>
-                      <p className="text-sm font-medium text-foreground">{row.metric}</p>
+                      <p className="text-sm font-medium text-foreground">
+                        {row.metric}
+                        {row.currency && <span className="ml-1.5 text-xs text-muted-foreground">({row.currency})</span>}
+                      </p>
                       {row.count > 0 && <p className="text-xs text-muted-foreground">{row.count} record{row.count !== 1 ? "s" : ""}</p>}
                     </div>
                     <div className="text-right">
