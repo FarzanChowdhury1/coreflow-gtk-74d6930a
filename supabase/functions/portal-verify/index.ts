@@ -89,6 +89,54 @@ Deno.serve(async (req) => {
     });
   }
 
+  // --- GET: Peek branding for a token (no consumption) ---
+  if (req.method === "GET") {
+    const url = new URL(req.url);
+    const peekToken = url.searchParams.get("peek_token");
+    if (!peekToken || peekToken.length > 200) {
+      return jsonResponse({ error: "peek_token required" }, 400, hdrs);
+    }
+
+    const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+
+    // Look up token → workspace, but do NOT consume
+    const { data: tokenRow } = await supabase
+      .from("portal_tokens")
+      .select("workspace_id")
+      .eq("token", peekToken)
+      .is("consumed_at", null)
+      .is("revoked_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+
+    if (!tokenRow) {
+      return jsonResponse({ branding: null }, 200, hdrs);
+    }
+
+    const { data: ws } = await supabase
+      .from("workspaces")
+      .select("name, portal_accent_color, portal_logo_storage_path, portal_support_email")
+      .eq("id", tokenRow.workspace_id)
+      .single();
+
+    let logo_url: string | null = null;
+    if (ws?.portal_logo_storage_path) {
+      const { data: signedUrl } = await supabase.storage
+        .from("workspace-files")
+        .createSignedUrl(ws.portal_logo_storage_path, 3600);
+      logo_url = signedUrl?.signedUrl || null;
+    }
+
+    return jsonResponse({
+      branding: {
+        workspace_name: ws?.name || "",
+        accent_color: ws?.portal_accent_color || null,
+        logo_url,
+        support_email: ws?.portal_support_email || null,
+      },
+    }, 200, hdrs);
+  }
+
   if (req.method !== "POST") {
     return jsonResponse({ error: "Method not allowed" }, 405, hdrs);
   }
