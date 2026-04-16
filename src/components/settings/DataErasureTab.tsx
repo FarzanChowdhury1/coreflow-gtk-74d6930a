@@ -166,6 +166,7 @@ export function DataErasureTab() {
     pending: { icon: Clock, color: "bg-warning/15 text-warning", label: "Pending Review" },
     approved: { icon: CheckCircle2, color: "bg-primary/15 text-primary", label: "Approved" },
     pending_purge: { icon: Zap, color: "bg-orange-500/15 text-orange-600", label: "Pending Purge" },
+    purging_storage: { icon: Zap, color: "bg-amber-500/15 text-amber-600", label: "Purging Storage" },
     purged: { icon: Trash2, color: "bg-emerald-500/15 text-emerald-600", label: "Purged" },
     denied: { icon: XCircle, color: "bg-destructive/15 text-destructive", label: "Denied" },
   };
