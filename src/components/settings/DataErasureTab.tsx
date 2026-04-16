@@ -135,7 +135,7 @@ export function DataErasureTab() {
     setLoading(false);
   };
 
-  // Stage 2: Destructive purge — hard-delete all tenant data
+  // Stage 2: Destructive purge — server-owned storage + data deletion
   const handlePurge = async () => {
     if (!wsId || !user || !purgeTarget) return;
     setLoading(true);
@@ -152,23 +152,9 @@ export function DataErasureTab() {
     } else if (result && !result.success) {
       toast({ title: "Purge blocked", description: String(result.error || "Unknown error"), variant: "destructive" });
     } else {
-      // Clean up storage objects
-      const storagePaths = (result?.storage_paths as string[]) || [];
-      let storageDeleted = 0;
-      if (storagePaths.length > 0) {
-        // Delete in batches of 50
-        for (let i = 0; i < storagePaths.length; i += 50) {
-          const batch = storagePaths.slice(i, i + 50);
-          const { error: storageErr } = await supabase.storage
-            .from("workspace-files")
-            .remove(batch);
-          if (!storageErr) storageDeleted += batch.length;
-        }
-      }
-
       toast({
         title: "Data purge complete",
-        description: `All tenant records deleted. ${storageDeleted}/${storagePaths.length} storage objects removed. Audit trail preserved.`,
+        description: `All tenant records and ${result?.storage_deleted ?? 0} storage objects destroyed server-side. ${result?.storage_failed ?? 0} storage failures. Audit trail preserved.`,
       });
       queryClient.invalidateQueries({ queryKey: ["erasure-requests"] });
     }
@@ -180,6 +166,7 @@ export function DataErasureTab() {
     pending: { icon: Clock, color: "bg-warning/15 text-warning", label: "Pending Review" },
     approved: { icon: CheckCircle2, color: "bg-primary/15 text-primary", label: "Approved" },
     pending_purge: { icon: Zap, color: "bg-orange-500/15 text-orange-600", label: "Pending Purge" },
+    purging_storage: { icon: Zap, color: "bg-amber-500/15 text-amber-600", label: "Purging Storage" },
     purged: { icon: Trash2, color: "bg-emerald-500/15 text-emerald-600", label: "Purged" },
     denied: { icon: XCircle, color: "bg-destructive/15 text-destructive", label: "Denied" },
   };
