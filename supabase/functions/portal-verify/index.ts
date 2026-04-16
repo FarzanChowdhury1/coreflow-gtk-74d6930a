@@ -257,6 +257,12 @@ Deno.serve(async (req) => {
         contact_name: contact?.full_name || "",
         contact_email: contact?.email || "",
         company_name: company?.legal_name || "",
+        branding: {
+          workspace_name: ws?.name || "",
+          accent_color: ws?.portal_accent_color || null,
+          logo_url: branding_logo_url,
+          support_email: ws?.portal_support_email || null,
+        },
       },
       200,
       hdrs,
