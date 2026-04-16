@@ -189,8 +189,9 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   // Recalculates on every render — lightweight and never stale across month boundaries
   const month = getLocalMonthBounds();
 
-  const fmt = (n: number) =>
-    new Intl.NumberFormat("en-BD", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+  const fmtCur = (n: number, cur: string = currency) =>
+    new Intl.NumberFormat("en-BD", { style: "currency", currency: cur, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+  const fmt = (n: number) => fmtCur(n, currency);
 
   /* ══════════════ PIPELINE QUERIES (range-based) ══════════════ */
 
