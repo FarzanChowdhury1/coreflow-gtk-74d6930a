@@ -533,7 +533,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
                       <p className={`text-lg font-semibold tabular-nums ${allTimeRate !== null && allTimeRate >= 70 ? "text-success" : allTimeRate !== null ? "text-warning" : "text-muted-foreground"}`}>
                         {allTimeRate !== null ? `${allTimeRate}%` : "—"}
                       </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{TIME_LABELS[range]}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{rangeLabel}</p>
                     </CardContent>
                   </Card>
                   <Card className="overflow-hidden">
