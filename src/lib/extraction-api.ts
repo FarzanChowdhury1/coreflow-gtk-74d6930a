@@ -217,3 +217,24 @@ export async function getReceiptPreviewUrl(fileId: string): Promise<{ url: strin
     return null;
   }
 }
+
+export async function getExtractionJob(jobId: string): Promise<ExtractionJob | null> {
+  const { data, error } = await supabase
+    .from("expense_extraction_jobs")
+    .select("*")
+    .eq("id", jobId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as unknown as ExtractionJob;
+}
+
+export async function listRecentExtractionJobs(workspaceId: string, limit = 25): Promise<ExtractionJob[]> {
+  const { data, error } = await supabase
+    .from("expense_extraction_jobs")
+    .select("*")
+    .eq("workspace_id", workspaceId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return data as unknown as ExtractionJob[];
+}
