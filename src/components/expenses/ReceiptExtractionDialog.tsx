@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Upload, AlertTriangle, CheckCircle2, RotateCw, X, FileText, Sparkles } from "lucide-react";
+import { Loader2, Upload, AlertTriangle, CheckCircle2, RotateCw, X, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -345,14 +345,7 @@ export function ReceiptExtractionDialog({
               {/* Preview column */}
               <div className="rounded-md border bg-muted/30 p-2 min-h-[260px] flex items-center justify-center">
                 {previewUrl ? (
-                  job.source_mime_type === "application/pdf" ? (
-                    <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-primary">
-                      <FileText className="h-10 w-10 mb-2" />
-                      <span className="text-xs">Open PDF preview</span>
-                    </a>
-                  ) : (
-                    <img src={previewUrl} alt="Receipt" className="max-h-[400px] object-contain rounded" />
-                  )
+                  <img src={previewUrl} alt="Receipt" className="max-h-[400px] object-contain rounded" />
                 ) : (
                   <p className="text-xs text-muted-foreground">Loading preview…</p>
                 )}
