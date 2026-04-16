@@ -3126,6 +3126,10 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      execute_data_erasure: {
+        Args: { _request_id: string; _workspace_id: string }
+        Returns: Json
+      }
       fetch_prioritized_notifications: {
         Args: { _limit?: number; _user_id: string; _workspace_id?: string }
         Returns: {
