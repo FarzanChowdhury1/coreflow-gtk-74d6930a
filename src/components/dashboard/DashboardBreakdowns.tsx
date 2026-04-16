@@ -640,24 +640,61 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
             ) : spendError ? (
               <FinanceErrorBanner message="Could not load spend metrics. Try refreshing the page." />
             ) : (
-              <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
-                <KpiCard label="Expenses This Month" value={fmt(spendData?.expenseThisMonth ?? 0)} icon={Wallet} iconColor="text-destructive" sub="This month" />
-                <KpiCard label="Monthly Subscription Burn" value={fmt(spendData?.subBurn ?? 0)} icon={RefreshCw} iconColor="text-warning" />
-                <KpiCard label="Active Subscriptions" value={spendData?.activeSubsCount ?? "—"} icon={CreditCard} iconColor="text-primary" />
-                <KpiCard label="Vendors" value={spendData?.vendorsCount ?? "—"} icon={Store} iconColor="text-muted-foreground" />
-                {(spendData?.totalBudget ?? 0) > 0 ? (
-                  <Card className="overflow-hidden">
-                    <CardContent className="pt-4 pb-4 px-4 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <p className="text-xs text-muted-foreground truncate">Budget vs Actual</p>
-                        <PieChart className="h-4 w-4 shrink-0 text-primary" />
+              <div className="space-y-2">
+                {spendData?.isMultiCurrency && (
+                  <div className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-1.5">
+                    <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0" />
+                    <p className="text-xs text-muted-foreground">Multiple currencies — spend shown per currency. No cross-currency conversion applied.</p>
+                  </div>
+                )}
+
+                {spendData?.isMultiCurrency && (spendData?.spendByCurrency ?? []).length > 0 ? (
+                  <>
+                    {spendData!.spendByCurrency.map((sc) => (
+                      <div key={sc.currency} className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
+                        <KpiCard label={`Expenses (${sc.currency})`} value={fmtCur(sc.expense_this_month, sc.currency)} icon={Wallet} iconColor="text-destructive" sub="This month" />
+                        <KpiCard label={`Sub Burn (${sc.currency})`} value={fmtCur(sc.sub_burn, sc.currency)} icon={RefreshCw} iconColor="text-warning" sub="Monthly" />
+                        {sc.total_budget > 0 ? (
+                          <Card className="overflow-hidden">
+                            <CardContent className="pt-4 pb-4 px-4 min-w-0">
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <p className="text-xs text-muted-foreground truncate">Budget ({sc.currency})</p>
+                                <PieChart className="h-4 w-4 shrink-0 text-primary" />
+                              </div>
+                              <p className="text-lg font-semibold text-foreground tabular-nums truncate">{fmtCur(sc.expense_this_month, sc.currency)}</p>
+                              <p className="text-[11px] text-muted-foreground mt-0.5 truncate">of {fmtCur(sc.total_budget, sc.currency)} budgeted</p>
+                            </CardContent>
+                          </Card>
+                        ) : null}
                       </div>
-                      <p className="text-lg font-semibold text-foreground tabular-nums truncate" title={fmt(spendData?.expenseThisMonth ?? 0)}>{fmt(spendData?.expenseThisMonth ?? 0)}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 truncate">of {fmt(spendData!.totalBudget)} budgeted</p>
-                    </CardContent>
-                  </Card>
+                    ))}
+                    {/* Non-currency counts shown once */}
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <KpiCard label="Active Subscriptions" value={spendData?.activeSubsCount ?? "—"} icon={CreditCard} iconColor="text-primary" />
+                      <KpiCard label="Vendors" value={spendData?.vendorsCount ?? "—"} icon={Store} iconColor="text-muted-foreground" />
+                    </div>
+                  </>
                 ) : (
-                  <KpiCard label="Budget vs Actual" value="—" icon={PieChart} iconColor="text-muted-foreground" sub="No monthly budget set" />
+                  <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
+                    <KpiCard label="Expenses This Month" value={fmt(spendData?.expenseThisMonth ?? 0)} icon={Wallet} iconColor="text-destructive" sub="This month" />
+                    <KpiCard label="Monthly Subscription Burn" value={fmt(spendData?.subBurn ?? 0)} icon={RefreshCw} iconColor="text-warning" />
+                    <KpiCard label="Active Subscriptions" value={spendData?.activeSubsCount ?? "—"} icon={CreditCard} iconColor="text-primary" />
+                    <KpiCard label="Vendors" value={spendData?.vendorsCount ?? "—"} icon={Store} iconColor="text-muted-foreground" />
+                    {(spendData?.totalBudget ?? 0) > 0 ? (
+                      <Card className="overflow-hidden">
+                        <CardContent className="pt-4 pb-4 px-4 min-w-0">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <p className="text-xs text-muted-foreground truncate">Budget vs Actual</p>
+                            <PieChart className="h-4 w-4 shrink-0 text-primary" />
+                          </div>
+                          <p className="text-lg font-semibold text-foreground tabular-nums truncate" title={fmt(spendData?.expenseThisMonth ?? 0)}>{fmt(spendData?.expenseThisMonth ?? 0)}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">of {fmt(spendData!.totalBudget)} budgeted</p>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <KpiCard label="Budget vs Actual" value="—" icon={PieChart} iconColor="text-muted-foreground" sub="No monthly budget set" />
+                    )}
+                  </div>
                 )}
               </div>
             )}
