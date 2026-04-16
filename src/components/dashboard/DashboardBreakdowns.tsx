@@ -160,7 +160,29 @@ function FinanceErrorBanner({ message }: { message: string }) {
 
 export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   const [range, setRange] = useState<TimeRange>("30d");
-  const rangeStart = useMemo(() => getRangeStart(range), [range]);
+  const [customFrom, setCustomFrom] = useState<Date | undefined>(undefined);
+  const [customTo, setCustomTo] = useState<Date | undefined>(undefined);
+
+  const effectiveStart = useMemo(() => {
+    if (range === "custom") {
+      return customFrom ? startOfDay(customFrom).toISOString() : null;
+    }
+    return getRangeStart(range);
+  }, [range, customFrom]);
+
+  const effectiveEnd = useMemo(() => {
+    if (range === "custom" && customTo) {
+      return endOfDay(customTo).toISOString();
+    }
+    return null;
+  }, [range, customTo]);
+
+  const rangeLabel = useMemo(() => {
+    if (range === "custom" && customFrom && customTo) {
+      return `${format(customFrom, "dd MMM yyyy")} – ${format(customTo, "dd MMM yyyy")}`;
+    }
+    return TIME_LABELS[range];
+  }, [range, customFrom, customTo]);
   const { currentRole } = useWorkspace();
   const isAdmin = currentRole === "admin";
 
