@@ -733,18 +733,18 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
             )}
           </div>
 
-          {/* ── Net This Month ── */}
+          {/* Net This Month — uses cash-basis (paid dates), not accrual */}
           <div>
             <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
               <ArrowUpDown className="h-4 w-4 text-primary" />
-              Net This Month
+              Net Position
+              <span className="text-[10px] font-normal text-muted-foreground">(accrual basis — expense dates)</span>
             </h3>
             {(revenueLoading || spendLoading) ? (
               <FinanceSkeletonRow count={3} />
             ) : (revenueError || spendError) ? (
               <FinanceErrorBanner message="Could not load net position. Revenue or spend data is unavailable." />
             ) : (() => {
-              // If multi-currency, net position is only safe for matching currencies
               if (revenueData?.isMultiCurrency) {
                 return (
                   <div className="space-y-2">
@@ -761,7 +761,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
               return (
                 <div className="grid gap-3 md:grid-cols-3">
                   <KpiCard label="Revenue Collected" value={fmt(collected)} icon={TrendingUp} iconColor="text-success" sub="This month" />
-                  <KpiCard label="Total Spend" value={fmt(spent)} icon={TrendingDown} iconColor="text-destructive" sub="This month" />
+                  <KpiCard label="Total Spend (accrual)" value={fmt(spent)} icon={TrendingDown} iconColor="text-destructive" sub="Expense date this month" />
                   <Card className="overflow-hidden">
                     <CardContent className="pt-4 pb-4 px-4 min-w-0">
                       <div className="flex items-center justify-between gap-2 mb-1">
@@ -771,7 +771,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
                       <p className={`text-lg font-semibold tabular-nums truncate ${net >= 0 ? "text-success" : "text-destructive"}`} title={fmt(net)}>
                         {fmt(net)}
                       </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">This month</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">This month (accrual basis)</p>
                     </CardContent>
                   </Card>
                 </div>
