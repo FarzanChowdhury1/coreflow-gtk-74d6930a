@@ -44,6 +44,7 @@ const BudgetActual = lazy(() => import("@/pages/BudgetActual"));
 const Profitability = lazy(() => import("@/pages/Profitability"));
 const EmailHealth = lazy(() => import("@/pages/EmailHealth"));
 const DataExport = lazy(() => import("@/pages/DataExport"));
+const Reports = lazy(() => import("@/pages/Reports"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const PlatformFeedback = lazy(() => import("@/pages/platform/PlatformFeedback"));
 const PlatformDashboard = lazy(() => import("@/pages/platform/PlatformDashboard"));
@@ -108,6 +109,7 @@ const App = () => (
                 <Route path="/notifications" element={<Notifications />} />
                 <Route path="/client-updates" element={<ClientUpdates />} />
                 <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/reports" element={<AdminGuard><Reports /></AdminGuard>} />
 
                 {/* Admin-only routes — guarded at route level */}
                 <Route path="/invoices" element={<AdminGuard><Invoices /></AdminGuard>} />
