@@ -195,12 +195,13 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   /* ══════════════ PIPELINE QUERIES (range-based) ══════════════ */
 
   const { data: leads = [], isLoading: ll } = useQuery({
-    queryKey: ["dash-leads", workspaceId, rangeStart],
+    queryKey: ["dash-leads", workspaceId, effectiveStart, effectiveEnd],
     enabled: !!workspaceId,
     staleTime: 60_000,
     queryFn: async () => {
       let q = supabase.from("leads").select("status").eq("workspace_id", workspaceId).is("deleted_at", null);
-      if (rangeStart) q = q.gte("created_at", rangeStart);
+      if (effectiveStart) q = q.gte("created_at", effectiveStart);
+      if (effectiveEnd) q = q.lte("created_at", effectiveEnd);
       const { data, error } = await q;
       if (error) throw error;
       return data || [];
@@ -208,12 +209,13 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   });
 
   const { data: proposalVersions = [], isLoading: pl } = useQuery({
-    queryKey: ["dash-proposals", workspaceId, rangeStart],
+    queryKey: ["dash-proposals", workspaceId, effectiveStart, effectiveEnd],
     enabled: !!workspaceId,
     staleTime: 60_000,
     queryFn: async () => {
       let q = supabase.from("proposal_versions").select("status, proposal_id, version_number").eq("workspace_id", workspaceId);
-      if (rangeStart) q = q.gte("created_at", rangeStart);
+      if (effectiveStart) q = q.gte("created_at", effectiveStart);
+      if (effectiveEnd) q = q.lte("created_at", effectiveEnd);
       q = q.order("version_number", { ascending: false });
       const { data, error } = await q;
       if (error) throw error;
@@ -228,12 +230,13 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   });
 
   const { data: projects = [], isLoading: prl } = useQuery({
-    queryKey: ["dash-projects", workspaceId, rangeStart],
+    queryKey: ["dash-projects", workspaceId, effectiveStart, effectiveEnd],
     enabled: !!workspaceId,
     staleTime: 60_000,
     queryFn: async () => {
       let q = supabase.from("projects").select("status").eq("workspace_id", workspaceId).is("deleted_at", null);
-      if (rangeStart) q = q.gte("created_at", rangeStart);
+      if (effectiveStart) q = q.gte("created_at", effectiveStart);
+      if (effectiveEnd) q = q.lte("created_at", effectiveEnd);
       const { data, error } = await q;
       if (error) throw error;
       return data || [];
@@ -241,12 +244,13 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   });
 
   const { data: invoices = [], isLoading: il } = useQuery({
-    queryKey: ["dash-invoices", workspaceId, rangeStart],
+    queryKey: ["dash-invoices", workspaceId, effectiveStart, effectiveEnd],
     enabled: !!workspaceId,
     staleTime: 60_000,
     queryFn: async () => {
       let q = supabase.from("invoices").select("status, grand_total, amount_paid").eq("workspace_id", workspaceId).is("deleted_at", null);
-      if (rangeStart) q = q.gte("created_at", rangeStart);
+      if (effectiveStart) q = q.gte("created_at", effectiveStart);
+      if (effectiveEnd) q = q.lte("created_at", effectiveEnd);
       const { data, error } = await q;
       if (error) throw error;
       return data || [];
