@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Building2, Plus, Search, Link2, User, Calendar, Shield, Archive, RotateCcw, Download, ClipboardList } from "lucide-react";
+import { Building2, Plus, Search, Link2, User, Calendar, Shield, Archive, RotateCcw, Download, ClipboardList, Upload } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CompanyMobileCards } from "@/components/clients/CompanyMobileCards";
 import { ContactMobileCards } from "@/components/clients/ContactMobileCards";
@@ -19,6 +19,7 @@ import { PortalLinkDialog } from "@/components/clients/PortalLinkDialog";
 import { CompanyAccessDialog } from "@/components/clients/CompanyAccessDialog";
 import { ClientOnboardingManager } from "@/components/clients/ClientOnboardingManager";
 import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
+import { BulkImportDialog } from "@/components/clients/BulkImportDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
