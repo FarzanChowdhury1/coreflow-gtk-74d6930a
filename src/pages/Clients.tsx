@@ -45,6 +45,7 @@ export default function Clients() {
   const [onboardingCompany, setOnboardingCompany] = useState<Company | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("companies");
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const highlightRef = useRef<HTMLTableRowElement>(null);
 
   const workspaceId = currentWorkspace?.id;
