@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Building2, Plus, Search, Link2, User, Calendar, Shield, Archive, RotateCcw, Download, ClipboardList, Upload } from "lucide-react";
+import { Building2, Plus, Search, Link2, User, Calendar, Shield, Archive, RotateCcw, Download, ClipboardList, Upload, Activity } from "lucide-react";
+import { PaymentReliabilityDialog } from "@/components/clients/PaymentReliabilityDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CompanyMobileCards } from "@/components/clients/CompanyMobileCards";
 import { ContactMobileCards } from "@/components/clients/ContactMobileCards";
@@ -46,6 +47,7 @@ export default function Clients() {
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("companies");
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
+  const [reliabilityCompany, setReliabilityCompany] = useState<Company | null>(null);
   const highlightRef = useRef<HTMLTableRowElement>(null);
 
   const workspaceId = currentWorkspace?.id;
@@ -345,6 +347,9 @@ export default function Clients() {
                                    <Button variant="ghost" size="sm" onClick={() => setMeetingCompanyId(company.id)}>
                                      <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
                                    </Button>
+                                   <Button variant="ghost" size="sm" onClick={() => setReliabilityCompany(company)} title="Payment reliability">
+                                     <Activity className="h-3.5 w-3.5 mr-1" /> Reliability
+                                   </Button>
                                   <Button variant="ghost" size="sm" onClick={() => { setEditingCompany(company); setCompanyDialogOpen(true); }}>
                                     Edit
                                   </Button>
@@ -550,6 +555,12 @@ export default function Clients() {
         onOpenChange={setBulkImportOpen}
         companies={companies}
         contacts={contacts}
+      />
+      <PaymentReliabilityDialog
+        open={!!reliabilityCompany}
+        onOpenChange={(o) => { if (!o) setReliabilityCompany(null); }}
+        companyId={reliabilityCompany?.id ?? null}
+        companyName={reliabilityCompany?.legal_name}
       />
     </div>
   );
