@@ -284,7 +284,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
         vendorsCount: d.vendors_count ?? 0,
         totalBudget: d.total_budget ?? 0,
         revenueByCurrency: (d.revenue_by_currency ?? []) as Array<{ currency: string; collected_this_month: number; invoiced_this_month: number; outstanding_receivable: number; overdue_count: number }>,
-        spendByCurrency: (d.spend_by_currency ?? []) as Array<{ currency: string; expense_this_month: number; total_budget: number }>,
+        spendByCurrency: (d.spend_by_currency ?? []) as Array<{ currency: string; expense_this_month: number; total_budget: number; sub_burn: number }>,
         isMultiCurrency: d.is_multi_currency ?? false,
         currencies: (d.currencies ?? [currency]) as string[],
       };
