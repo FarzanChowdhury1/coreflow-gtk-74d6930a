@@ -211,6 +211,9 @@ export default function Clients() {
                 <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToXLSX(currentWorkspace.id, contactData, contactCols, "contacts-export")}>
                   <Download className="h-4 w-4 mr-1" /> Contacts XLSX
                 </Button>
+                <Button variant="outline" size="sm" onClick={() => setBulkImportOpen(true)}>
+                  <Upload className="h-4 w-4 mr-1" /> Import CSV
+                </Button>
                 <Button variant="outline" onClick={() => setPortalLinkOpen(true)}>
                   <Link2 className="mr-1 h-4 w-4" /> Client Portal Access
                 </Button>
