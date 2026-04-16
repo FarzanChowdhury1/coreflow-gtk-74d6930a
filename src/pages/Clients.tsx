@@ -549,6 +549,7 @@ export default function Clients() {
         open={bulkImportOpen}
         onOpenChange={setBulkImportOpen}
         companies={companies}
+        contacts={contacts}
       />
     </div>
   );
