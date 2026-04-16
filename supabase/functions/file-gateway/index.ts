@@ -60,7 +60,7 @@ function parseCookies(header: string | null): Record<string, string> {
   );
 }
 
-const ALLOWED_OWNER_TYPES = ["project", "invoice", "company", "payment_proof", "client_update", "meeting"];
+const ALLOWED_OWNER_TYPES = ["project", "invoice", "company", "payment_proof", "client_update", "meeting", "expense_receipt", "expense"];
 const ALLOWED_MIME_TYPES = [
   "application/pdf",
   "image/png",
@@ -290,6 +290,12 @@ async function enforceOwnerTypeAccess(
       const hasAccess = await checkCompanyAccess(supabase, userId, companyId, workspaceId);
       if (!hasAccess) return "Forbidden: no access to this company's files";
       return null;
+    }
+    case "expense_receipt":
+    case "expense": {
+      // Admin-only resources. Admin shortcut above already returned null for admins;
+      // any non-admin reaching here is forbidden.
+      return "Forbidden: workspace admin only";
     }
     default:
       return "Forbidden: unknown owner type";
