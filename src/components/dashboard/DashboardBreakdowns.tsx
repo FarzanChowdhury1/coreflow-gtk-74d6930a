@@ -509,21 +509,53 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
             ) : revenueError ? (
               <FinanceErrorBanner message="Could not load revenue metrics. Try refreshing the page." />
             ) : (
-              <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
-                <KpiCard label="Total Invoiced" value={fmt(revenueData?.invoicedThisMonth ?? 0)} icon={DollarSign} iconColor="text-primary" sub="This month" />
-                <KpiCard label="Total Collected" value={fmt(revenueData?.collectedThisMonth ?? 0)} icon={CreditCard} iconColor="text-success" sub="This month" />
-                <KpiCard label="Outstanding Receivable" value={fmt(revenueData?.outstandingReceivable ?? 0)} icon={Receipt} iconColor="text-warning" sub="All open invoices" />
-                <Card className="overflow-hidden">
-                  <CardContent className="pt-4 pb-4 px-4 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <p className="text-xs text-muted-foreground truncate">Overdue Invoices</p>
-                      {(revenueData?.overdueCount ?? 0) > 0 && <Badge variant="destructive" className="text-[10px] px-1.5 py-0 shrink-0 whitespace-nowrap">Action needed</Badge>}
+              <div className="space-y-2">
+                {(revenueData?.isMultiCurrency) && (
+                  <div className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-1.5">
+                    <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0" />
+                    <p className="text-xs text-muted-foreground">Multiple currencies — revenue shown per currency. No cross-currency conversion applied.</p>
+                  </div>
+                )}
+                {(revenueData?.revenueByCurrency ?? []).length > 0 ? (
+                  revenueData!.revenueByCurrency.map((rc) => (
+                    <div key={rc.currency} className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
+                      <KpiCard label={`Invoiced${revenueData!.isMultiCurrency ? ` (${rc.currency})` : ""}`} value={fmtCur(rc.invoiced_this_month, rc.currency)} icon={DollarSign} iconColor="text-primary" sub="This month" />
+                      <KpiCard label={`Collected${revenueData!.isMultiCurrency ? ` (${rc.currency})` : ""}`} value={fmtCur(rc.collected_this_month, rc.currency)} icon={CreditCard} iconColor="text-success" sub="This month" />
+                      <KpiCard label={`Outstanding${revenueData!.isMultiCurrency ? ` (${rc.currency})` : ""}`} value={fmtCur(rc.outstanding_receivable, rc.currency)} icon={Receipt} iconColor="text-warning" sub="All open invoices" />
+                      <Card className="overflow-hidden">
+                        <CardContent className="pt-4 pb-4 px-4 min-w-0">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <p className="text-xs text-muted-foreground truncate">Overdue{revenueData!.isMultiCurrency ? ` (${rc.currency})` : ""}</p>
+                            {rc.overdue_count > 0 && <Badge variant="destructive" className="text-[10px] px-1.5 py-0 shrink-0 whitespace-nowrap">Action needed</Badge>}
+                          </div>
+                          <p className="text-lg font-semibold text-foreground tabular-nums">{rc.overdue_count}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">All time</p>
+                        </CardContent>
+                      </Card>
+                      {/* Renewals only on first row */}
+                      {rc === revenueData!.revenueByCurrency[0] && (
+                        <KpiCard label="Active Renewals" value={revenueData?.renewalsCount ?? "—"} icon={RefreshCw} iconColor="text-primary" />
+                      )}
                     </div>
-                    <p className="text-lg font-semibold text-foreground tabular-nums">{revenueData?.overdueCount ?? 0}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">All time</p>
-                  </CardContent>
-                </Card>
-                <KpiCard label="Active Renewals" value={revenueData?.renewalsCount ?? "—"} icon={RefreshCw} iconColor="text-primary" />
+                  ))
+                ) : (
+                  <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
+                    <KpiCard label="Total Invoiced" value={fmt(revenueData?.invoicedThisMonth ?? 0)} icon={DollarSign} iconColor="text-primary" sub="This month" />
+                    <KpiCard label="Total Collected" value={fmt(revenueData?.collectedThisMonth ?? 0)} icon={CreditCard} iconColor="text-success" sub="This month" />
+                    <KpiCard label="Outstanding Receivable" value={fmt(revenueData?.outstandingReceivable ?? 0)} icon={Receipt} iconColor="text-warning" sub="All open invoices" />
+                    <Card className="overflow-hidden">
+                      <CardContent className="pt-4 pb-4 px-4 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <p className="text-xs text-muted-foreground truncate">Overdue Invoices</p>
+                          {(revenueData?.overdueCount ?? 0) > 0 && <Badge variant="destructive" className="text-[10px] px-1.5 py-0 shrink-0 whitespace-nowrap">Action needed</Badge>}
+                        </div>
+                        <p className="text-lg font-semibold text-foreground tabular-nums">{revenueData?.overdueCount ?? 0}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">All time</p>
+                      </CardContent>
+                    </Card>
+                    <KpiCard label="Active Renewals" value={revenueData?.renewalsCount ?? "—"} icon={RefreshCw} iconColor="text-primary" />
+                  </div>
+                )}
               </div>
             )}
           </div>
