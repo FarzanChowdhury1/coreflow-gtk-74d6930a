@@ -271,7 +271,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
         _workspace_id: workspaceId,
       });
       if (error) throw error;
-      const d = data as unknown as Record<string, number>;
+      const d = data as unknown as Record<string, any>;
       return {
         collectedThisMonth: d.collected_this_month ?? 0,
         invoicedThisMonth: d.invoiced_this_month ?? 0,
@@ -283,6 +283,10 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
         activeSubsCount: d.active_subs_count ?? 0,
         vendorsCount: d.vendors_count ?? 0,
         totalBudget: d.total_budget ?? 0,
+        revenueByCurrency: (d.revenue_by_currency ?? []) as Array<{ currency: string; collected_this_month: number; invoiced_this_month: number; outstanding_receivable: number; overdue_count: number }>,
+        spendByCurrency: (d.spend_by_currency ?? []) as Array<{ currency: string; expense_this_month: number; total_budget: number }>,
+        isMultiCurrency: d.is_multi_currency ?? false,
+        currencies: (d.currencies ?? [currency]) as string[],
       };
     },
   });
