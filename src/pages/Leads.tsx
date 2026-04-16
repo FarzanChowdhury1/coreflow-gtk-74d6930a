@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Inbox, Plus, Search, FileText, Calendar, Archive, RotateCcw, Download } from "lucide-react";
+import { Inbox, Plus, Search, FileText, Calendar, Archive, RotateCcw, Download, LayoutList, Columns3 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { LeadMobileCards } from "@/components/leads/LeadMobileCards";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
@@ -17,6 +17,7 @@ import { LeadFormDialog } from "@/components/leads/LeadFormDialog";
 import { ProposalFormDialog } from "@/components/proposals/ProposalFormDialog";
 import type { ProposalFormPrefill } from "@/components/proposals/ProposalFormDialog";
 import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
+import { LeadKanbanBoard } from "@/components/leads/LeadKanbanBoard";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
@@ -42,6 +43,7 @@ export default function Leads() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [proposalPrefill, setProposalPrefill] = useState<ProposalFormPrefill | null>(null);
+  const [viewMode, setViewMode] = useState<"table" | "kanban">("table");
   const [meetingContext, setMeetingContext] = useState<{ lead_id?: string; company_id?: string; contact_id?: string } | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -290,6 +292,26 @@ export default function Leads() {
             className="h-9 w-full rounded-md border bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
+        <div className="flex items-center rounded-md border bg-muted/50 p-0.5">
+          <Button
+            variant={viewMode === "table" ? "secondary" : "ghost"}
+            size="sm"
+            className="h-7 px-2"
+            onClick={() => setViewMode("table")}
+            aria-label="Table view"
+          >
+            <LayoutList className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant={viewMode === "kanban" ? "secondary" : "ghost"}
+            size="sm"
+            className="h-7 px-2"
+            onClick={() => setViewMode("kanban")}
+            aria-label="Kanban view"
+          >
+            <Columns3 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
         {isAdmin && (
           <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
             <Switch checked={showArchived} onCheckedChange={setShowArchived} />
@@ -346,6 +368,22 @@ export default function Leads() {
           onEdit={(lead) => { setEditingLead(lead); setDialogOpen(true); }}
           onArchive={handleArchive}
           onRestore={handleRestore}
+          onConvert={(lead) => {
+            if (lead.company_id) {
+              setProposalPrefill({ title: lead.title, company_id: lead.company_id, notes: lead.notes || undefined, lead_id: lead.id });
+            }
+          }}
+          onMeeting={(lead) => setMeetingContext({ lead_id: lead.id, company_id: lead.company_id || undefined, contact_id: lead.contact_id || undefined })}
+        />
+      ) : viewMode === "kanban" ? (
+        <LeadKanbanBoard
+          leads={displayLeads}
+          companies={companies}
+          contacts={contacts}
+          isAdmin={isAdmin}
+          userId={user?.id}
+          onEdit={(lead) => { setEditingLead(lead); setDialogOpen(true); }}
+          onArchive={handleArchive}
           onConvert={(lead) => {
             if (lead.company_id) {
               setProposalPrefill({ title: lead.title, company_id: lead.company_id, notes: lead.notes || undefined, lead_id: lead.id });
