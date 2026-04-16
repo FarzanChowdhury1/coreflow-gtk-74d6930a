@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, LayoutList, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { TaskFormDialog } from "./TaskFormDialog";
+import { TaskCalendarView } from "./TaskCalendarView";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Task = Tables<"tasks">;
@@ -36,6 +37,7 @@ export function TaskBoard({ projectId, members }: Props) {
   const { toast } = useToast();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [viewMode, setViewMode] = useState<"board" | "calendar">("board");
   const workspaceId = currentWorkspace?.id;
 
   const { data: tasks = [], isLoading } = useQuery({
@@ -86,17 +88,42 @@ export function TaskBoard({ projectId, members }: Props) {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-foreground">Tasks ({tasks.length})</h3>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => { setEditingTask(null); setTaskDialogOpen(true); }}
-        >
-          <Plus className="h-4 w-4 mr-1" /> Add Task
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-md border bg-muted/30 p-0.5">
+            <Button
+              variant={viewMode === "board" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 px-2"
+              onClick={() => setViewMode("board")}
+            >
+              <LayoutList className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "calendar" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 px-2"
+              onClick={() => setViewMode("calendar")}
+            >
+              <CalendarDays className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => { setEditingTask(null); setTaskDialogOpen(true); }}
+          >
+            <Plus className="h-4 w-4 mr-1" /> Add Task
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground text-sm">Loading tasks...</div>
+      ) : viewMode === "calendar" ? (
+        <TaskCalendarView
+          tasks={tasks}
+          onTaskClick={(task) => { setEditingTask(task); setTaskDialogOpen(true); }}
+        />
       ) : (
         <div className="grid grid-cols-4 gap-3">
           {columns.map((col) => {
