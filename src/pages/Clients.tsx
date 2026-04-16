@@ -545,6 +545,11 @@ export default function Clients() {
           onOpenChange={(open) => { if (!open) setOnboardingCompany(null); }}
         />
       )}
+      <BulkImportDialog
+        open={bulkImportOpen}
+        onOpenChange={setBulkImportOpen}
+        companies={companies}
+      />
     </div>
   );
 }
