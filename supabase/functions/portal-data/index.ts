@@ -547,6 +547,19 @@ async function handleAction(
         return jsonResponse({ error: "Valid title required (max 200 chars)" }, 400, hdrs);
       }
 
+      // Rate limit: max 5 requests per contact per hour
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { count } = await supabase
+        .from("meeting_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("contact_id", session.contact_id)
+        .eq("workspace_id", session.workspace_id)
+        .gte("created_at", oneHourAgo);
+
+      if ((count ?? 0) >= 5) {
+        return jsonResponse({ error: "Too many requests. Please try again later." }, 429, hdrs);
+      }
+
       const description = (body.description as string) || null;
       const preferredDate = (body.preferred_date as string) || null;
       const preferredTime = (body.preferred_time as string) || null;
