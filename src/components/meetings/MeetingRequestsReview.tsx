@@ -23,7 +23,7 @@ export function MeetingRequestsReview({ onScheduleMeeting }: MeetingRequestsRevi
   const wsId = currentWorkspace?.id;
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [actionTarget, setActionTarget] = useState<{ id: string; action: "scheduled" | "declined"; req: any } | null>(null);
+  const [actionTarget, setActionTarget] = useState<{ id: string; action: "accepted" | "declined"; req: any } | null>(null);
   const [loading, setLoading] = useState(false);
 
   const { data: requests = [] } = useQuery({
@@ -59,8 +59,9 @@ export function MeetingRequestsReview({ onScheduleMeeting }: MeetingRequestsRevi
     if (error) {
       toast({ title: "Failed", description: error.message, variant: "destructive" });
     } else {
-      if (actionTarget.action === "scheduled") {
-        // Open the meeting form with prefilled data
+      if (actionTarget.action === "accepted") {
+        // Open the meeting form with prefilled data — status stays "accepted" (not "scheduled")
+        // until a real meeting is actually created by the admin
         onScheduleMeeting({
           title: actionTarget.req.title,
           companyId: actionTarget.req.company_id,
@@ -68,9 +69,9 @@ export function MeetingRequestsReview({ onScheduleMeeting }: MeetingRequestsRevi
         });
       }
       toast({
-        title: actionTarget.action === "scheduled" ? "Request accepted" : "Request declined",
-        description: actionTarget.action === "scheduled"
-          ? "Create the meeting using the form that opened."
+        title: actionTarget.action === "accepted" ? "Request accepted" : "Request declined",
+        description: actionTarget.action === "accepted"
+          ? "Create the meeting using the form that opened. The request is marked as accepted."
           : "The client will see this request as declined.",
       });
       queryClient.invalidateQueries({ queryKey: ["meeting-requests"] });
@@ -83,6 +84,7 @@ export function MeetingRequestsReview({ onScheduleMeeting }: MeetingRequestsRevi
 
   const statusStyles: Record<string, string> = {
     pending: "bg-warning/15 text-warning",
+    accepted: "bg-primary/15 text-primary",
     scheduled: "bg-emerald-500/15 text-emerald-600",
     declined: "bg-destructive/15 text-destructive",
   };
@@ -137,7 +139,7 @@ export function MeetingRequestsReview({ onScheduleMeeting }: MeetingRequestsRevi
                   <div className="flex gap-2 pt-1">
                     <Button
                       size="sm"
-                      onClick={() => setActionTarget({ id: r.id, action: "scheduled", req: r })}
+                      onClick={() => setActionTarget({ id: r.id, action: "accepted", req: r })}
                     >
                       <Plus className="h-3.5 w-3.5 mr-1" /> Schedule
                     </Button>
@@ -185,11 +187,11 @@ export function MeetingRequestsReview({ onScheduleMeeting }: MeetingRequestsRevi
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {actionTarget?.action === "scheduled" ? "Accept & Schedule Meeting" : "Decline Meeting Request"}
+              {actionTarget?.action === "accepted" ? "Accept Meeting Request" : "Decline Meeting Request"}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {actionTarget?.action === "scheduled"
-                ? `This will mark the request as scheduled. The meeting creation form will open so you can set the exact date, time, and details for "${actionTarget?.req?.title}".`
+              {actionTarget?.action === "accepted"
+                ? `This will mark the request as accepted. The meeting creation form will open so you can create the actual meeting for "${actionTarget?.req?.title}".`
                 : `This will mark the request "${actionTarget?.req?.title}" as declined.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -200,7 +202,7 @@ export function MeetingRequestsReview({ onScheduleMeeting }: MeetingRequestsRevi
               disabled={loading}
               className={actionTarget?.action === "declined" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
             >
-              {loading ? "Processing..." : actionTarget?.action === "scheduled" ? "Accept & Schedule" : "Decline"}
+              {loading ? "Processing..." : actionTarget?.action === "accepted" ? "Accept" : "Decline"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

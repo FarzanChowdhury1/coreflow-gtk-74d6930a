@@ -67,10 +67,23 @@ export default function Reports() {
     enabled: !!wsId,
   });
 
+  // Fetch ALL workspace invoices (no date filter) solely for payment→currency lookup
+  const { data: allInvoices = [] } = useQuery({
+    queryKey: ["report-all-invoices-currency", wsId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("invoices")
+        .select("id, currency")
+        .eq("workspace_id", wsId!)
+        .is("deleted_at", null);
+      return data || [];
+    },
+    enabled: !!wsId,
+  });
+
   const { data: payments = [] } = useQuery({
     queryKey: ["report-payments", wsId, fromISO, toISO],
     queryFn: async () => {
-      // Payments don't have currency — join via invoice
       const { data } = await supabase
         .from("payments")
         .select("id, amount, method, paid_at, invoice_id")
@@ -130,13 +143,14 @@ export default function Reports() {
   });
 
   // Build an invoice-id → currency map for payment currency resolution
+  // Currency map from ALL invoices (not date-filtered) so payments always resolve correctly
   const invoiceCurrencyMap = useMemo(() => {
     const m = new Map<string, string>();
-    for (const inv of invoices) {
+    for (const inv of allInvoices) {
       m.set((inv as any).id, (inv as any).currency || "BDT");
     }
     return m;
-  }, [invoices]);
+  }, [allInvoices]);
 
   // Compute report rows grouped by currency
   const report = useMemo(() => {
@@ -160,10 +174,14 @@ export default function Reports() {
     }
 
     // Payments — group by currency derived from their invoice
+    // Payment currency: resolved from ALL invoices (not date-filtered).
+    // If invoice is missing from map (e.g. deleted), skip the payment rather than false-label it.
     const payByCurrency = new Map<string, { total: number; count: number }>();
+    let unmappedPayments = 0;
     for (const p of payments) {
       const invId = (p as any).invoice_id as string;
-      const cur = invoiceCurrencyMap.get(invId) || "BDT";
+      const cur = invoiceCurrencyMap.get(invId);
+      if (!cur) { unmappedPayments++; continue; }
       const entry = payByCurrency.get(cur) || { total: 0, count: 0 };
       entry.total += Number((p as any).amount || 0);
       entry.count++;
@@ -171,6 +189,9 @@ export default function Reports() {
     }
     for (const [cur, v] of payByCurrency) {
       rows.push({ category: "Revenue", metric: "Payment Transactions", value: v.total, currency: cur, count: v.count });
+    }
+    if (unmappedPayments > 0) {
+      rows.push({ category: "Revenue", metric: "Payments (unknown currency)", value: 0, currency: "?", count: unmappedPayments });
     }
 
     // Spend by currency
@@ -202,7 +223,7 @@ export default function Reports() {
     }
 
     // Pipeline — uses real enum statuses
-    rows.push({ category: "Pipeline", metric: "New Leads", value: 0, currency: "", count: leads.length });
+    rows.push({ category: "Pipeline", metric: "Leads Created", value: 0, currency: "", count: leads.length });
     const convertedLeads = leads.filter((l) => (l as any).status === "converted");
     rows.push({ category: "Pipeline", metric: "Leads Converted", value: 0, currency: "", count: convertedLeads.length });
     const qualifiedLeads = leads.filter((l) => (l as any).status === "qualified");
@@ -210,7 +231,7 @@ export default function Reports() {
     rows.push({ category: "Pipeline", metric: "Proposals Created", value: 0, currency: "", count: proposals.length });
 
     return rows;
-  }, [invoices, payments, expenses, leads, proposals, invoiceCurrencyMap]);
+  }, [invoices, payments, expenses, leads, proposals, invoiceCurrencyMap, allInvoices]);
 
   const exportRows = report.map((r) => ({
     category: r.category,

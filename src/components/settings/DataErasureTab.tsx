@@ -117,35 +117,28 @@ export function DataErasureTab() {
     if (!wsId || !user) return;
     setLoading(true);
 
-    // Mark as completed with execution timestamp
-    const { error } = await supabase
-      .from("data_erasure_requests")
-      .update({
-        status: "completed",
-        completed_at: new Date().toISOString(),
-        notes: "Execution initiated by admin. DB records soft-deleted, storage cleanup scheduled, tokens revoked.",
-      })
-      .eq("id", requestId)
-      .eq("workspace_id", wsId);
+    // Call the backend RPC that performs real erasure:
+    // - revokes portal tokens
+    // - expires pending invites
+    // - soft-deletes workspace (cutting off all access)
+    // - soft-deletes all files
+    // - marks request completed
+    // - audits every stage
+    const { data, error } = await supabase.rpc("execute_data_erasure", {
+      _workspace_id: wsId,
+      _request_id: requestId,
+    });
+
+    const result = data as Record<string, unknown> | null;
 
     if (error) {
       toast({ title: "Execution failed", description: error.message, variant: "destructive" });
+    } else if (result && !result.success) {
+      toast({ title: "Execution blocked", description: String(result.error || "Unknown error"), variant: "destructive" });
     } else {
-      // Audit the execution
-      await supabase.from("audit_logs").insert({
-        workspace_id: wsId,
-        entity_type: "data_erasure_request",
-        entity_id: requestId,
-        action: "erasure_executed",
-        actor_id: user.id,
-        metadata: {
-          scope: "DB records soft-deleted, portal tokens revoked, storage cleanup pending manual verification",
-        },
-      });
-
       toast({
-        title: "Erasure marked as executed",
-        description: "The request has been recorded. Verify storage cleanup separately.",
+        title: "Data erasure executed",
+        description: `Portal tokens revoked (${result?.portal_tokens_revoked ?? 0}), invites expired (${result?.invites_expired ?? 0}), workspace deactivated, files marked for cleanup.`,
       });
       queryClient.invalidateQueries({ queryKey: ["erasure-requests"] });
     }
