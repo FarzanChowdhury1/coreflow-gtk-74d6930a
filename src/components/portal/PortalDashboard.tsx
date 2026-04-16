@@ -13,10 +13,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { portalLogout, portalGetResource, type PortalSessionInfo } from "@/lib/portal-api";
+import { portalLogout, portalGetResource, type PortalSessionInfo, type PortalBranding } from "@/lib/portal-api";
 
 interface Props {
   session: PortalSessionInfo;
+  initialBranding?: PortalBranding | null;
 }
 
 interface PortalSummary {
@@ -31,16 +32,9 @@ interface PortalSummary {
   onboarding_total: number;
 }
 
-interface PortalBranding {
-  workspace_name: string;
-  accent_color: string | null;
-  logo_url: string | null;
-  support_email: string | null;
-}
-
-export function PortalDashboard({ session }: Props) {
+export function PortalDashboard({ session, initialBranding }: Props) {
   const [summary, setSummary] = useState<PortalSummary | null>(null);
-  const [branding, setBranding] = useState<PortalBranding | null>(null);
+  const [branding, setBranding] = useState<PortalBranding | null>(initialBranding || null);
   const [activeTab, setActiveTab] = useState("overview");
 
   const fetchSummary = useCallback(async () => {
@@ -53,7 +47,7 @@ export function PortalDashboard({ session }: Props) {
     if (data) setBranding(data);
   }, []);
 
-  useEffect(() => { fetchSummary(); fetchBranding(); }, [fetchSummary, fetchBranding]);
+  useEffect(() => { fetchSummary(); if (!initialBranding) fetchBranding(); }, [fetchSummary, fetchBranding, initialBranding]);
 
   const handleLogout = async () => {
     await portalLogout();
