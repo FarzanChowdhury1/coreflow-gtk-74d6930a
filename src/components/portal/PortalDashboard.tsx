@@ -31,8 +31,16 @@ interface PortalSummary {
   onboarding_total: number;
 }
 
+interface PortalBranding {
+  workspace_name: string;
+  accent_color: string | null;
+  logo_url: string | null;
+  support_email: string | null;
+}
+
 export function PortalDashboard({ session }: Props) {
   const [summary, setSummary] = useState<PortalSummary | null>(null);
+  const [branding, setBranding] = useState<PortalBranding | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
 
   const fetchSummary = useCallback(async () => {
@@ -40,7 +48,12 @@ export function PortalDashboard({ session }: Props) {
     if (data) setSummary(data);
   }, []);
 
-  useEffect(() => { fetchSummary(); }, [fetchSummary]);
+  const fetchBranding = useCallback(async () => {
+    const { data } = await portalGetResource<PortalBranding>("branding");
+    if (data) setBranding(data);
+  }, []);
+
+  useEffect(() => { fetchSummary(); fetchBranding(); }, [fetchSummary, fetchBranding]);
 
   const handleLogout = async () => {
     await portalLogout();
