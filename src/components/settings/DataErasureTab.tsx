@@ -29,6 +29,16 @@ export function DataErasureTab() {
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const updateRequestInCache = (requestId: string, updates: Record<string, unknown>) => {
+    queryClient.setQueryData(["erasure-requests", wsId], (current: any[] | undefined) =>
+      (current ?? []).map((request) =>
+        request.id === requestId
+          ? { ...request, ...updates }
+          : request,
+      ),
+    );
+  };
+
   const { data: requests = [] } = useQuery({
     queryKey: ["erasure-requests", wsId],
     queryFn: async () => {
@@ -126,11 +136,15 @@ export function DataErasureTab() {
     } else if (result && !result.success) {
       toast({ title: "Deactivation blocked", description: String(result.error || "Unknown error"), variant: "destructive" });
     } else {
+      updateRequestInCache(requestId, {
+        status: "pending_purge",
+        updated_at: new Date().toISOString(),
+        notes: `Deactivated: tokens=${result?.portal_tokens_revoked ?? 0} invites=${result?.invites_expired ?? 0} workspace soft-deleted`,
+      });
       toast({
         title: "Workspace deactivated",
         description: `Tokens revoked (${result?.portal_tokens_revoked ?? 0}), invites expired (${result?.invites_expired ?? 0}). Workspace access cut off. Ready for final purge.`,
       });
-      queryClient.invalidateQueries({ queryKey: ["erasure-requests"] });
     }
     setLoading(false);
   };
@@ -140,9 +154,11 @@ export function DataErasureTab() {
     if (!wsId || !user || !purgeTarget) return;
     setLoading(true);
 
-    const { data, error } = await supabase.rpc("purge_workspace_data", {
-      _workspace_id: wsId,
-      _request_id: purgeTarget,
+    const { data, error } = await supabase.functions.invoke("erasure-purge-runner", {
+      body: {
+        workspace_id: wsId,
+        request_id: purgeTarget,
+      },
     });
 
     const result = data as Record<string, unknown> | null;
@@ -150,13 +166,25 @@ export function DataErasureTab() {
     if (error) {
       toast({ title: "Purge failed", description: error.message, variant: "destructive" });
     } else if (result && !result.success) {
-      toast({ title: "Purge blocked", description: String(result.error || "Unknown error"), variant: "destructive" });
-    } else {
-      toast({
-        title: "Data purge complete",
-        description: `All tenant records and ${result?.storage_deleted ?? 0} storage objects destroyed server-side. ${result?.storage_failed ?? 0} storage failures. Audit trail preserved.`,
+      updateRequestInCache(purgeTarget, {
+        status: result.status || "purge_incomplete",
+        updated_at: new Date().toISOString(),
       });
-      queryClient.invalidateQueries({ queryKey: ["erasure-requests"] });
+      toast({
+        title: result.status === "storage_cleanup_failed" ? "Storage cleanup failed" : "Purge incomplete",
+        description: String(result.error || "Unknown error"),
+        variant: "destructive",
+      });
+    } else {
+      updateRequestInCache(purgeTarget, {
+        status: "purged",
+        updated_at: new Date().toISOString(),
+        completed_at: new Date().toISOString(),
+      });
+      toast({
+        title: "Verified purge complete",
+        description: `Backend storage cleanup and tenant record destruction both completed. ${result?.storage_deleted ?? 0} storage objects were removed through the privileged purge runner.`,
+      });
     }
     setLoading(false);
     setPurgeTarget(null);
@@ -165,15 +193,18 @@ export function DataErasureTab() {
   const statusConfig: Record<string, { icon: React.ElementType; color: string; label: string }> = {
     pending: { icon: Clock, color: "bg-warning/15 text-warning", label: "Pending Review" },
     approved: { icon: CheckCircle2, color: "bg-primary/15 text-primary", label: "Approved" },
-    pending_purge: { icon: Zap, color: "bg-orange-500/15 text-orange-600", label: "Pending Purge" },
-    purging_storage: { icon: Zap, color: "bg-amber-500/15 text-amber-600", label: "Purging Storage" },
-    purged: { icon: Trash2, color: "bg-emerald-500/15 text-emerald-600", label: "Purged" },
+    pending_purge: { icon: Zap, color: "bg-warning/15 text-warning", label: "Pending Purge" },
+    purging_storage: { icon: Zap, color: "bg-muted text-muted-foreground", label: "Purging Storage" },
+    storage_cleanup_failed: { icon: AlertTriangle, color: "bg-destructive/15 text-destructive", label: "Storage Cleanup Failed" },
+    purge_incomplete: { icon: AlertTriangle, color: "bg-destructive/15 text-destructive", label: "Purge Incomplete" },
+    purged: { icon: Trash2, color: "bg-primary/15 text-primary", label: "Purged" },
     denied: { icon: XCircle, color: "bg-destructive/15 text-destructive", label: "Denied" },
   };
 
   const pendingRequests = requests.filter((r: any) => r.status === "pending");
   const approvedRequests = requests.filter((r: any) => r.status === "approved");
-  const pendingPurgeRequests = requests.filter((r: any) => r.status === "pending_purge");
+  const pendingPurgeRequests = requests.filter((r: any) => ["pending_purge", "storage_cleanup_failed", "purge_incomplete"].includes(r.status));
+  const activePurgeRequests = requests.filter((r: any) => r.status === "purging_storage");
 
   return (
     <div className="space-y-6">
@@ -338,11 +369,28 @@ export function DataErasureTab() {
                     onClick={() => setPurgeTarget(r.id)}
                     disabled={loading}
                   >
-                    <Trash2 className="h-3.5 w-3.5 mr-1" /> Purge All Data
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    {r.status === "pending_purge" ? "Purge All Data" : "Retry Final Purge"}
                   </Button>
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {isAdmin && activePurgeRequests.length > 0 && (
+        <Card className="border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <Zap className="h-4 w-4 text-muted-foreground" />
+              Stage 2: Backend Storage Cleanup In Progress ({activePurgeRequests.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground">
+              The privileged purge runner is actively deleting workspace-owned storage and will only finalize purge after that cleanup and record destruction both succeed.
+            </p>
           </CardContent>
         </Card>
       )}
@@ -450,7 +498,7 @@ export function DataErasureTab() {
               companies, contacts, leads, proposals, projects, tasks, invoices, payments, expenses,
               vendors, subscriptions, renewals, files, and all related records.
               <br /><br />
-              <strong>Only audit logs will be preserved as evidence of the erasure.</strong>
+                  <strong>Audit evidence will be preserved, and the request will only be marked purged after backend storage cleanup and destructive record purge both finish successfully.</strong>
               <br /><br />
               This action cannot be undone.
             </AlertDialogDescription>
