@@ -49,6 +49,7 @@ export default function Clients() {
   const [activeTab, setActiveTab] = useState("companies");
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [reliabilityCompany, setReliabilityCompany] = useState<Company | null>(null);
+  const [healthCompany, setHealthCompany] = useState<Company | null>(null);
   const highlightRef = useRef<HTMLTableRowElement>(null);
 
   const workspaceId = currentWorkspace?.id;
