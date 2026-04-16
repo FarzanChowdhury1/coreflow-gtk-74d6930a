@@ -248,7 +248,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
     enabled: !!workspaceId,
     staleTime: 60_000,
     queryFn: async () => {
-      let q = supabase.from("invoices").select("status, grand_total, amount_paid").eq("workspace_id", workspaceId).is("deleted_at", null);
+      let q = supabase.from("invoices").select("status, grand_total, amount_paid, currency").eq("workspace_id", workspaceId).is("deleted_at", null);
       if (effectiveStart) q = q.gte("created_at", effectiveStart);
       if (effectiveEnd) q = q.lte("created_at", effectiveEnd);
       const { data, error } = await q;
