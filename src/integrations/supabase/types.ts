@@ -2805,6 +2805,9 @@ export type Database = {
           offboarding_export_claimed_by: string | null
           offboarding_export_used_at: string | null
           plan: string
+          portal_accent_color: string | null
+          portal_logo_storage_path: string | null
+          portal_support_email: string | null
           seat_limit: number
           timezone: string
           trial_ends_at: string | null
@@ -2820,6 +2823,9 @@ export type Database = {
           offboarding_export_claimed_by?: string | null
           offboarding_export_used_at?: string | null
           plan?: string
+          portal_accent_color?: string | null
+          portal_logo_storage_path?: string | null
+          portal_support_email?: string | null
           seat_limit?: number
           timezone?: string
           trial_ends_at?: string | null
@@ -2835,6 +2841,9 @@ export type Database = {
           offboarding_export_claimed_by?: string | null
           offboarding_export_used_at?: string | null
           plan?: string
+          portal_accent_color?: string | null
+          portal_logo_storage_path?: string | null
+          portal_support_email?: string | null
           seat_limit?: number
           timezone?: string
           trial_ends_at?: string | null

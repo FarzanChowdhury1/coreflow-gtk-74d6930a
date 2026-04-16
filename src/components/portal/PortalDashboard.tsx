@@ -31,8 +31,16 @@ interface PortalSummary {
   onboarding_total: number;
 }
 
+interface PortalBranding {
+  workspace_name: string;
+  accent_color: string | null;
+  logo_url: string | null;
+  support_email: string | null;
+}
+
 export function PortalDashboard({ session }: Props) {
   const [summary, setSummary] = useState<PortalSummary | null>(null);
+  const [branding, setBranding] = useState<PortalBranding | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
 
   const fetchSummary = useCallback(async () => {
@@ -40,7 +48,12 @@ export function PortalDashboard({ session }: Props) {
     if (data) setSummary(data);
   }, []);
 
-  useEffect(() => { fetchSummary(); }, [fetchSummary]);
+  const fetchBranding = useCallback(async () => {
+    const { data } = await portalGetResource<PortalBranding>("branding");
+    if (data) setBranding(data);
+  }, []);
+
+  useEffect(() => { fetchSummary(); fetchBranding(); }, [fetchSummary, fetchBranding]);
 
   const handleLogout = async () => {
     await portalLogout();
@@ -49,15 +62,32 @@ export function PortalDashboard({ session }: Props) {
 
   const hasActions = summary && (summary.proposals_awaiting > 0 || summary.overdue_invoices > 0 || summary.unpaid_invoices > 0 || summary.onboarding_pending > 0);
 
+  const accentColor = branding?.accent_color || undefined;
+  const accentStyle = accentColor ? { 
+    '--portal-accent': accentColor,
+    '--portal-accent-light': `${accentColor}1a`,
+  } as React.CSSProperties : {};
+
   return (
-    <main className="min-h-screen bg-muted/30">
+    <main className="min-h-screen bg-muted/30" style={accentStyle}>
       {/* Header */}
-      <div className="border-b bg-card shadow-sm">
+      <div className="border-b bg-card shadow-sm" style={accentColor ? { borderBottomColor: accentColor } : undefined}>
         <div className="mx-auto max-w-5xl flex items-center justify-between px-4 sm:px-6 py-4">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 shrink-0">
-              <Building2 className="h-5 w-5 text-primary" />
-            </div>
+            {branding?.logo_url ? (
+              <img
+                src={branding.logo_url}
+                alt={branding.workspace_name || session.company_name}
+                className="h-9 w-9 rounded-lg object-contain shrink-0"
+              />
+            ) : (
+              <div
+                className={`flex h-9 w-9 items-center justify-center rounded-lg shrink-0 ${!accentColor ? 'bg-primary/10' : ''}`}
+                style={accentColor ? { backgroundColor: `${accentColor}1a` } : undefined}
+              >
+                <Building2 className={`h-5 w-5 ${!accentColor ? 'text-primary' : ''}`} style={accentColor ? { color: accentColor } : undefined} />
+              </div>
+            )}
             <div className="min-w-0">
               <h1 className="text-lg font-semibold text-foreground truncate">{session.company_name}</h1>
               <p className="text-xs text-muted-foreground truncate">
@@ -301,6 +331,18 @@ export function PortalDashboard({ session }: Props) {
             <PortalOnboarding session={session} />
           </TabsContent>
         </Tabs>
+
+        {/* Support footer */}
+        {branding?.support_email && (
+          <div className="mt-8 border-t pt-4 text-center">
+            <p className="text-xs text-muted-foreground">
+              Need help? Contact us at{" "}
+              <a href={`mailto:${branding.support_email}`} className="text-primary hover:underline">
+                {branding.support_email}
+              </a>
+            </p>
+          </div>
+        )}
       </div>
     </main>
   );

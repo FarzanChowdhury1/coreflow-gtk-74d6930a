@@ -15,7 +15,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Loader2, AlertTriangle, Download } from "lucide-react";
+import { Loader2, AlertTriangle, Download, Palette } from "lucide-react";
 import { useEntitlement } from "@/hooks/use-entitlement";
 import { useNavigate } from "react-router-dom";
 
@@ -51,6 +51,13 @@ export function WorkspaceSettingsTab() {
   const [claimingExport, setClaimingExport] = useState(false);
   const [exportClaimed, setExportClaimed] = useState(false);
 
+  // Portal branding state
+  const [portalAccentColor, setPortalAccentColor] = useState("");
+  const [portalSupportEmail, setPortalSupportEmail] = useState("");
+  const [portalLogoPath, setPortalLogoPath] = useState("");
+  const [savingBranding, setSavingBranding] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
   const ws = currentWorkspace as any;
   const alreadyClaimed = !!ws?.offboarding_export_used_at;
 
@@ -70,6 +77,11 @@ export function WorkspaceSettingsTab() {
         currency: currentWorkspace.currency,
         timezone: currentWorkspace.timezone,
       });
+      // Load branding fields from workspace (cast to access new columns)
+      const ws = currentWorkspace as any;
+      setPortalAccentColor(ws.portal_accent_color || "");
+      setPortalSupportEmail(ws.portal_support_email || "");
+      setPortalLogoPath(ws.portal_logo_storage_path || "");
     }
   }, [currentWorkspace]);
 
@@ -92,6 +104,67 @@ export function WorkspaceSettingsTab() {
       toast.success("Workspace settings saved");
     }
   };
+
+  const handleSaveBranding = async () => {
+    if (!currentWorkspace) return;
+    setSavingBranding(true);
+
+    // Validate hex color if provided
+    if (portalAccentColor && !/^#[0-9a-fA-F]{6}$/.test(portalAccentColor)) {
+      toast.error("Accent color must be a valid hex color (e.g. #3B82F6)");
+      setSavingBranding(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("workspaces")
+      .update({
+        portal_accent_color: portalAccentColor || null,
+        portal_support_email: portalSupportEmail || null,
+        portal_logo_storage_path: portalLogoPath || null,
+      } as any)
+      .eq("id", currentWorkspace.id);
+
+    setSavingBranding(false);
+    if (error) {
+      toast.error("Failed to save portal branding");
+    } else {
+      toast.success("Portal branding saved");
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentWorkspace) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Logo must be under 2MB");
+      return;
+    }
+
+    setUploadingLogo(true);
+    const ext = file.name.split(".").pop() || "png";
+    const storagePath = `${currentWorkspace.id}/portal-logo.${ext}`;
+
+    const { error: uploadErr } = await supabase.storage
+      .from("workspace-files")
+      .upload(storagePath, file, { upsert: true });
+
+    if (uploadErr) {
+      toast.error("Failed to upload logo");
+      setUploadingLogo(false);
+      return;
+    }
+
+    setPortalLogoPath(storagePath);
+    setUploadingLogo(false);
+    toast.success("Logo uploaded — click Save Branding to apply");
+  };
+
 
   const handleDeactivate = async () => {
     if (!currentWorkspace) return;
@@ -231,7 +304,86 @@ export function WorkspaceSettingsTab() {
         </CardContent>
       </Card>
 
-      {/* Danger zone — workspace deactivation */}
+      {/* Portal Branding */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Palette className="h-5 w-5 text-primary" />
+            Portal Branding
+          </CardTitle>
+          <CardDescription>
+            Customize the appearance of your client portal. Clients will see your branding when they access their portal.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="max-w-md space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Accent Color</label>
+              <div className="flex items-center gap-3">
+                <Input
+                  value={portalAccentColor}
+                  onChange={(e) => setPortalAccentColor(e.target.value)}
+                  placeholder="#3B82F6"
+                  className="font-mono max-w-[140px]"
+                  maxLength={7}
+                />
+                {portalAccentColor && /^#[0-9a-fA-F]{6}$/.test(portalAccentColor) && (
+                  <div
+                    className="h-8 w-8 rounded-md border"
+                    style={{ backgroundColor: portalAccentColor }}
+                  />
+                )}
+                <span className="text-xs text-muted-foreground">Hex format</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Support Email</label>
+              <Input
+                type="email"
+                value={portalSupportEmail}
+                onChange={(e) => setPortalSupportEmail(e.target.value)}
+                placeholder="support@yourcompany.com"
+              />
+              <p className="text-xs text-muted-foreground">Shown in the portal footer so clients know how to reach you.</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Portal Logo</label>
+              <div className="flex items-center gap-3">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  disabled={uploadingLogo}
+                  className="max-w-[260px]"
+                />
+                {uploadingLogo && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              </div>
+              {portalLogoPath && (
+                <p className="text-xs text-muted-foreground">
+                  Logo set: <span className="font-mono">{portalLogoPath.split("/").pop()}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPortalLogoPath("")}
+                    className="ml-2 text-destructive hover:underline"
+                  >
+                    Remove
+                  </button>
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">Max 2 MB. Displayed at 36×36px in the portal header.</p>
+            </div>
+
+            <Button onClick={handleSaveBranding} disabled={savingBranding}>
+              {savingBranding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Branding
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+
       <Card className="border-destructive/30">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-destructive">

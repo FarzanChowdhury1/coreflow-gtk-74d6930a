@@ -357,6 +357,31 @@ async function handleResource(
       }, 200, hdrs);
     }
 
+    case "branding": {
+      const { data: ws } = await supabase
+        .from("workspaces")
+        .select("name, portal_accent_color, portal_logo_storage_path, portal_support_email")
+        .eq("id", session.workspace_id)
+        .single();
+
+      let logo_url: string | null = null;
+      if (ws?.portal_logo_storage_path) {
+        const { data: signedUrl } = await supabase.storage
+          .from("workspace-files")
+          .createSignedUrl(ws.portal_logo_storage_path, 3600);
+        logo_url = signedUrl?.signedUrl || null;
+      }
+
+      return jsonResponse({
+        data: {
+          workspace_name: ws?.name || "",
+          accent_color: ws?.portal_accent_color || null,
+          logo_url,
+          support_email: ws?.portal_support_email || null,
+        },
+      }, 200, hdrs);
+    }
+
     default:
       return jsonResponse({ error: "Unknown resource" }, 400, hdrs);
   }
