@@ -308,12 +308,27 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   const projectCounts = useMemo(() => countByStatus(projects), [projects]);
   const invoiceCounts = useMemo(() => countByStatus(invoices), [invoices]);
 
+  // Group invoice totals by currency
+  const invoiceTotalsByCurrency = useMemo(() => {
+    const map: Record<string, { invoiced: number; collected: number; receivable: number }> = {};
+    invoices.forEach((i: any) => {
+      const cur = i.currency || currency;
+      if (!map[cur]) map[cur] = { invoiced: 0, collected: 0, receivable: 0 };
+      map[cur].invoiced += Number(i.grand_total);
+      map[cur].collected += Number(i.amount_paid);
+      if (i.status !== "void" && i.status !== "paid") {
+        map[cur].receivable += Number(i.grand_total) - Number(i.amount_paid);
+      }
+    });
+    return map;
+  }, [invoices, currency]);
+
+  const pipelineCurrencies = Object.keys(invoiceTotalsByCurrency);
+  const isPipelineMultiCurrency = pipelineCurrencies.length > 1;
+
+  // Legacy single-currency totals (for single-currency workspaces / cash conversion)
   const totalInvoiced = invoices.reduce((s: number, i: any) => s + Number(i.grand_total), 0);
   const totalCollected = invoices.reduce((s: number, i: any) => s + Number(i.amount_paid), 0);
-  const totalReceivable = invoices.reduce((s: number, i: any) => {
-    if (i.status === "void" || i.status === "paid") return s;
-    return s + (Number(i.grand_total) - Number(i.amount_paid));
-  }, 0);
 
   const pipelineLoading = ll || pl || prl || il;
 
