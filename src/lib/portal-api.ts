@@ -87,7 +87,7 @@ export interface PortalBranding {
  */
 export async function portalVerifyToken(
   token: string
-): Promise<{ success: boolean; session?: PortalSessionInfo; error?: string }> {
+): Promise<{ success: boolean; session?: PortalSessionInfo; branding?: PortalBranding; error?: string }> {
   const res = await portalFetch("portal-verify", {
     method: "POST",
     body: JSON.stringify({ token }),
@@ -114,7 +114,27 @@ export async function portalVerifyToken(
       contact_email: data.contact_email,
       company_name: data.company_name,
     },
+    branding: data.branding || undefined,
   };
+}
+
+/**
+ * Peek at workspace branding using a portal token (pre-session, no consumption).
+ */
+export async function portalPeekBranding(
+  token: string
+): Promise<PortalBranding | null> {
+  try {
+    const res = await fetch(
+      `${FUNCTIONS_BASE}/portal-verify?peek_token=${encodeURIComponent(token)}`,
+      { method: "GET", credentials: "include" }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.branding || null;
+  } catch {
+    return null;
+  }
 }
 
 /**
