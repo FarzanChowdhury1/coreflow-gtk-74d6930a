@@ -352,6 +352,9 @@ export default function Clients() {
                                    <Button variant="ghost" size="sm" onClick={() => setReliabilityCompany(company)} title="Payment reliability">
                                      <Activity className="h-3.5 w-3.5 mr-1" /> Reliability
                                    </Button>
+                                   <Button variant="ghost" size="sm" onClick={() => setHealthCompany(company)} title="Financial health">
+                                     <HeartPulse className="h-3.5 w-3.5 mr-1" /> Health
+                                   </Button>
                                   <Button variant="ghost" size="sm" onClick={() => { setEditingCompany(company); setCompanyDialogOpen(true); }}>
                                     Edit
                                   </Button>
