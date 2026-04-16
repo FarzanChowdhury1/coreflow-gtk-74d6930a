@@ -571,6 +571,15 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
             ) : revenueError ? (
               <FinanceErrorBanner message="Could not load cash conversion metrics." />
             ) : (() => {
+              // If multi-currency, cash conversion ratios across currencies are misleading
+              if (revenueData?.isMultiCurrency) {
+                return (
+                  <div className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-1.5">
+                    <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0" />
+                    <p className="text-xs text-muted-foreground">Cash conversion ratios are not shown for multi-currency workspaces — cross-currency percentages would be misleading.</p>
+                  </div>
+                );
+              }
               const invoiced = revenueData?.invoicedThisMonth ?? 0;
               const collected = revenueData?.collectedThisMonth ?? 0;
               const outstanding = revenueData?.outstandingReceivable ?? 0;
