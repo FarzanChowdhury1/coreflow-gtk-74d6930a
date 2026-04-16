@@ -24,8 +24,10 @@ import { useQuery } from "@tanstack/react-query";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
+  onSaved: (createdMeetingId?: string) => void;
   editMeeting?: any;
+  /** If this meeting is being created from a portal meeting request, pass the request ID */
+  meetingRequestId?: string;
   defaultContext?: {
     company_id?: string;
     contact_id?: string;
@@ -34,7 +36,7 @@ interface Props {
   };
 }
 
-export function MeetingFormDialog({ open, onOpenChange, onSaved, editMeeting, defaultContext }: Props) {
+export function MeetingFormDialog({ open, onOpenChange, onSaved, editMeeting, meetingRequestId, defaultContext }: Props) {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const wsId = currentWorkspace?.id;
@@ -169,14 +171,31 @@ export function MeetingFormDialog({ open, onOpenChange, onSaved, editMeeting, de
           .eq("id", editMeeting.id);
         if (error) throw error;
         toast.success("Meeting updated");
+        onSaved();
       } else {
-        const { error } = await supabase.from("meetings" as any)
-          .insert({ ...record, created_by: user.id } as any);
+        const { data: inserted, error } = await supabase.from("meetings" as any)
+          .insert({ ...record, created_by: user.id } as any)
+          .select("id")
+          .single();
         if (error) throw error;
+        const createdId = (inserted as any)?.id as string | undefined;
+
+        // If created from a meeting request, link and mark as scheduled
+        if (meetingRequestId && createdId) {
+          await supabase
+            .from("meeting_requests")
+            .update({
+              status: "scheduled",
+              resolved_meeting_id: createdId,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", meetingRequestId);
+        }
+
         toast.success("Meeting scheduled");
         if (wsId && user?.id) trackFirstEvent("meeting.first_created", wsId, user.id);
+        onSaved(createdId);
       }
-      onSaved();
       onOpenChange(false);
     } catch (err: any) {
       toast.error(err.message || "Failed to save meeting");

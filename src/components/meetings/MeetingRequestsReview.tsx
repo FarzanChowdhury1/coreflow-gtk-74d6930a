@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
 interface MeetingRequestsReviewProps {
-  onScheduleMeeting: (prefill: { title: string; companyId: string; contactId: string }) => void;
+  onScheduleMeeting: (prefill: { title: string; companyId: string; contactId: string; requestId: string }) => void;
 }
 
 export function MeetingRequestsReview({ onScheduleMeeting }: MeetingRequestsReviewProps) {
@@ -60,12 +60,12 @@ export function MeetingRequestsReview({ onScheduleMeeting }: MeetingRequestsRevi
       toast({ title: "Failed", description: error.message, variant: "destructive" });
     } else {
       if (actionTarget.action === "accepted") {
-        // Open the meeting form with prefilled data — status stays "accepted" (not "scheduled")
-        // until a real meeting is actually created by the admin
+        // Open the meeting form with prefilled data and the request ID for linkage
         onScheduleMeeting({
           title: actionTarget.req.title,
           companyId: actionTarget.req.company_id,
           contactId: actionTarget.req.contact_id,
+          requestId: actionTarget.id,
         });
       }
       toast({
