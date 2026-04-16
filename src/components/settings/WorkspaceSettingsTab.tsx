@@ -77,6 +77,11 @@ export function WorkspaceSettingsTab() {
         currency: currentWorkspace.currency,
         timezone: currentWorkspace.timezone,
       });
+      // Load branding fields from workspace (cast to access new columns)
+      const ws = currentWorkspace as any;
+      setPortalAccentColor(ws.portal_accent_color || "");
+      setPortalSupportEmail(ws.portal_support_email || "");
+      setPortalLogoPath(ws.portal_logo_storage_path || "");
     }
   }, [currentWorkspace]);
 
