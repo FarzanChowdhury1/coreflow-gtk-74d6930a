@@ -15,7 +15,9 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const DEFAULT_MODEL = "google/gemini-2.5-flash"; // vision-capable, fast, cost-effective
 const MAX_RETRIES = 3;
-const SUPPORTED_MIME_TYPES = ["image/png", "image/jpeg", "image/webp", "application/pdf"];
+// PDFs are intentionally NOT supported by the current vision provider.
+// Reject at upload time with a clear message rather than silently failing.
+const SUPPORTED_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -315,9 +317,24 @@ Deno.serve(async (req) => {
     }
   }
 
+  // Backend rate limit (truthful 429, distinct from provider failures)
+  const { data: rl } = await supabase.rpc("rate_limit_extraction_start", {
+    _workspace_id: job.workspace_id,
+    _user_id: userId,
+  });
+  const rlRow = Array.isArray(rl) ? rl[0] : rl;
+  if (rlRow && rlRow.allowed === false) {
+    return json(
+      { error: rlRow.reason ?? "Rate limit exceeded", retry_after_seconds: rlRow.retry_after_seconds ?? 300 },
+      429,
+    );
+  }
+
   if (!job.source_storage_path) return json({ error: "Job has no source file" }, 400);
   if (!job.source_mime_type || !SUPPORTED_MIME_TYPES.includes(job.source_mime_type)) {
-    return json({ error: `Unsupported file type: ${job.source_mime_type}` }, 415);
+    return json({
+      error: `Unsupported file type: ${job.source_mime_type}. Only PNG, JPG, and WebP receipts are supported. PDFs must be converted to an image first.`,
+    }, 415);
   }
 
   // Mark processing

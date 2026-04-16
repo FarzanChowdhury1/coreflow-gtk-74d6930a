@@ -26,7 +26,6 @@ export type ExtractionStatus =
   | "processing"
   | "extracted"
   | "review_required"
-  | "approved"
   | "expense_created"
   | "failed"
   | "cancelled";
