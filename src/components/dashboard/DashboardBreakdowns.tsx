@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -11,8 +12,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { subDays, subMonths, startOfDay, startOfMonth, endOfMonth, format } from "date-fns";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { subDays, subMonths, startOfDay, endOfDay, startOfMonth, endOfMonth, format } from "date-fns";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   TrendingUp,
   TrendingDown,
@@ -29,13 +38,14 @@ import {
 
 /* ── Time range helpers ── */
 
-type TimeRange = "7d" | "30d" | "90d" | "12m" | "all";
+type TimeRange = "7d" | "30d" | "90d" | "12m" | "all" | "custom";
 const TIME_LABELS: Record<TimeRange, string> = {
   "7d": "Last 7 days",
   "30d": "Last 30 days",
   "90d": "Last 90 days",
   "12m": "Last 12 months",
   all: "All time",
+  custom: "Custom range",
 };
 
 function getRangeStart(range: TimeRange): string | null {
@@ -46,6 +56,7 @@ function getRangeStart(range: TimeRange): string | null {
     case "90d": return startOfDay(subDays(now, 90)).toISOString();
     case "12m": return startOfDay(subMonths(now, 12)).toISOString();
     case "all": return null;
+    case "custom": return null; // handled separately
   }
 }
 
