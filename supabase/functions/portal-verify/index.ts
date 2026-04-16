@@ -91,6 +91,11 @@ Deno.serve(async (req) => {
 
   // --- GET: Peek branding for a token (no consumption) ---
   if (req.method === "GET") {
+    // Enforce same origin restriction as POST
+    if (!isAllowedOrigin(origin)) {
+      return jsonResponse({ error: "Forbidden" }, 403, hdrs);
+    }
+
     const url = new URL(req.url);
     const peekToken = url.searchParams.get("peek_token");
     if (!peekToken || peekToken.length > 200) {
@@ -98,6 +103,28 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+    const ip = getClientIp(req);
+
+    // Same rate-limit pool as POST redemption
+    const windowStart = new Date(Date.now() - WINDOW_MINUTES * 60 * 1000).toISOString();
+    const { count } = await supabase
+      .from("portal_failed_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("ip_address", ip)
+      .gte("attempted_at", windowStart);
+
+    if ((count ?? 0) >= MAX_ATTEMPTS) {
+      return jsonResponse({ error: "Too many attempts. Please try again later." }, 429, hdrs);
+    }
+
+    // Default branding response — returned for BOTH valid and invalid tokens
+    // to prevent token-validity oracle attacks
+    const defaultBranding = {
+      workspace_name: "",
+      accent_color: null,
+      logo_url: null,
+      support_email: null,
+    };
 
     // Look up token → workspace, but do NOT consume
     const { data: tokenRow } = await supabase
@@ -110,7 +137,10 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!tokenRow) {
-      return jsonResponse({ branding: null }, 200, hdrs);
+      // Record failed attempt in same pool — prevents brute-force via peek
+      await supabase.from("portal_failed_attempts").insert({ ip_address: ip });
+      // Return 200 with default branding (not 401) to avoid oracle
+      return jsonResponse({ branding: defaultBranding }, 200, hdrs);
     }
 
     const { data: ws } = await supabase
