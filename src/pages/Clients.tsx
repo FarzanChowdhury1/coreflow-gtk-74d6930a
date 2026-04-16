@@ -567,6 +567,12 @@ export default function Clients() {
         companyId={reliabilityCompany?.id ?? null}
         companyName={reliabilityCompany?.legal_name}
       />
+      <CompanyHealthDialog
+        open={!!healthCompany}
+        onOpenChange={(o) => { if (!o) setHealthCompany(null); }}
+        companyId={healthCompany?.id ?? null}
+        companyName={healthCompany?.legal_name}
+      />
     </div>
   );
 }
