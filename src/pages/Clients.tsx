@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Building2, Plus, Search, Link2, User, Calendar, Shield, Archive, RotateCcw, Download, ClipboardList, Upload, Activity } from "lucide-react";
+import { Building2, Plus, Search, Link2, User, Calendar, Shield, Archive, RotateCcw, Download, ClipboardList, Upload, Activity, HeartPulse } from "lucide-react";
 import { PaymentReliabilityDialog } from "@/components/clients/PaymentReliabilityDialog";
+import { CompanyHealthDialog } from "@/components/clients/CompanyHealthDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CompanyMobileCards } from "@/components/clients/CompanyMobileCards";
 import { ContactMobileCards } from "@/components/clients/ContactMobileCards";
