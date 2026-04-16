@@ -447,9 +447,9 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
 
           {/* Range-based invoice summary — clearly labelled with selected range */}
           <div className="grid gap-3 md:grid-cols-3">
-            <KpiCard label="Total Invoiced" value={fmt(totalInvoiced)} icon={Receipt} iconColor="text-primary" sub={TIME_LABELS[range]} />
-            <KpiCard label="Total Collected" value={fmt(totalCollected)} icon={CreditCard} iconColor="text-success" sub={TIME_LABELS[range]} />
-            <KpiCard label="Outstanding Receivable" value={fmt(totalReceivable)} icon={TrendingUp} iconColor="text-warning" sub={TIME_LABELS[range]} />
+            <KpiCard label="Total Invoiced" value={fmt(totalInvoiced)} icon={Receipt} iconColor="text-primary" sub={rangeLabel} />
+            <KpiCard label="Total Collected" value={fmt(totalCollected)} icon={CreditCard} iconColor="text-success" sub={rangeLabel} />
+            <KpiCard label="Outstanding Receivable" value={fmt(totalReceivable)} icon={TrendingUp} iconColor="text-warning" sub={rangeLabel} />
           </div>
         </>
       )}
