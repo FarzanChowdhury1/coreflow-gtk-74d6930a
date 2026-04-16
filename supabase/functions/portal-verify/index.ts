@@ -212,11 +212,20 @@ Deno.serve(async (req) => {
 
     const tokenRecord = consumedTokens[0];
 
-    // --- Fetch contact and company info ---
-    const [{ data: contact }, { data: company }] = await Promise.all([
+    // --- Fetch contact, company, and branding info ---
+    const [{ data: contact }, { data: company }, { data: ws }] = await Promise.all([
       supabase.from("contacts").select("full_name, email").eq("id", tokenRecord.contact_id).single(),
       supabase.from("companies").select("legal_name").eq("id", tokenRecord.company_id).single(),
+      supabase.from("workspaces").select("name, portal_accent_color, portal_logo_storage_path, portal_support_email").eq("id", tokenRecord.workspace_id).single(),
     ]);
+
+    let branding_logo_url: string | null = null;
+    if (ws?.portal_logo_storage_path) {
+      const { data: signedUrl } = await supabase.storage
+        .from("workspace-files")
+        .createSignedUrl(ws.portal_logo_storage_path, 3600);
+      branding_logo_url = signedUrl?.signedUrl || null;
+    }
 
     // --- Sign JWT ---
     const now = Math.floor(Date.now() / 1000);
