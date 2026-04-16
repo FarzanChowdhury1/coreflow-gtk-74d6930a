@@ -562,35 +562,77 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
             )}
           </div>
 
-          {/* ── Cash Conversion ── */}
+          {/* ── Cash Flow (cash-basis) ── */}
           <div>
             <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-primary" />
-              Cash Conversion
+              Cash Flow
+              <span className="text-[10px] font-normal text-muted-foreground">(cash basis — actual paid dates)</span>
             </h3>
             {revenueLoading ? (
-              <FinanceSkeletonRow count={3} />
+              <FinanceSkeletonRow count={5} />
             ) : revenueError ? (
-              <FinanceErrorBanner message="Could not load cash conversion metrics." />
+              <FinanceErrorBanner message="Could not load cash flow metrics." />
             ) : (() => {
-              // If multi-currency, cash conversion ratios across currencies are misleading
               if (revenueData?.isMultiCurrency) {
                 return (
                   <div className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-1.5">
                     <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0" />
-                    <p className="text-xs text-muted-foreground">Cash conversion ratios are not shown for multi-currency workspaces — cross-currency percentages would be misleading.</p>
+                    <p className="text-xs text-muted-foreground">Cash flow totals and ratios are not shown for multi-currency workspaces — cross-currency math would be misleading. See per-currency breakdowns above.</p>
                   </div>
                 );
               }
-              const invoiced = revenueData?.invoicedThisMonth ?? 0;
-              const collected = revenueData?.collectedThisMonth ?? 0;
+              const cashIn = revenueData?.collectedThisMonth ?? 0;
+              const cashOut = revenueData?.cashOutThisMonth ?? 0;
+              const netCash = cashIn - cashOut;
               const outstanding = revenueData?.outstandingReceivable ?? 0;
-              const monthRate = invoiced > 0 ? Math.round((collected / invoiced) * 100) : null;
-              const allTimeRate = totalInvoiced > 0 ? Math.round((totalCollected / totalInvoiced) * 100) : null;
-              const receivableRatio = totalInvoiced > 0 ? Math.round((outstanding / totalInvoiced) * 100) : null;
+              const payables = revenueData?.unpaidPayables ?? 0;
+              const payablesCount = revenueData?.unpaidPayablesCount ?? 0;
+              const invoiced = revenueData?.invoicedThisMonth ?? 0;
+              const collectionRate = invoiced > 0 ? Math.round((cashIn / invoiced) * 100) : null;
 
               return (
-                <div className="grid gap-3 md:grid-cols-3">
+                <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
+                  <KpiCard label="Cash In" value={fmt(cashIn)} icon={TrendingUp} iconColor="text-success" sub="Payments received this month" />
+                  <KpiCard label="Cash Out" value={fmt(cashOut)} icon={TrendingDown} iconColor="text-destructive" sub="Expenses paid this month" />
+                  <Card className="overflow-hidden">
+                    <CardContent className="pt-4 pb-4 px-4 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <p className="text-xs text-muted-foreground truncate">Net Cash Flow</p>
+                        <ArrowUpDown className={`h-4 w-4 shrink-0 ${netCash >= 0 ? "text-success" : "text-destructive"}`} />
+                      </div>
+                      <p className={`text-lg font-semibold tabular-nums truncate ${netCash >= 0 ? "text-success" : "text-destructive"}`} title={fmt(netCash)}>
+                        {fmt(netCash)}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Cash in − cash out</p>
+                    </CardContent>
+                  </Card>
+                  <KpiCard label="Receivables" value={fmt(outstanding)} icon={Receipt} iconColor="text-warning" sub="Open invoice balance" />
+                  <Card className="overflow-hidden">
+                    <CardContent className="pt-4 pb-4 px-4 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <p className="text-xs text-muted-foreground truncate">Payables</p>
+                        <Wallet className={`h-4 w-4 shrink-0 ${payables > 0 ? "text-warning" : "text-muted-foreground"}`} />
+                      </div>
+                      <p className="text-lg font-semibold text-foreground tabular-nums truncate" title={fmt(payables)}>
+                        {fmt(payables)}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{payablesCount} unpaid expense{payablesCount !== 1 ? "s" : ""}</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            })()}
+
+            {/* Collection rate row — shown below cash flow cards */}
+            {!revenueLoading && !revenueError && !revenueData?.isMultiCurrency && (() => {
+              const invoiced = revenueData?.invoicedThisMonth ?? 0;
+              const cashIn = revenueData?.collectedThisMonth ?? 0;
+              const monthRate = invoiced > 0 ? Math.round((cashIn / invoiced) * 100) : null;
+              const allTimeRate = totalInvoiced > 0 ? Math.round((totalCollected / totalInvoiced) * 100) : null;
+
+              return (
+                <div className="grid gap-3 md:grid-cols-2 mt-3">
                   <Card className="overflow-hidden">
                     <CardContent className="pt-4 pb-4 px-4 min-w-0">
                       <div className="flex items-center justify-between gap-2 mb-1">
@@ -613,18 +655,6 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
                         {allTimeRate !== null ? `${allTimeRate}%` : "—"}
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">{rangeLabel}</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="overflow-hidden">
-                    <CardContent className="pt-4 pb-4 px-4 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <p className="text-xs text-muted-foreground truncate">Receivable Ratio</p>
-                        <Receipt className={`h-4 w-4 shrink-0 ${receivableRatio !== null && receivableRatio <= 30 ? "text-success" : "text-warning"}`} />
-                      </div>
-                      <p className={`text-lg font-semibold tabular-nums ${receivableRatio !== null && receivableRatio <= 30 ? "text-success" : receivableRatio !== null ? "text-warning" : "text-muted-foreground"}`}>
-                        {receivableRatio !== null ? `${receivableRatio}%` : "—"}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">Outstanding / total invoiced</p>
                     </CardContent>
                   </Card>
                 </div>
