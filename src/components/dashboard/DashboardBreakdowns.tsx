@@ -666,6 +666,17 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
             ) : (revenueError || spendError) ? (
               <FinanceErrorBanner message="Could not load net position. Revenue or spend data is unavailable." />
             ) : (() => {
+              // If multi-currency, net position is only safe for matching currencies
+              if (revenueData?.isMultiCurrency) {
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-1.5">
+                      <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0" />
+                      <p className="text-xs text-muted-foreground">Multi-currency workspace — net position cannot be computed without exchange rates. Per-currency breakdowns are shown above.</p>
+                    </div>
+                  </div>
+                );
+              }
               const collected = revenueData?.collectedThisMonth ?? 0;
               const spent = spendData?.expenseThisMonth ?? 0;
               const net = collected - spent;
