@@ -291,6 +291,12 @@ async function enforceOwnerTypeAccess(
       if (!hasAccess) return "Forbidden: no access to this company's files";
       return null;
     }
+    case "expense_receipt":
+    case "expense": {
+      // Admin-only resources. Admin shortcut above already returned null for admins;
+      // any non-admin reaching here is forbidden.
+      return "Forbidden: workspace admin only";
+    }
     default:
       return "Forbidden: unknown owner type";
   }
