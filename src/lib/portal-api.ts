@@ -72,6 +72,13 @@ export interface PortalSessionInfo {
   company_name: string;
 }
 
+export interface PortalBranding {
+  workspace_name: string;
+  accent_color: string | null;
+  logo_url: string | null;
+  support_email: string | null;
+}
+
 // --------------- API methods ---------------
 
 /**
