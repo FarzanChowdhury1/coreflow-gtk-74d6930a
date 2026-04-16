@@ -51,6 +51,13 @@ export function WorkspaceSettingsTab() {
   const [claimingExport, setClaimingExport] = useState(false);
   const [exportClaimed, setExportClaimed] = useState(false);
 
+  // Portal branding state
+  const [portalAccentColor, setPortalAccentColor] = useState("");
+  const [portalSupportEmail, setPortalSupportEmail] = useState("");
+  const [portalLogoPath, setPortalLogoPath] = useState("");
+  const [savingBranding, setSavingBranding] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
   const ws = currentWorkspace as any;
   const alreadyClaimed = !!ws?.offboarding_export_used_at;
 
