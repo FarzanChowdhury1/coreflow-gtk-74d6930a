@@ -292,6 +292,26 @@ export default function Leads() {
             className="h-9 w-full rounded-md border bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
+        <div className="flex items-center rounded-md border bg-muted/50 p-0.5">
+          <Button
+            variant={viewMode === "table" ? "secondary" : "ghost"}
+            size="sm"
+            className="h-7 px-2"
+            onClick={() => setViewMode("table")}
+            aria-label="Table view"
+          >
+            <LayoutList className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant={viewMode === "kanban" ? "secondary" : "ghost"}
+            size="sm"
+            className="h-7 px-2"
+            onClick={() => setViewMode("kanban")}
+            aria-label="Kanban view"
+          >
+            <Columns3 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
         {isAdmin && (
           <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
             <Switch checked={showArchived} onCheckedChange={setShowArchived} />
