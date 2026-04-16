@@ -105,7 +105,67 @@ export function WorkspaceSettingsTab() {
     }
   };
 
-  const handleDeactivate = async () => {
+  const handleSaveBranding = async () => {
+    if (!currentWorkspace) return;
+    setSavingBranding(true);
+
+    // Validate hex color if provided
+    if (portalAccentColor && !/^#[0-9a-fA-F]{6}$/.test(portalAccentColor)) {
+      toast.error("Accent color must be a valid hex color (e.g. #3B82F6)");
+      setSavingBranding(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("workspaces")
+      .update({
+        portal_accent_color: portalAccentColor || null,
+        portal_support_email: portalSupportEmail || null,
+        portal_logo_storage_path: portalLogoPath || null,
+      } as any)
+      .eq("id", currentWorkspace.id);
+
+    setSavingBranding(false);
+    if (error) {
+      toast.error("Failed to save portal branding");
+    } else {
+      toast.success("Portal branding saved");
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentWorkspace) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Logo must be under 2MB");
+      return;
+    }
+
+    setUploadingLogo(true);
+    const ext = file.name.split(".").pop() || "png";
+    const storagePath = `${currentWorkspace.id}/portal-logo.${ext}`;
+
+    const { error: uploadErr } = await supabase.storage
+      .from("workspace-files")
+      .upload(storagePath, file, { upsert: true });
+
+    if (uploadErr) {
+      toast.error("Failed to upload logo");
+      setUploadingLogo(false);
+      return;
+    }
+
+    setPortalLogoPath(storagePath);
+    setUploadingLogo(false);
+    toast.success("Logo uploaded — click Save Branding to apply");
+  };
+
+
     if (!currentWorkspace) return;
     setDeactivating(true);
 
