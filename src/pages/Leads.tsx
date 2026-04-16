@@ -43,6 +43,7 @@ export default function Leads() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [proposalPrefill, setProposalPrefill] = useState<ProposalFormPrefill | null>(null);
+  const [viewMode, setViewMode] = useState<"table" | "kanban">("table");
   const [meetingContext, setMeetingContext] = useState<{ lead_id?: string; company_id?: string; contact_id?: string } | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
