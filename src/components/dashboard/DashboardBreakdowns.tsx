@@ -328,7 +328,6 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   }, [invoices, currency]);
 
   const pipelineCurrencies = Object.keys(invoiceTotalsByCurrency);
-  const isPipelineMultiCurrency = pipelineCurrencies.length > 1;
 
   // Legacy single-currency totals (for single-currency workspaces / cash conversion)
   const totalInvoiced = invoices.reduce((s: number, i: any) => s + Number(i.grand_total), 0);
