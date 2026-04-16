@@ -15,6 +15,7 @@ import {
 import { Plus, Calendar, Search, Video, Building2, Clock, FileText, Download, AlertTriangle, LayoutList, CalendarDays } from "lucide-react";
 import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
 import { MeetingDetail } from "@/components/meetings/MeetingDetail";
+import { MeetingRequestsReview } from "@/components/meetings/MeetingRequestsReview";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { guardedExportToCSV } from "@/lib/guarded-export";
 import { MeetingCalendarView } from "@/components/meetings/MeetingCalendarView";
@@ -223,6 +224,14 @@ export default function Meetings() {
           )}
         </div>
       )}
+
+      {/* Client meeting requests review */}
+      <MeetingRequestsReview
+        onScheduleMeeting={(prefill) => {
+          setEditMeeting({ title: prefill.title, company_id: prefill.companyId, contact_id: prefill.contactId });
+          setShowForm(true);
+        }}
+      />
 
       <MeetingFormDialog
         open={showForm}
