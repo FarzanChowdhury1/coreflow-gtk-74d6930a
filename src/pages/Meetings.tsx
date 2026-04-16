@@ -12,11 +12,12 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Calendar, Search, Video, Building2, Clock, FileText, Download, AlertTriangle } from "lucide-react";
+import { Plus, Calendar, Search, Video, Building2, Clock, FileText, Download, AlertTriangle, LayoutList, CalendarDays } from "lucide-react";
 import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
 import { MeetingDetail } from "@/components/meetings/MeetingDetail";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { guardedExportToCSV } from "@/lib/guarded-export";
+import { MeetingCalendarView } from "@/components/meetings/MeetingCalendarView";
 
 const STATUS_STYLES: Record<string, string> = {
   scheduled: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -40,6 +41,7 @@ export default function Meetings() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
 
   const { data: meetings = [], isLoading, isError: meetingsError } = useQuery({
     queryKey: ["meetings", wsId, statusFilter],
@@ -151,6 +153,24 @@ export default function Meetings() {
             <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
+        <div className="flex rounded-md border bg-muted/30 p-0.5">
+          <Button
+            variant={viewMode === "list" ? "secondary" : "ghost"}
+            size="sm"
+            className="h-7 px-2"
+            onClick={() => setViewMode("list")}
+          >
+            <LayoutList className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === "calendar" ? "secondary" : "ghost"}
+            size="sm"
+            className="h-7 px-2"
+            onClick={() => setViewMode("calendar")}
+          >
+            <CalendarDays className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {meetingsError && (
@@ -162,6 +182,12 @@ export default function Meetings() {
 
       {isLoading ? (
         <p className="text-center py-8 text-muted-foreground">Loading meetings…</p>
+      ) : viewMode === "calendar" ? (
+        <MeetingCalendarView
+          meetings={filtered}
+          onOpenDetail={openDetail}
+          onEdit={(m) => { setEditMeeting(m); setShowForm(true); }}
+        />
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border bg-card p-10 text-center">
           <Calendar className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
