@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Upload, Download, AlertTriangle, CheckCircle2, X } from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -166,7 +166,7 @@ export function BulkImportDialog({ open, onOpenChange, companies }: Props) {
 
       const parsed: ParsedRow[] = rows.slice(1).map((row, idx) => {
         const data: Record<string, string> = {};
-        expectedHeaders.forEach((h, i) => {
+        expectedHeaders.forEach((h) => {
           const colIdx = headers.indexOf(h);
           data[h] = colIdx >= 0 ? (row[colIdx] || "") : "";
         });
