@@ -182,6 +182,12 @@ export default function Meetings() {
 
       {isLoading ? (
         <p className="text-center py-8 text-muted-foreground">Loading meetings…</p>
+      ) : viewMode === "calendar" ? (
+        <MeetingCalendarView
+          meetings={filtered}
+          onOpenDetail={openDetail}
+          onEdit={(m) => { setEditMeeting(m); setShowForm(true); }}
+        />
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border bg-card p-10 text-center">
           <Calendar className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
