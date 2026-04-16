@@ -45,7 +45,7 @@ function corsHeaders(origin: string | null): Record<string, string> {
     "Access-Control-Allow-Origin": allowed || "",
     "Access-Control-Allow-Headers":
       "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-    "Access-Control-Allow-Methods": "POST, DELETE, OPTIONS",
+    "Access-Control-Allow-Methods": "POST, GET, DELETE, OPTIONS",
     "Access-Control-Allow-Credentials": "true",
     "Cache-Control": "no-store",
     Vary: "Origin",
