@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Building2, Plus, Search, Link2, User, Calendar, Shield, Archive, RotateCcw, Download, ClipboardList } from "lucide-react";
+import { Building2, Plus, Search, Link2, User, Calendar, Shield, Archive, RotateCcw, Download, ClipboardList, Upload } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CompanyMobileCards } from "@/components/clients/CompanyMobileCards";
 import { ContactMobileCards } from "@/components/clients/ContactMobileCards";
@@ -19,6 +19,7 @@ import { PortalLinkDialog } from "@/components/clients/PortalLinkDialog";
 import { CompanyAccessDialog } from "@/components/clients/CompanyAccessDialog";
 import { ClientOnboardingManager } from "@/components/clients/ClientOnboardingManager";
 import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
+import { BulkImportDialog } from "@/components/clients/BulkImportDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
@@ -44,6 +45,7 @@ export default function Clients() {
   const [onboardingCompany, setOnboardingCompany] = useState<Company | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("companies");
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const highlightRef = useRef<HTMLTableRowElement>(null);
 
   const workspaceId = currentWorkspace?.id;
@@ -208,6 +210,9 @@ export default function Clients() {
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToXLSX(currentWorkspace.id, contactData, contactCols, "contacts-export")}>
                   <Download className="h-4 w-4 mr-1" /> Contacts XLSX
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setBulkImportOpen(true)}>
+                  <Upload className="h-4 w-4 mr-1" /> Import CSV
                 </Button>
                 <Button variant="outline" onClick={() => setPortalLinkOpen(true)}>
                   <Link2 className="mr-1 h-4 w-4" /> Client Portal Access
@@ -540,6 +545,11 @@ export default function Clients() {
           onOpenChange={(open) => { if (!open) setOnboardingCompany(null); }}
         />
       )}
+      <BulkImportDialog
+        open={bulkImportOpen}
+        onOpenChange={setBulkImportOpen}
+        companies={companies}
+      />
     </div>
   );
 }
