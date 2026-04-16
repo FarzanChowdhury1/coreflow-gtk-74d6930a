@@ -82,11 +82,10 @@ export function PortalDashboard({ session }: Props) {
               />
             ) : (
               <div
-                className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
-                style={{ backgroundColor: accentColor ? `${accentColor}1a` : undefined }}
-                {...(!accentColor ? { className: "flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 shrink-0" } : {})}
+                className={`flex h-9 w-9 items-center justify-center rounded-lg shrink-0 ${!accentColor ? 'bg-primary/10' : ''}`}
+                style={accentColor ? { backgroundColor: `${accentColor}1a` } : undefined}
               >
-                <Building2 className="h-5 w-5" style={accentColor ? { color: accentColor } : undefined} {...(!accentColor ? { className: "h-5 w-5 text-primary" } : {})} />
+                <Building2 className={`h-5 w-5 ${!accentColor ? 'text-primary' : ''}`} style={accentColor ? { color: accentColor } : undefined} />
               </div>
             )}
             <div className="min-w-0">
@@ -332,6 +331,18 @@ export function PortalDashboard({ session }: Props) {
             <PortalOnboarding session={session} />
           </TabsContent>
         </Tabs>
+
+        {/* Support footer */}
+        {branding?.support_email && (
+          <div className="mt-8 border-t pt-4 text-center">
+            <p className="text-xs text-muted-foreground">
+              Need help? Contact us at{" "}
+              <a href={`mailto:${branding.support_email}`} className="text-primary hover:underline">
+                {branding.support_email}
+              </a>
+            </p>
+          </div>
+        )}
       </div>
     </main>
   );
