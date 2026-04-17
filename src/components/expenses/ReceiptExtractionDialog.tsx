@@ -38,6 +38,25 @@ interface Props {
   onExpenseCreated: () => void;
   /** Optional: reopen an existing extraction job (e.g. from history). */
   initialJob?: ExtractionJob | null;
+  /**
+   * Manual-first fallback. Called when the user opts out of OCR (or after a failed/low-confidence
+   * extraction) so the parent can immediately open the manual ExpenseFormDialog with optional
+   * receipt context attached. The dialog will close itself before invoking this.
+   */
+  onSwitchToManual?: (ctx: {
+    jobId: string | null;
+    fileId: string | null;
+    fileName: string | null;
+    initialValues?: {
+      description?: string;
+      amount?: string;
+      expense_date?: string;
+      category?: string;
+      notes?: string;
+      external_account_number?: string;
+      due_date?: string;
+    };
+  }) => void;
 }
 
 // Per-field trust gate for autofill. Spec: only autofill when field_confidence >= 0.85.
@@ -73,14 +92,13 @@ function isPlausibleIsoDate(s: string | null | undefined): boolean {
 }
 
 export function ReceiptExtractionDialog({
-  open, onOpenChange, workspaceId, defaultCurrency, onExpenseCreated, initialJob,
+  open, onOpenChange, workspaceId, defaultCurrency, onExpenseCreated, initialJob, onSwitchToManual,
 }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [job, setJob] = useState<ExtractionJob | null>(null);
   const [busy, setBusy] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [manualMode, setManualMode] = useState(false);
   const originalExtractedRef = useRef<Record<string, string | null>>({});
 
   // Editable form state (seeded from extraction once available)
@@ -313,13 +331,11 @@ export function ReceiptExtractionDialog({
       };
       const userEdited = Object.keys(finals).some((k) => (orig[k] ?? "") !== (finals[k] ?? ""));
 
-      // Append account/due metadata to notes when present (no schema columns for these)
-      const noteExtras: string[] = [];
-      if (accountNumber.trim()) noteExtras.push(`Account: ${accountNumber.trim()}`);
-      if (dueDate) noteExtras.push(`Due: ${dueDate}`);
-      const finalNotes = [notes.trim(), ...noteExtras].filter(Boolean).join(" · ") || null;
+      // Account number + due date go into structured columns via a follow-up update
+      // (the approval RPC's signature is fixed, so we patch the created expense row right after).
+      const finalNotes = notes.trim() || null;
 
-      await approveExtractionAndCreateExpense({
+      const createdExpenseId = await approveExtractionAndCreateExpense({
         jobId: job.id,
         description: description.trim(),
         amount: Number(amount),
@@ -333,6 +349,19 @@ export function ReceiptExtractionDialog({
         paidDate: paymentStatus === "paid" ? (paidDate || expenseDate) : null,
         notes: finalNotes,
       });
+
+      // Persist structured utility-bill metadata to first-class columns (best-effort, non-fatal)
+      if (createdExpenseId && (accountNumber.trim() || dueDate)) {
+        try {
+          await supabase.from("expenses").update({
+            external_account_number: accountNumber.trim() || null,
+            due_date: dueDate || null,
+            updated_at: new Date().toISOString(),
+          } as any).eq("id", createdExpenseId);
+        } catch (metaErr) {
+          console.warn("Could not persist structured bill metadata (non-fatal):", metaErr);
+        }
+      }
 
       // Best-effort observability + correction logging (never block on failure)
       try {
@@ -364,12 +393,28 @@ export function ReceiptExtractionDialog({
     }
   };
 
-  // Manual-first fallback: skip OCR entirely, open ExpenseFormDialog with attached file context
-  const handleSkipToManual = () => {
-    toast.message("OCR skipped — create the expense manually. The receipt remains attached to this scan job.");
-    setManualMode(true);
+  // Manual-first fallback: hand off to parent which opens ExpenseFormDialog with attached file context.
+  const handleSwitchToManual = () => {
+    const ctx = {
+      jobId: job?.id ?? null,
+      fileId: job?.source_file_id ?? null,
+      fileName: job?.source_file_name ?? null,
+      initialValues: norm ? {
+        description: norm.vendor_name ?? undefined,
+        amount: norm.total_amount != null ? String(norm.total_amount) : undefined,
+        expense_date: norm.expense_date && isPlausibleIsoDate(norm.expense_date) ? norm.expense_date : undefined,
+        category: norm.category ?? undefined,
+        notes: norm.notes ?? undefined,
+        external_account_number: norm.customer_or_account_number ?? undefined,
+        due_date: norm.due_date && isPlausibleIsoDate(norm.due_date) ? norm.due_date : undefined,
+      } : undefined,
+    };
     onOpenChange(false);
-    onExpenseCreated(); // signals parent to open manual form
+    if (onSwitchToManual) {
+      onSwitchToManual(ctx);
+    } else {
+      toast.message("Manual entry — receipt remains in scan history.");
+    }
   };
 
   const showForm = job && (job.status === "extracted" || job.status === "review_required");
