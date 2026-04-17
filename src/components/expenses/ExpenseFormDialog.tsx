@@ -142,6 +142,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, cu
           <DialogTitle>{expense ? "Edit Expense" : "Add Expense"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
+          {attachedReceipt && (
+            <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+              Receipt attached: <span className="text-foreground font-medium">{attachedReceipt.fileName || "image"}</span>. It will be linked to this expense once saved.
+            </div>
+          )}
           <div><Label>Description *</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} /></div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Amount ({currency}) *</Label><Input type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
