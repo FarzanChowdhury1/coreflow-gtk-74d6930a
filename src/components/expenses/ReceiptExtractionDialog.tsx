@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Upload, AlertTriangle, CheckCircle2, RotateCw, X, Sparkles } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Loader2, Upload, AlertTriangle, CheckCircle2, RotateCw, X, Sparkles, ChevronDown, FileText, PenLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +18,8 @@ import {
   cancelExtractionJob,
   approveExtractionAndCreateExpense,
   getReceiptPreviewUrl,
+  logExtractionCorrections,
+  markJobUserEdited,
   type ExtractionJob,
   type NormalizedExtraction,
 } from "@/lib/extraction-api";
@@ -37,16 +40,26 @@ interface Props {
   initialJob?: ExtractionJob | null;
 }
 
-// Threshold below which an extraction is treated as untrustworthy and the
-// auto-filled values must NOT be presented as if they were correct.
-const LOW_CONFIDENCE_THRESHOLD = 0.6;
-const MAX_VISIBLE_WARNINGS = 6;
+// Per-field trust gate for autofill. Spec: only autofill when field_confidence >= 0.85.
+const TRUST_THRESHOLD = 0.85;
+// Below this overall confidence, force manual-review mode.
+const LOW_CONFIDENCE_THRESHOLD = 0.7;
+const MAX_VISIBLE_WARNINGS = 5;
 
 function ConfidenceBadge({ value }: { value: number | undefined }) {
   if (value === undefined || value === null) return null;
   const pct = Math.round(value * 100);
   const variant = pct >= 85 ? "secondary" : pct >= 60 ? "outline" : "destructive";
   return <Badge variant={variant} className="text-[10px] ml-2">{pct}%</Badge>;
+}
+
+function FieldEvidence({ snippet }: { snippet: string | undefined }) {
+  if (!snippet) return null;
+  return (
+    <p className="text-[10px] text-muted-foreground mt-0.5 italic truncate" title={snippet}>
+      Evidence: "{snippet}"
+    </p>
+  );
 }
 
 function isPlausibleIsoDate(s: string | null | undefined): boolean {
