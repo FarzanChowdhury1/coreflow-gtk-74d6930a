@@ -267,8 +267,7 @@ export default function Reports() {
               { key: "category", label: "Category" },
               { key: "metric", label: "Metric" },
               { key: "count", label: "Count" },
-              { key: "value", label: "Amount" },
-              { key: "currency", label: "Currency" },
+              { key: "value", label: "Amount (BDT)" },
             ], `report-${format(from, "yyyyMMdd")}-${format(to, "yyyyMMdd")}`)}
           >
             <Download className="h-4 w-4 mr-1" /> Export CSV

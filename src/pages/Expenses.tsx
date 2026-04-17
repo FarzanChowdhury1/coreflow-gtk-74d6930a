@@ -6,6 +6,7 @@ import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { guardedExportToCSV, guardedExportToXLSX } from "@/lib/guarded-export";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { formatCurrency } from "@/lib/utils";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -44,9 +45,6 @@ export interface Expense {
 
 export const EXPENSE_CATEGORIES = ["general", "salary", "rent", "utilities", "software", "marketing", "travel", "equipment", "consulting", "media_buying", "logistics", "other"];
 
-function formatCurrency(value: number, currency: string = "BDT") {
-  return new Intl.NumberFormat("en-BD", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
-}
 
 export default function Expenses() {
   const { currentWorkspace, currentRole } = useWorkspace();
@@ -120,8 +118,7 @@ export default function Expenses() {
   const expCols = [
     { key: "expense_date", label: "Date" },
     { key: "description", label: "Description" },
-    { key: "amount", label: "Amount" },
-    { key: "currency", label: "Currency" },
+    { key: "amount", label: "Amount (BDT)" },
     { key: "category", label: "Category" },
     { key: "vendor_name", label: "Vendor" },
     { key: "project_name", label: "Project" },
