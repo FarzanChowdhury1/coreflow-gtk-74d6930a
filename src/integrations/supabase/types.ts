@@ -995,6 +995,63 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_extraction_corrections: {
+        Row: {
+          corrected_value: string | null
+          created_at: string
+          created_by: string
+          doc_type: string | null
+          extracted_value: string | null
+          field_confidence: number | null
+          field_key: string
+          id: string
+          job_id: string
+          vendor_name: string | null
+          workspace_id: string
+        }
+        Insert: {
+          corrected_value?: string | null
+          created_at?: string
+          created_by: string
+          doc_type?: string | null
+          extracted_value?: string | null
+          field_confidence?: number | null
+          field_key: string
+          id?: string
+          job_id: string
+          vendor_name?: string | null
+          workspace_id: string
+        }
+        Update: {
+          corrected_value?: string | null
+          created_at?: string
+          created_by?: string
+          doc_type?: string | null
+          extracted_value?: string | null
+          field_confidence?: number | null
+          field_key?: string
+          id?: string
+          job_id?: string
+          vendor_name?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_extraction_corrections_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "expense_extraction_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_extraction_corrections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expense_extraction_jobs: {
         Row: {
           approved_at: string | null
@@ -1003,15 +1060,19 @@ export type Database = {
           created_at: string
           created_by: string
           created_expense_id: string | null
+          doc_type: string | null
           extracted_at: string | null
           extraction_started_at: string | null
           failure_reason: string | null
           id: string
+          language: string | null
+          layout: string | null
           normalized_data_json: Json | null
           overall_confidence: number | null
           provider: string
           provider_model: string | null
           raw_payload_json: Json | null
+          raw_text: string | null
           retry_count: number
           review_required: boolean
           source_file_id: string | null
@@ -1020,6 +1081,8 @@ export type Database = {
           source_storage_path: string | null
           status: Database["public"]["Enums"]["expense_extraction_status"]
           updated_at: string
+          user_edited_before_approval: boolean
+          validator_output: Json | null
           workspace_id: string
         }
         Insert: {
@@ -1029,15 +1092,19 @@ export type Database = {
           created_at?: string
           created_by: string
           created_expense_id?: string | null
+          doc_type?: string | null
           extracted_at?: string | null
           extraction_started_at?: string | null
           failure_reason?: string | null
           id?: string
+          language?: string | null
+          layout?: string | null
           normalized_data_json?: Json | null
           overall_confidence?: number | null
           provider?: string
           provider_model?: string | null
           raw_payload_json?: Json | null
+          raw_text?: string | null
           retry_count?: number
           review_required?: boolean
           source_file_id?: string | null
@@ -1046,6 +1113,8 @@ export type Database = {
           source_storage_path?: string | null
           status?: Database["public"]["Enums"]["expense_extraction_status"]
           updated_at?: string
+          user_edited_before_approval?: boolean
+          validator_output?: Json | null
           workspace_id: string
         }
         Update: {
@@ -1055,15 +1124,19 @@ export type Database = {
           created_at?: string
           created_by?: string
           created_expense_id?: string | null
+          doc_type?: string | null
           extracted_at?: string | null
           extraction_started_at?: string | null
           failure_reason?: string | null
           id?: string
+          language?: string | null
+          layout?: string | null
           normalized_data_json?: Json | null
           overall_confidence?: number | null
           provider?: string
           provider_model?: string | null
           raw_payload_json?: Json | null
+          raw_text?: string | null
           retry_count?: number
           review_required?: boolean
           source_file_id?: string | null
@@ -1072,6 +1145,8 @@ export type Database = {
           source_storage_path?: string | null
           status?: Database["public"]["Enums"]["expense_extraction_status"]
           updated_at?: string
+          user_edited_before_approval?: boolean
+          validator_output?: Json | null
           workspace_id?: string
         }
         Relationships: [

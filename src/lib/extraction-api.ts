@@ -7,7 +7,9 @@ import { uploadFile, getSignedDownloadUrl } from "@/lib/file-api";
 export interface NormalizedExtraction {
   vendor_name: string | null;
   invoice_or_receipt_number: string | null;
+  customer_or_account_number: string | null;
   expense_date: string | null;
+  due_date: string | null;
   paid_date: string | null;
   amount_subtotal: number | null;
   tax_amount: number | null;
@@ -16,9 +18,61 @@ export interface NormalizedExtraction {
   payment_status: "paid" | "unpaid" | null;
   category: string | null;
   notes: string | null;
+  raw_text: string | null;
+  evidence: Record<string, string>;
   field_confidence: Record<string, number>;
   overall_confidence: number;
   warnings: string[];
+}
+
+export interface ValidatorOutput {
+  total_check: "ok" | "mismatch" | "unknown";
+  date_check: "ok" | "implausible" | "unknown";
+  currency_check: "ok" | "unknown";
+  payment_status_check: "evidenced" | "stripped" | "unknown";
+  hallucination_flags: string[];
+  confidence_adjustments: Record<string, number>;
+  rejected_fields: string[];
+}
+
+export interface CorrectionEntry {
+  field_key: string;
+  extracted_value: string | null;
+  corrected_value: string | null;
+  field_confidence: number | null;
+}
+
+export async function logExtractionCorrections(params: {
+  workspaceId: string;
+  jobId: string;
+  vendorName: string | null;
+  docType: string | null;
+  entries: CorrectionEntry[];
+}): Promise<void> {
+  const userId = (await supabase.auth.getUser()).data.user?.id ?? "";
+  const rows = params.entries
+    .filter((e) => (e.extracted_value ?? "") !== (e.corrected_value ?? ""))
+    .map((e) => ({
+      workspace_id: params.workspaceId,
+      job_id: params.jobId,
+      field_key: e.field_key,
+      extracted_value: e.extracted_value,
+      corrected_value: e.corrected_value,
+      field_confidence: e.field_confidence,
+      vendor_name: params.vendorName,
+      doc_type: params.docType,
+      created_by: userId,
+    }));
+  if (rows.length === 0) return;
+  // Best-effort; correction logging must not block approval
+  await supabase.from("expense_extraction_corrections" as any).insert(rows as any);
+}
+
+export async function markJobUserEdited(jobId: string): Promise<void> {
+  await supabase
+    .from("expense_extraction_jobs")
+    .update({ user_edited_before_approval: true } as any)
+    .eq("id", jobId);
 }
 
 export type ExtractionStatus =
@@ -55,6 +109,12 @@ export interface ExtractionJob {
   created_expense_id: string | null;
   created_at: string;
   updated_at: string;
+  doc_type?: string | null;
+  language?: string | null;
+  layout?: string | null;
+  raw_text?: string | null;
+  validator_output?: ValidatorOutput | null;
+  user_edited_before_approval?: boolean;
 }
 
 const FUNCTIONS_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;

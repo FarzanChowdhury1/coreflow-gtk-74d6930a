@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Upload, AlertTriangle, CheckCircle2, RotateCw, X, Sparkles } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Loader2, Upload, AlertTriangle, CheckCircle2, RotateCw, X, Sparkles, ChevronDown, FileText, PenLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +18,8 @@ import {
   cancelExtractionJob,
   approveExtractionAndCreateExpense,
   getReceiptPreviewUrl,
+  logExtractionCorrections,
+  markJobUserEdited,
   type ExtractionJob,
   type NormalizedExtraction,
 } from "@/lib/extraction-api";
@@ -37,16 +40,26 @@ interface Props {
   initialJob?: ExtractionJob | null;
 }
 
-// Threshold below which an extraction is treated as untrustworthy and the
-// auto-filled values must NOT be presented as if they were correct.
-const LOW_CONFIDENCE_THRESHOLD = 0.6;
-const MAX_VISIBLE_WARNINGS = 6;
+// Per-field trust gate for autofill. Spec: only autofill when field_confidence >= 0.85.
+const TRUST_THRESHOLD = 0.85;
+// Below this overall confidence, force manual-review mode.
+const LOW_CONFIDENCE_THRESHOLD = 0.7;
+const MAX_VISIBLE_WARNINGS = 5;
 
 function ConfidenceBadge({ value }: { value: number | undefined }) {
   if (value === undefined || value === null) return null;
   const pct = Math.round(value * 100);
   const variant = pct >= 85 ? "secondary" : pct >= 60 ? "outline" : "destructive";
   return <Badge variant={variant} className="text-[10px] ml-2">{pct}%</Badge>;
+}
+
+function FieldEvidence({ snippet }: { snippet: string | undefined }) {
+  if (!snippet) return null;
+  return (
+    <p className="text-[10px] text-muted-foreground mt-0.5 italic truncate" title={snippet}>
+      Evidence: "{snippet}"
+    </p>
+  );
 }
 
 function isPlausibleIsoDate(s: string | null | undefined): boolean {
@@ -67,6 +80,8 @@ export function ReceiptExtractionDialog({
   const [job, setJob] = useState<ExtractionJob | null>(null);
   const [busy, setBusy] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [manualMode, setManualMode] = useState(false);
+  const originalExtractedRef = useRef<Record<string, string | null>>({});
 
   // Editable form state (seeded from extraction once available)
   const [description, setDescription] = useState("");
@@ -106,13 +121,30 @@ export function ReceiptExtractionDialog({
     }
   }, [open, defaultCurrency, initialJob]);
 
-  // Seed editable fields when extraction completes — but ONLY trust per-field
-  // confidence. Low-confidence numbers/dates would mislead the user, so we
-  // leave them blank for manual entry instead of pre-filling garbage.
+  // Seed editable fields ONLY when field confidence >= 0.85 (per spec).
+  // For low overall confidence we additionally force manual-review mode and skip autofill entirely.
   useEffect(() => {
     if (!norm) return;
     const fc = norm.field_confidence ?? {};
-    const trust = (key: string) => (fc[key] ?? 0) >= LOW_CONFIDENCE_THRESHOLD;
+    const overall = norm.overall_confidence ?? 0;
+    const trust = (key: string) => (fc[key] ?? 0) >= TRUST_THRESHOLD;
+    const lowConfidence = overall < LOW_CONFIDENCE_THRESHOLD;
+
+    // Snapshot what the model originally produced — for correction logging on approval
+    originalExtractedRef.current = {
+      vendor_name: norm.vendor_name,
+      invoice_or_receipt_number: norm.invoice_or_receipt_number,
+      total_amount: norm.total_amount !== null ? String(norm.total_amount) : null,
+      currency: norm.currency,
+      expense_date: norm.expense_date,
+      paid_date: norm.paid_date,
+      category: norm.category,
+      payment_status: norm.payment_status,
+    };
+
+    // In low-confidence mode we deliberately do NOT auto-fill anything risky —
+    // the user should enter everything from the receipt themselves.
+    if (lowConfidence) return;
 
     if (norm.vendor_name && trust("vendor_name")) {
       setDescription(norm.invoice_or_receipt_number
@@ -134,7 +166,9 @@ export function ReceiptExtractionDialog({
     if (norm.category && EXPENSE_CATEGORIES.includes(norm.category) && trust("category")) {
       setCategory(norm.category);
     }
+    // payment_status is NEVER auto-paid unless validator left it intact AND confidence high
     if (norm.payment_status && trust("payment_status")) setPaymentStatus(norm.payment_status);
+    else setPaymentStatus("unpaid"); // safe default — user must opt-in to "paid"
     if (norm.notes) setNotes(norm.notes);
   }, [norm]);
 
@@ -250,6 +284,19 @@ export function ReceiptExtractionDialog({
     if (!job || !canApprove) return;
     setBusy(true);
     try {
+      // Detect user edits vs original extraction (best-effort, never blocks)
+      const orig = originalExtractedRef.current;
+      const finals: Record<string, string | null> = {
+        vendor_name: description.split(" — ")[0] || null,
+        total_amount: amount || null,
+        currency: currency.toUpperCase() || null,
+        expense_date: expenseDate || null,
+        paid_date: paymentStatus === "paid" ? (paidDate || expenseDate) : null,
+        category: category || null,
+        payment_status: paymentStatus,
+      };
+      const userEdited = Object.keys(finals).some((k) => (orig[k] ?? "") !== (finals[k] ?? ""));
+
       await approveExtractionAndCreateExpense({
         jobId: job.id,
         description: description.trim(),
@@ -264,6 +311,26 @@ export function ReceiptExtractionDialog({
         paidDate: paymentStatus === "paid" ? (paidDate || expenseDate) : null,
         notes: notes.trim() || null,
       });
+
+      // Best-effort observability + correction logging (never block on failure)
+      try {
+        if (userEdited) await markJobUserEdited(job.id);
+        await logExtractionCorrections({
+          workspaceId: workspaceId,
+          jobId: job.id,
+          vendorName: norm?.vendor_name ?? null,
+          docType: (job as any).doc_type ?? null,
+          entries: Object.keys(finals).map((k) => ({
+            field_key: k,
+            extracted_value: orig[k] ?? null,
+            corrected_value: finals[k],
+            field_confidence: norm?.field_confidence?.[k] ?? null,
+          })),
+        });
+      } catch (logErr) {
+        console.warn("Correction logging failed (non-fatal):", logErr);
+      }
+
       toast.success("Expense created from receipt");
       qc.invalidateQueries({ queryKey: ["expenses"] });
       onExpenseCreated();
@@ -273,6 +340,14 @@ export function ReceiptExtractionDialog({
     } finally {
       setBusy(false);
     }
+  };
+
+  // Manual-first fallback: skip OCR entirely, open ExpenseFormDialog with attached file context
+  const handleSkipToManual = () => {
+    toast.message("OCR skipped — create the expense manually. The receipt remains attached to this scan job.");
+    setManualMode(true);
+    onOpenChange(false);
+    onExpenseCreated(); // signals parent to open manual form
   };
 
   const showForm = job && (job.status === "extracted" || job.status === "review_required");
@@ -310,6 +385,9 @@ export function ReceiptExtractionDialog({
             <p className="text-[11px] text-muted-foreground mt-3">
               You can always skip this and add an expense manually.
             </p>
+            <Button variant="ghost" size="sm" className="mt-2" onClick={handleSkipToManual}>
+              <PenLine className="h-3 w-3 mr-1" /> Skip OCR — enter manually
+            </Button>
           </div>
         )}
 
@@ -409,21 +487,25 @@ export function ReceiptExtractionDialog({
                 <div>
                   <Label className="flex items-center">Description * <ConfidenceBadge value={confidence.vendor_name} /></Label>
                   <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+                  <FieldEvidence snippet={norm?.evidence?.vendor_name} />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="flex items-center">Amount * <ConfidenceBadge value={confidence.total_amount} /></Label>
                     <Input type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                    <FieldEvidence snippet={norm?.evidence?.total_amount} />
                   </div>
                   <div>
                     <Label className="flex items-center">Currency * <ConfidenceBadge value={confidence.currency} /></Label>
                     <Input value={currency} maxLength={3} onChange={(e) => setCurrency(e.target.value.toUpperCase())} />
+                    <FieldEvidence snippet={norm?.evidence?.currency} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="flex items-center">Expense Date * <ConfidenceBadge value={confidence.expense_date} /></Label>
                     <Input type="date" value={expenseDate} onChange={(e) => setExpenseDate(e.target.value)} />
+                    <FieldEvidence snippet={norm?.evidence?.expense_date} />
                   </div>
                   <div>
                     <Label className="flex items-center">Category <ConfidenceBadge value={confidence.category} /></Label>
