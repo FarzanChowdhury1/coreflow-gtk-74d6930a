@@ -42,7 +42,7 @@ interface Props {
   attachedReceipt?: AttachedReceiptContext | null;
 }
 
-export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, currency, onSaved }: Props) {
+export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, currency, onSaved, initialValues, attachedReceipt }: Props) {
   const { user } = useAuth();
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -54,23 +54,27 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, cu
   const [paymentStatus, setPaymentStatus] = useState("paid");
   const [paidDate, setPaidDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [externalAccountNumber, setExternalAccountNumber] = useState("");
+  const [dueDate, setDueDate] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setDescription(expense?.description || "");
-      setAmount(expense?.amount?.toString() || "");
-      setExpenseDate(expense?.expense_date || new Date().toISOString().split("T")[0]);
-      setCategory(expense?.category || "general");
+      setDescription(expense?.description || initialValues?.description || "");
+      setAmount(expense?.amount?.toString() || initialValues?.amount || "");
+      setExpenseDate(expense?.expense_date || initialValues?.expense_date || new Date().toISOString().split("T")[0]);
+      setCategory(expense?.category || initialValues?.category || "general");
       setVendorId(expense?.vendor_id || "none");
       setProjectId(expense?.project_id || "none");
       setPaymentMethod(expense?.payment_method || "bank_transfer");
       setPaymentStatus((expense as any)?.payment_status || "paid");
       setPaidDate((expense as any)?.paid_date || "");
-      setNotes(expense?.notes || "");
+      setNotes(expense?.notes || initialValues?.notes || "");
+      setExternalAccountNumber((expense as any)?.external_account_number || initialValues?.external_account_number || "");
+      setDueDate((expense as any)?.due_date || initialValues?.due_date || "");
       setSaving(false);
     }
-  }, [open, expense]);
+  }, [open, expense, initialValues]);
   const { data: vendors = [] } = useQuery({
     queryKey: ["vendors-list", workspaceId],
     queryFn: async () => {
@@ -91,7 +95,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, cu
     if (!description.trim()) { toast.error("Description is required"); return; }
     if (!amount || Number(amount) <= 0) { toast.error("Valid amount is required"); return; }
     setSaving(true);
-    const payload = {
+    const payload: any = {
       workspace_id: workspaceId,
       description: description.trim(),
       amount: Number(amount),
@@ -104,14 +108,28 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, cu
       payment_status: paymentStatus,
       paid_date: paymentStatus === "paid" ? (paidDate || expenseDate) : null,
       notes: notes || null,
+      external_account_number: externalAccountNumber.trim() || null,
+      due_date: dueDate || null,
       recorded_by: user!.id,
       updated_at: new Date().toISOString(),
     };
-    const { error } = expense
-      ? await supabase.from("expenses").update(payload).eq("id", expense.id)
-      : await supabase.from("expenses").insert(payload);
+    const { data: saved, error } = expense
+      ? await supabase.from("expenses").update(payload).eq("id", expense.id).select("id").single()
+      : await supabase.from("expenses").insert(payload).select("id").single();
+    if (error) { setSaving(false); toast.error("Failed to save expense"); return; }
+
+    // If a receipt was attached via the scan flow, relink the file to this expense
+    if (!expense && saved && attachedReceipt?.fileId) {
+      try {
+        await supabase.from("files")
+          .update({ owner_type: "expense", owner_id: saved.id, updated_at: new Date().toISOString() })
+          .eq("id", attachedReceipt.fileId);
+      } catch (e) {
+        console.warn("Could not relink attached receipt file:", e);
+      }
+    }
+
     setSaving(false);
-    if (error) { toast.error("Failed to save expense"); return; }
     toast.success(expense ? "Expense updated" : "Expense recorded");
     if (!expense && user?.id) trackFirstEvent("expense.first_created", workspaceId, user.id);
     onSaved();
