@@ -195,6 +195,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, cu
               <div><Label>Paid Date</Label><Input type="date" value={paidDate || expenseDate} onChange={(e) => setPaidDate(e.target.value)} /></div>
             )}
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Account / Customer No.</Label><Input value={externalAccountNumber} onChange={(e) => setExternalAccountNumber(e.target.value)} placeholder="e.g. utility account number" /></div>
+            <div><Label>Bill Due Date</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
+          </div>
           <div><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
