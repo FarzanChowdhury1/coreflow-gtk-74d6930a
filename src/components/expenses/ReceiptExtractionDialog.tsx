@@ -37,11 +37,26 @@ interface Props {
   initialJob?: ExtractionJob | null;
 }
 
+// Threshold below which an extraction is treated as untrustworthy and the
+// auto-filled values must NOT be presented as if they were correct.
+const LOW_CONFIDENCE_THRESHOLD = 0.6;
+const MAX_VISIBLE_WARNINGS = 6;
+
 function ConfidenceBadge({ value }: { value: number | undefined }) {
   if (value === undefined || value === null) return null;
   const pct = Math.round(value * 100);
   const variant = pct >= 85 ? "secondary" : pct >= 60 ? "outline" : "destructive";
   return <Badge variant={variant} className="text-[10px] ml-2">{pct}%</Badge>;
+}
+
+function isPlausibleIsoDate(s: string | null | undefined): boolean {
+  if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = new Date(s + "T00:00:00Z");
+  if (isNaN(d.getTime())) return false;
+  const year = d.getUTCFullYear();
+  // Reject obvious garbage years; receipts realistically fall within this range.
+  if (year < 2000 || year > new Date().getUTCFullYear() + 1) return false;
+  return true;
 }
 
 export function ReceiptExtractionDialog({
