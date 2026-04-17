@@ -49,6 +49,7 @@ export async function logExtractionCorrections(params: {
   docType: string | null;
   entries: CorrectionEntry[];
 }): Promise<void> {
+  const userId = (await supabase.auth.getUser()).data.user?.id ?? "";
   const rows = params.entries
     .filter((e) => (e.extracted_value ?? "") !== (e.corrected_value ?? ""))
     .map((e) => ({
@@ -60,7 +61,7 @@ export async function logExtractionCorrections(params: {
       field_confidence: e.field_confidence,
       vendor_name: params.vendorName,
       doc_type: params.docType,
-      created_by: (await supabase.auth.getUser()).data.user?.id ?? "",
+      created_by: userId,
     }));
   if (rows.length === 0) return;
   // Best-effort; correction logging must not block approval
