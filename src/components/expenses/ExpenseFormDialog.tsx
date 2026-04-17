@@ -14,13 +14,6 @@ import { EXPENSE_CATEGORIES, type Expense } from "@/pages/Expenses";
 
 const PAYMENT_METHODS = ["bank_transfer", "cash", "credit_card", "mobile_banking", "cheque", "other"];
 
-interface AttachedReceiptContext {
-  jobId: string;
-  fileId: string | null;
-  fileName: string | null;
-  previewUrl?: string | null;
-}
-
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -28,21 +21,9 @@ interface Props {
   workspaceId: string;
   currency: string;
   onSaved: () => void;
-  /** Optional initial values prefilled from a low-confidence/skipped extraction */
-  initialValues?: Partial<{
-    description: string;
-    amount: string;
-    expense_date: string;
-    category: string;
-    notes: string;
-    external_account_number: string;
-    due_date: string;
-  }>;
-  /** Optional banner indicating an attached receipt from the scan flow */
-  attachedReceipt?: AttachedReceiptContext | null;
 }
 
-export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, currency, onSaved, initialValues, attachedReceipt }: Props) {
+export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, currency, onSaved }: Props) {
   const { user } = useAuth();
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -60,21 +41,21 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, cu
 
   useEffect(() => {
     if (open) {
-      setDescription(expense?.description || initialValues?.description || "");
-      setAmount(expense?.amount?.toString() || initialValues?.amount || "");
-      setExpenseDate(expense?.expense_date || initialValues?.expense_date || new Date().toISOString().split("T")[0]);
-      setCategory(expense?.category || initialValues?.category || "general");
+      setDescription(expense?.description || "");
+      setAmount(expense?.amount?.toString() || "");
+      setExpenseDate(expense?.expense_date || new Date().toISOString().split("T")[0]);
+      setCategory(expense?.category || "general");
       setVendorId(expense?.vendor_id || "none");
       setProjectId(expense?.project_id || "none");
       setPaymentMethod(expense?.payment_method || "bank_transfer");
       setPaymentStatus((expense as any)?.payment_status || "paid");
       setPaidDate((expense as any)?.paid_date || "");
-      setNotes(expense?.notes || initialValues?.notes || "");
-      setExternalAccountNumber((expense as any)?.external_account_number || initialValues?.external_account_number || "");
-      setDueDate((expense as any)?.due_date || initialValues?.due_date || "");
+      setNotes(expense?.notes || "");
+      setExternalAccountNumber((expense as any)?.external_account_number || "");
+      setDueDate((expense as any)?.due_date || "");
       setSaving(false);
     }
-  }, [open, expense, initialValues]);
+  }, [open, expense]);
   const { data: vendors = [] } = useQuery({
     queryKey: ["vendors-list", workspaceId],
     queryFn: async () => {
@@ -113,21 +94,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, cu
       recorded_by: user!.id,
       updated_at: new Date().toISOString(),
     };
-    const { data: saved, error } = expense
-      ? await supabase.from("expenses").update(payload).eq("id", expense.id).select("id").single()
-      : await supabase.from("expenses").insert(payload).select("id").single();
+    const { error } = expense
+      ? await supabase.from("expenses").update(payload).eq("id", expense.id)
+      : await supabase.from("expenses").insert(payload);
     if (error) { setSaving(false); toast.error("Failed to save expense"); return; }
-
-    // If a receipt was attached via the scan flow, relink the file to this expense
-    if (!expense && saved && attachedReceipt?.fileId) {
-      try {
-        await supabase.from("files")
-          .update({ owner_type: "expense", owner_id: saved.id, updated_at: new Date().toISOString() })
-          .eq("id", attachedReceipt.fileId);
-      } catch (e) {
-        console.warn("Could not relink attached receipt file:", e);
-      }
-    }
 
     setSaving(false);
     toast.success(expense ? "Expense updated" : "Expense recorded");
@@ -142,11 +112,6 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, cu
           <DialogTitle>{expense ? "Edit Expense" : "Add Expense"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          {attachedReceipt && (
-            <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-              Receipt attached: <span className="text-foreground font-medium">{attachedReceipt.fileName || "image"}</span>. It will be linked to this expense once saved.
-            </div>
-          )}
           <div><Label>Description *</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} /></div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Amount ({currency}) *</Label><Input type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>

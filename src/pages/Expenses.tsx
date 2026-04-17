@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Receipt, Plus, Archive, ArchiveRestore, Pencil, Download, CheckCircle2, AlertTriangle, Sparkles, History } from "lucide-react";
+import { Receipt, Plus, Archive, ArchiveRestore, Pencil, Download, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ExpenseMobileCards } from "@/components/expenses/ExpenseMobileCards";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
@@ -19,9 +19,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ExpenseFormDialog } from "@/components/expenses/ExpenseFormDialog";
-import { ReceiptExtractionDialog } from "@/components/expenses/ReceiptExtractionDialog";
-import { ExtractionHistoryDialog } from "@/components/expenses/ExtractionHistoryDialog";
-import type { ExtractionJob } from "@/lib/extraction-api";
 
 export interface Expense {
   id: string;
@@ -58,14 +55,7 @@ export default function Expenses() {
   const isMobile = useIsMobile();
   const isAdmin = currentRole === "admin";
   const [formOpen, setFormOpen] = useState(false);
-  const [scanOpen, setScanOpen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [reopenJob, setReopenJob] = useState<ExtractionJob | null>(null);
   const [editing, setEditing] = useState<Expense | null>(null);
-  const [manualInitial, setManualInitial] = useState<{
-    initialValues?: Parameters<typeof ExpenseFormDialog>[0]["initialValues"];
-    attachedReceipt?: Parameters<typeof ExpenseFormDialog>[0]["attachedReceipt"];
-  } | null>(null);
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -190,12 +180,6 @@ export default function Expenses() {
         <Button size="sm" onClick={() => { setEditing(null); setFormOpen(true); }}>
           <Plus className="mr-1 h-4 w-4" /> Add Expense
         </Button>
-        <Button size="sm" variant="secondary" onClick={() => { setReopenJob(null); setScanOpen(true); }}>
-          <Sparkles className="mr-1 h-4 w-4" /> Scan Receipt
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => setHistoryOpen(true)}>
-          <History className="mr-1 h-4 w-4" /> Scan History
-        </Button>
         <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
           <Download className="mr-1 h-4 w-4" /> CSV
         </Button>
@@ -306,41 +290,11 @@ export default function Expenses() {
       {formOpen && (
         <ExpenseFormDialog
           open={formOpen}
-          onOpenChange={(o) => { setFormOpen(o); if (!o) setManualInitial(null); }}
+          onOpenChange={setFormOpen}
           expense={editing}
           workspaceId={currentWorkspace!.id}
           currency={currency}
-          initialValues={manualInitial?.initialValues}
-          attachedReceipt={manualInitial?.attachedReceipt}
-          onSaved={() => { queryClient.invalidateQueries({ queryKey: ["expenses"] }); setFormOpen(false); setEditing(null); setManualInitial(null); }}
-        />
-      )}
-
-      {scanOpen && currentWorkspace && (
-        <ReceiptExtractionDialog
-          open={scanOpen}
-          onOpenChange={(o) => { setScanOpen(o); if (!o) setReopenJob(null); }}
-          workspaceId={currentWorkspace.id}
-          defaultCurrency={currency}
-          initialJob={reopenJob}
-          onExpenseCreated={() => queryClient.invalidateQueries({ queryKey: ["expenses"] })}
-          onSwitchToManual={(ctx) => {
-            setManualInitial({
-              initialValues: ctx.initialValues,
-              attachedReceipt: ctx.fileId ? { jobId: ctx.jobId || "", fileId: ctx.fileId, fileName: ctx.fileName } : null,
-            });
-            setEditing(null);
-            setFormOpen(true);
-          }}
-        />
-      )}
-
-      {historyOpen && currentWorkspace && (
-        <ExtractionHistoryDialog
-          open={historyOpen}
-          onOpenChange={setHistoryOpen}
-          workspaceId={currentWorkspace.id}
-          onReopen={(job) => { setReopenJob(job); setScanOpen(true); }}
+          onSaved={() => { queryClient.invalidateQueries({ queryKey: ["expenses"] }); setFormOpen(false); setEditing(null); }}
         />
       )}
     </div>
