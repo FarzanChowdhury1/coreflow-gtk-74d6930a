@@ -14,6 +14,13 @@ import { EXPENSE_CATEGORIES, type Expense } from "@/pages/Expenses";
 
 const PAYMENT_METHODS = ["bank_transfer", "cash", "credit_card", "mobile_banking", "cheque", "other"];
 
+interface AttachedReceiptContext {
+  jobId: string;
+  fileId: string | null;
+  fileName: string | null;
+  previewUrl?: string | null;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -21,9 +28,21 @@ interface Props {
   workspaceId: string;
   currency: string;
   onSaved: () => void;
+  /** Optional initial values prefilled from a low-confidence/skipped extraction */
+  initialValues?: Partial<{
+    description: string;
+    amount: string;
+    expense_date: string;
+    category: string;
+    notes: string;
+    external_account_number: string;
+    due_date: string;
+  }>;
+  /** Optional banner indicating an attached receipt from the scan flow */
+  attachedReceipt?: AttachedReceiptContext | null;
 }
 
-export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, currency, onSaved }: Props) {
+export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, currency, onSaved, initialValues, attachedReceipt }: Props) {
   const { user } = useAuth();
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -35,23 +54,27 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, cu
   const [paymentStatus, setPaymentStatus] = useState("paid");
   const [paidDate, setPaidDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [externalAccountNumber, setExternalAccountNumber] = useState("");
+  const [dueDate, setDueDate] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setDescription(expense?.description || "");
-      setAmount(expense?.amount?.toString() || "");
-      setExpenseDate(expense?.expense_date || new Date().toISOString().split("T")[0]);
-      setCategory(expense?.category || "general");
+      setDescription(expense?.description || initialValues?.description || "");
+      setAmount(expense?.amount?.toString() || initialValues?.amount || "");
+      setExpenseDate(expense?.expense_date || initialValues?.expense_date || new Date().toISOString().split("T")[0]);
+      setCategory(expense?.category || initialValues?.category || "general");
       setVendorId(expense?.vendor_id || "none");
       setProjectId(expense?.project_id || "none");
       setPaymentMethod(expense?.payment_method || "bank_transfer");
       setPaymentStatus((expense as any)?.payment_status || "paid");
       setPaidDate((expense as any)?.paid_date || "");
-      setNotes(expense?.notes || "");
+      setNotes(expense?.notes || initialValues?.notes || "");
+      setExternalAccountNumber((expense as any)?.external_account_number || initialValues?.external_account_number || "");
+      setDueDate((expense as any)?.due_date || initialValues?.due_date || "");
       setSaving(false);
     }
-  }, [open, expense]);
+  }, [open, expense, initialValues]);
   const { data: vendors = [] } = useQuery({
     queryKey: ["vendors-list", workspaceId],
     queryFn: async () => {
@@ -72,7 +95,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, cu
     if (!description.trim()) { toast.error("Description is required"); return; }
     if (!amount || Number(amount) <= 0) { toast.error("Valid amount is required"); return; }
     setSaving(true);
-    const payload = {
+    const payload: any = {
       workspace_id: workspaceId,
       description: description.trim(),
       amount: Number(amount),
@@ -85,14 +108,28 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, cu
       payment_status: paymentStatus,
       paid_date: paymentStatus === "paid" ? (paidDate || expenseDate) : null,
       notes: notes || null,
+      external_account_number: externalAccountNumber.trim() || null,
+      due_date: dueDate || null,
       recorded_by: user!.id,
       updated_at: new Date().toISOString(),
     };
-    const { error } = expense
-      ? await supabase.from("expenses").update(payload).eq("id", expense.id)
-      : await supabase.from("expenses").insert(payload);
+    const { data: saved, error } = expense
+      ? await supabase.from("expenses").update(payload).eq("id", expense.id).select("id").single()
+      : await supabase.from("expenses").insert(payload).select("id").single();
+    if (error) { setSaving(false); toast.error("Failed to save expense"); return; }
+
+    // If a receipt was attached via the scan flow, relink the file to this expense
+    if (!expense && saved && attachedReceipt?.fileId) {
+      try {
+        await supabase.from("files")
+          .update({ owner_type: "expense", owner_id: saved.id, updated_at: new Date().toISOString() })
+          .eq("id", attachedReceipt.fileId);
+      } catch (e) {
+        console.warn("Could not relink attached receipt file:", e);
+      }
+    }
+
     setSaving(false);
-    if (error) { toast.error("Failed to save expense"); return; }
     toast.success(expense ? "Expense updated" : "Expense recorded");
     if (!expense && user?.id) trackFirstEvent("expense.first_created", workspaceId, user.id);
     onSaved();
@@ -105,6 +142,11 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, cu
           <DialogTitle>{expense ? "Edit Expense" : "Add Expense"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
+          {attachedReceipt && (
+            <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+              Receipt attached: <span className="text-foreground font-medium">{attachedReceipt.fileName || "image"}</span>. It will be linked to this expense once saved.
+            </div>
+          )}
           <div><Label>Description *</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} /></div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Amount ({currency}) *</Label><Input type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
@@ -157,6 +199,10 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, cu
             {paymentStatus === "paid" && (
               <div><Label>Paid Date</Label><Input type="date" value={paidDate || expenseDate} onChange={(e) => setPaidDate(e.target.value)} /></div>
             )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Account / Customer No.</Label><Input value={externalAccountNumber} onChange={(e) => setExternalAccountNumber(e.target.value)} placeholder="e.g. utility account number" /></div>
+            <div><Label>Bill Due Date</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
           </div>
           <div><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></div>
           <div className="flex justify-end gap-2 pt-2">

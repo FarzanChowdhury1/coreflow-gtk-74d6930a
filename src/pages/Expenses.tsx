@@ -39,6 +39,8 @@ export interface Expense {
   notes: string | null;
   recorded_by: string;
   deleted_at: string | null;
+  external_account_number?: string | null;
+  due_date?: string | null;
   vendors?: { name: string } | null;
   projects?: { name: string } | null;
 }
@@ -60,6 +62,10 @@ export default function Expenses() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [reopenJob, setReopenJob] = useState<ExtractionJob | null>(null);
   const [editing, setEditing] = useState<Expense | null>(null);
+  const [manualInitial, setManualInitial] = useState<{
+    initialValues?: Parameters<typeof ExpenseFormDialog>[0]["initialValues"];
+    attachedReceipt?: Parameters<typeof ExpenseFormDialog>[0]["attachedReceipt"];
+  } | null>(null);
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -300,11 +306,13 @@ export default function Expenses() {
       {formOpen && (
         <ExpenseFormDialog
           open={formOpen}
-          onOpenChange={setFormOpen}
+          onOpenChange={(o) => { setFormOpen(o); if (!o) setManualInitial(null); }}
           expense={editing}
           workspaceId={currentWorkspace!.id}
           currency={currency}
-          onSaved={() => { queryClient.invalidateQueries({ queryKey: ["expenses"] }); setFormOpen(false); setEditing(null); }}
+          initialValues={manualInitial?.initialValues}
+          attachedReceipt={manualInitial?.attachedReceipt}
+          onSaved={() => { queryClient.invalidateQueries({ queryKey: ["expenses"] }); setFormOpen(false); setEditing(null); setManualInitial(null); }}
         />
       )}
 
@@ -316,6 +324,14 @@ export default function Expenses() {
           defaultCurrency={currency}
           initialJob={reopenJob}
           onExpenseCreated={() => queryClient.invalidateQueries({ queryKey: ["expenses"] })}
+          onSwitchToManual={(ctx) => {
+            setManualInitial({
+              initialValues: ctx.initialValues,
+              attachedReceipt: ctx.fileId ? { jobId: ctx.jobId || "", fileId: ctx.fileId, fileName: ctx.fileName } : null,
+            });
+            setEditing(null);
+            setFormOpen(true);
+          }}
         />
       )}
 
