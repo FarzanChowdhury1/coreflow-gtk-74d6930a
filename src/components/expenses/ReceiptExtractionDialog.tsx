@@ -95,6 +95,9 @@ export function ReceiptExtractionDialog({
   const [paymentMethod, setPaymentMethod] = useState("bank_transfer");
   const [paymentStatus, setPaymentStatus] = useState<"paid" | "unpaid">("paid");
   const [notes, setNotes] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [rawTextOpen, setRawTextOpen] = useState(false);
 
   const norm = job?.normalized_data_json as NormalizedExtraction | null;
   const confidence = norm?.field_confidence ?? {};
