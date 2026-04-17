@@ -95,6 +95,9 @@ export function ReceiptExtractionDialog({
   const [paymentMethod, setPaymentMethod] = useState("bank_transfer");
   const [paymentStatus, setPaymentStatus] = useState<"paid" | "unpaid">("paid");
   const [notes, setNotes] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [rawTextOpen, setRawTextOpen] = useState(false);
 
   const norm = job?.normalized_data_json as NormalizedExtraction | null;
   const confidence = norm?.field_confidence ?? {};
@@ -116,6 +119,9 @@ export function ReceiptExtractionDialog({
       setPaymentMethod("bank_transfer");
       setPaymentStatus("paid");
       setNotes("");
+      setAccountNumber("");
+      setDueDate("");
+      setRawTextOpen(false);
     } else if (initialJob) {
       setJob(initialJob);
     }
@@ -140,6 +146,8 @@ export function ReceiptExtractionDialog({
       paid_date: norm.paid_date,
       category: norm.category,
       payment_status: norm.payment_status,
+      customer_or_account_number: norm.customer_or_account_number,
+      due_date: norm.due_date,
     };
 
     // In low-confidence mode we deliberately do NOT auto-fill anything risky —
@@ -170,6 +178,12 @@ export function ReceiptExtractionDialog({
     if (norm.payment_status && trust("payment_status")) setPaymentStatus(norm.payment_status);
     else setPaymentStatus("unpaid"); // safe default — user must opt-in to "paid"
     if (norm.notes) setNotes(norm.notes);
+    if (norm.customer_or_account_number && trust("customer_or_account_number")) {
+      setAccountNumber(norm.customer_or_account_number);
+    }
+    if (norm.due_date && isPlausibleIsoDate(norm.due_date) && trust("due_date")) {
+      setDueDate(norm.due_date);
+    }
   }, [norm]);
 
   // Fetch preview when job has a file
@@ -294,8 +308,16 @@ export function ReceiptExtractionDialog({
         paid_date: paymentStatus === "paid" ? (paidDate || expenseDate) : null,
         category: category || null,
         payment_status: paymentStatus,
+        customer_or_account_number: accountNumber || null,
+        due_date: dueDate || null,
       };
       const userEdited = Object.keys(finals).some((k) => (orig[k] ?? "") !== (finals[k] ?? ""));
+
+      // Append account/due metadata to notes when present (no schema columns for these)
+      const noteExtras: string[] = [];
+      if (accountNumber.trim()) noteExtras.push(`Account: ${accountNumber.trim()}`);
+      if (dueDate) noteExtras.push(`Due: ${dueDate}`);
+      const finalNotes = [notes.trim(), ...noteExtras].filter(Boolean).join(" · ") || null;
 
       await approveExtractionAndCreateExpense({
         jobId: job.id,
@@ -309,7 +331,7 @@ export function ReceiptExtractionDialog({
         paymentMethod,
         paymentStatus,
         paidDate: paymentStatus === "paid" ? (paidDate || expenseDate) : null,
-        notes: notes.trim() || null,
+        notes: finalNotes,
       });
 
       // Best-effort observability + correction logging (never block on failure)
@@ -562,18 +584,48 @@ export function ReceiptExtractionDialog({
                     </Select>
                   </div>
                 </div>
-                {paymentStatus === "paid" && (
+                <div className="grid grid-cols-2 gap-2">
+                  {paymentStatus === "paid" && (
+                    <div>
+                      <Label className="flex items-center">Paid Date <ConfidenceBadge value={confidence.paid_date} /></Label>
+                      <Input type="date" value={paidDate || expenseDate} onChange={(e) => setPaidDate(e.target.value)} />
+                    </div>
+                  )}
                   <div>
-                    <Label className="flex items-center">Paid Date <ConfidenceBadge value={confidence.paid_date} /></Label>
-                    <Input type="date" value={paidDate || expenseDate} onChange={(e) => setPaidDate(e.target.value)} />
+                    <Label className="flex items-center">Due Date <ConfidenceBadge value={confidence.due_date} /></Label>
+                    <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+                    <FieldEvidence snippet={norm?.evidence?.due_date} />
                   </div>
-                )}
+                </div>
+                <div>
+                  <Label className="flex items-center">Customer / Account Number <ConfidenceBadge value={confidence.customer_or_account_number} /></Label>
+                  <Input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} placeholder="e.g. utility account / customer ID" />
+                  <FieldEvidence snippet={norm?.evidence?.customer_or_account_number} />
+                </div>
                 <div>
                   <Label>Notes</Label>
                   <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
                 </div>
               </div>
             </div>
+
+            {/* Raw OCR text — collapsible, for transparency / debugging weak extractions */}
+            {(norm?.raw_text || (job as any).raw_text) && (
+              <Collapsible open={rawTextOpen} onOpenChange={setRawTextOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
+                    <FileText className="h-3 w-3 mr-1" />
+                    {rawTextOpen ? "Hide" : "Show"} raw extracted text
+                    <ChevronDown className={`h-3 w-3 ml-1 transition-transform ${rawTextOpen ? "rotate-180" : ""}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <pre className="mt-2 max-h-48 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] text-muted-foreground whitespace-pre-wrap break-words">
+                    {norm?.raw_text || (job as any).raw_text}
+                  </pre>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
 
             <div className="flex justify-between pt-2 border-t">
               <div className="flex gap-2">
