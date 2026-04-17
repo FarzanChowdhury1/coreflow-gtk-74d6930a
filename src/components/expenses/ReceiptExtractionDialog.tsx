@@ -385,6 +385,9 @@ export function ReceiptExtractionDialog({
             <p className="text-[11px] text-muted-foreground mt-3">
               You can always skip this and add an expense manually.
             </p>
+            <Button variant="ghost" size="sm" className="mt-2" onClick={handleSkipToManual}>
+              <PenLine className="h-3 w-3 mr-1" /> Skip OCR — enter manually
+            </Button>
           </div>
         )}
 
@@ -484,21 +487,25 @@ export function ReceiptExtractionDialog({
                 <div>
                   <Label className="flex items-center">Description * <ConfidenceBadge value={confidence.vendor_name} /></Label>
                   <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+                  <FieldEvidence snippet={norm?.evidence?.vendor_name} />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="flex items-center">Amount * <ConfidenceBadge value={confidence.total_amount} /></Label>
                     <Input type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                    <FieldEvidence snippet={norm?.evidence?.total_amount} />
                   </div>
                   <div>
                     <Label className="flex items-center">Currency * <ConfidenceBadge value={confidence.currency} /></Label>
                     <Input value={currency} maxLength={3} onChange={(e) => setCurrency(e.target.value.toUpperCase())} />
+                    <FieldEvidence snippet={norm?.evidence?.currency} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="flex items-center">Expense Date * <ConfidenceBadge value={confidence.expense_date} /></Label>
                     <Input type="date" value={expenseDate} onChange={(e) => setExpenseDate(e.target.value)} />
+                    <FieldEvidence snippet={norm?.evidence?.expense_date} />
                   </div>
                   <div>
                     <Label className="flex items-center">Category <ConfidenceBadge value={confidence.category} /></Label>
