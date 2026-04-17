@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -81,16 +80,6 @@ export function ProjectProfitability() {
 
   const isLoading = loadingProjects || loadingInv || loadingExp;
 
-  // Detect mixed currencies across all financial records
-  const allCurrencies = useMemo(() => {
-    const set = new Set<string>();
-    invoices.forEach((i) => set.add(i.currency || "BDT"));
-    expenses.forEach((e) => set.add(e.currency || "BDT"));
-    return Array.from(set);
-  }, [invoices, expenses]);
-  const isMixed = allCurrencies.length > 1;
-  const primaryCurrency = allCurrencies.length === 1 ? allCurrencies[0] : "BDT";
-
   const profitData: ProjectProfit[] = projects.map((p: any) => {
     const projInvoices = invoices.filter((i) => i.project_id === p.id);
     const projExpenses = expenses.filter((e) => e.project_id === p.id);
@@ -99,11 +88,6 @@ export function ProjectProfitability() {
     const exp = projExpenses.reduce((s, e) => s + Number(e.amount), 0);
     const margin = rev - exp;
     const marginPct = rev > 0 ? (margin / rev) * 100 : null;
-
-    // Use the dominant currency for this project's invoices, fallback to primary
-    const projCurrencies = new Set(projInvoices.map((i) => i.currency || "BDT"));
-    projExpenses.forEach((e) => projCurrencies.add(e.currency || "BDT"));
-    const currency = projCurrencies.size === 1 ? Array.from(projCurrencies)[0] : primaryCurrency;
 
     return {
       id: p.id,
@@ -114,7 +98,7 @@ export function ProjectProfitability() {
       expenses: exp,
       margin,
       marginPct,
-      currency,
+      currency: "BDT",
     };
   });
 
@@ -126,10 +110,7 @@ export function ProjectProfitability() {
   const totalMargin = totals.rev - totals.exp;
   const totalPct = totals.rev > 0 ? (totalMargin / totals.rev) * 100 : null;
 
-  const fmtTotal = (amount: number) => {
-    if (isMixed) return `${amount.toLocaleString()} (mixed)`;
-    return formatCurrency(amount, primaryCurrency);
-  };
+  const fmtTotal = (amount: number) => formatCurrency(amount);
 
   if (isLoading) {
     return <div className="text-center py-8 text-muted-foreground">Loading profitability data…</div>;
@@ -158,7 +139,6 @@ export function ProjectProfitability() {
           <strong>Expenses</strong> = direct project-linked expenses only.
           Shared costs (subscriptions, unlinked vendor fees) are excluded.
           This is not full accounting profit — it shows direct project margin only.
-          {isMixed && " Some projects use different currencies — per-row values use each project's currency, but totals mix currencies."}
         </span>
       </div>
 
