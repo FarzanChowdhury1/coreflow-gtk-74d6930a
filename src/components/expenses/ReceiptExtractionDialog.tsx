@@ -306,6 +306,8 @@ export function ReceiptExtractionDialog({
         paid_date: paymentStatus === "paid" ? (paidDate || expenseDate) : null,
         category: category || null,
         payment_status: paymentStatus,
+        customer_or_account_number: accountNumber || null,
+        due_date: dueDate || null,
       };
       const userEdited = Object.keys(finals).some((k) => (orig[k] ?? "") !== (finals[k] ?? ""));
 
