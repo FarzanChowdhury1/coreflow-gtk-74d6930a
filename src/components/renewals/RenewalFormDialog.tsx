@@ -30,7 +30,6 @@ export function RenewalFormDialog({ open, onOpenChange, renewal, companies, proj
   const [companyId, setCompanyId] = useState("");
   const [projectId, setProjectId] = useState("");
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState("BDT");
   const [intervalMonths, setIntervalMonths] = useState("12");
   const [nextBillingDate, setNextBillingDate] = useState("");
   const [notes, setNotes] = useState("");
@@ -41,13 +40,12 @@ export function RenewalFormDialog({ open, onOpenChange, renewal, companies, proj
       setCompanyId(renewal.company_id || "");
       setProjectId(renewal.project_id || "");
       setAmount(String(renewal.amount || ""));
-      setCurrency(renewal.currency || "BDT");
       setIntervalMonths(String(renewal.interval_months || "12"));
       setNextBillingDate(renewal.next_billing_date || "");
       setNotes(renewal.notes || "");
     } else {
       setLabel(""); setCompanyId(""); setProjectId(""); setAmount("");
-      setCurrency("BDT"); setIntervalMonths("12"); setNextBillingDate(""); setNotes("");
+      setIntervalMonths("12"); setNextBillingDate(""); setNotes("");
     }
   }, [renewal, open]);
 
@@ -65,7 +63,7 @@ export function RenewalFormDialog({ open, onOpenChange, renewal, companies, proj
       _company_id: companyId,
       _project_id: projectId || undefined,
       _amount: parseFloat(amount),
-      _currency: currency,
+      _currency: "BDT",
       _interval_months: parseInt(intervalMonths),
       _next_billing_date: nextBillingDate,
       _notes: notes.trim() || undefined,
@@ -120,20 +118,10 @@ export function RenewalFormDialog({ open, onOpenChange, renewal, companies, proj
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Amount *</Label>
+              <Label>Amount (BDT) *</Label>
               <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
-            </div>
-            <div>
-              <Label>Currency</Label>
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="BDT">BDT</SelectItem>
-                  <SelectItem value="USD">USD</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
             <div>
               <Label>Interval (months)</Label>

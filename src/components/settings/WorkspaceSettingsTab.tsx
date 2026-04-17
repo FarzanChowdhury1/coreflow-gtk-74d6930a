@@ -19,17 +19,9 @@ import { Loader2, AlertTriangle, Download, Palette } from "lucide-react";
 import { useEntitlement } from "@/hooks/use-entitlement";
 import { useNavigate } from "react-router-dom";
 
-const CURRENCIES = ["BDT", "USD", "EUR", "GBP", "INR", "AED", "SGD"];
-const TIMEZONES = [
-  "Asia/Dhaka",
-  "Asia/Kolkata",
-  "Asia/Dubai",
-  "Asia/Singapore",
-  "Europe/London",
-  "America/New_York",
-  "America/Los_Angeles",
-  "UTC",
-];
+// CoreFlow is Bangladesh-only — currency is locked to BDT and timezone to Asia/Dhaka.
+const CURRENCIES = ["BDT"];
+const TIMEZONES = ["Asia/Dhaka"];
 
 const workspaceSchema = z.object({
   name: z.string().min(1, "Workspace name is required").max(100),
