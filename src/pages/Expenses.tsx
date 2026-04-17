@@ -39,6 +39,8 @@ export interface Expense {
   notes: string | null;
   recorded_by: string;
   deleted_at: string | null;
+  external_account_number?: string | null;
+  due_date?: string | null;
   vendors?: { name: string } | null;
   projects?: { name: string } | null;
 }

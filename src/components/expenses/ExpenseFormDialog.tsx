@@ -14,6 +14,13 @@ import { EXPENSE_CATEGORIES, type Expense } from "@/pages/Expenses";
 
 const PAYMENT_METHODS = ["bank_transfer", "cash", "credit_card", "mobile_banking", "cheque", "other"];
 
+interface AttachedReceiptContext {
+  jobId: string;
+  fileId: string | null;
+  fileName: string | null;
+  previewUrl?: string | null;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -21,6 +28,18 @@ interface Props {
   workspaceId: string;
   currency: string;
   onSaved: () => void;
+  /** Optional initial values prefilled from a low-confidence/skipped extraction */
+  initialValues?: Partial<{
+    description: string;
+    amount: string;
+    expense_date: string;
+    category: string;
+    notes: string;
+    external_account_number: string;
+    due_date: string;
+  }>;
+  /** Optional banner indicating an attached receipt from the scan flow */
+  attachedReceipt?: AttachedReceiptContext | null;
 }
 
 export function ExpenseFormDialog({ open, onOpenChange, expense, workspaceId, currency, onSaved }: Props) {
