@@ -37,11 +37,26 @@ interface Props {
   initialJob?: ExtractionJob | null;
 }
 
+// Threshold below which an extraction is treated as untrustworthy and the
+// auto-filled values must NOT be presented as if they were correct.
+const LOW_CONFIDENCE_THRESHOLD = 0.6;
+const MAX_VISIBLE_WARNINGS = 6;
+
 function ConfidenceBadge({ value }: { value: number | undefined }) {
   if (value === undefined || value === null) return null;
   const pct = Math.round(value * 100);
   const variant = pct >= 85 ? "secondary" : pct >= 60 ? "outline" : "destructive";
   return <Badge variant={variant} className="text-[10px] ml-2">{pct}%</Badge>;
+}
+
+function isPlausibleIsoDate(s: string | null | undefined): boolean {
+  if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = new Date(s + "T00:00:00Z");
+  if (isNaN(d.getTime())) return false;
+  const year = d.getUTCFullYear();
+  // Reject obvious garbage years; receipts realistically fall within this range.
+  if (year < 2000 || year > new Date().getUTCFullYear() + 1) return false;
+  return true;
 }
 
 export function ReceiptExtractionDialog({
@@ -91,18 +106,35 @@ export function ReceiptExtractionDialog({
     }
   }, [open, defaultCurrency, initialJob]);
 
-  // Seed editable fields when extraction completes
+  // Seed editable fields when extraction completes — but ONLY trust per-field
+  // confidence. Low-confidence numbers/dates would mislead the user, so we
+  // leave them blank for manual entry instead of pre-filling garbage.
   useEffect(() => {
     if (!norm) return;
-    if (norm.vendor_name) setDescription(norm.invoice_or_receipt_number
-      ? `${norm.vendor_name} — ${norm.invoice_or_receipt_number}`
-      : norm.vendor_name);
-    if (norm.total_amount !== null) setAmount(String(norm.total_amount));
-    if (norm.currency) setCurrency(norm.currency);
-    if (norm.expense_date) setExpenseDate(norm.expense_date);
-    if (norm.paid_date) setPaidDate(norm.paid_date);
-    if (norm.category && EXPENSE_CATEGORIES.includes(norm.category)) setCategory(norm.category);
-    if (norm.payment_status) setPaymentStatus(norm.payment_status);
+    const fc = norm.field_confidence ?? {};
+    const trust = (key: string) => (fc[key] ?? 0) >= LOW_CONFIDENCE_THRESHOLD;
+
+    if (norm.vendor_name && trust("vendor_name")) {
+      setDescription(norm.invoice_or_receipt_number
+        ? `${norm.vendor_name} — ${norm.invoice_or_receipt_number}`
+        : norm.vendor_name);
+    }
+    if (norm.total_amount !== null && norm.total_amount > 0 && trust("total_amount")) {
+      setAmount(String(norm.total_amount));
+    }
+    if (norm.currency && /^[A-Z]{3}$/.test(norm.currency) && trust("currency")) {
+      setCurrency(norm.currency);
+    }
+    if (norm.expense_date && isPlausibleIsoDate(norm.expense_date) && trust("expense_date")) {
+      setExpenseDate(norm.expense_date);
+    }
+    if (norm.paid_date && isPlausibleIsoDate(norm.paid_date) && trust("paid_date")) {
+      setPaidDate(norm.paid_date);
+    }
+    if (norm.category && EXPENSE_CATEGORIES.includes(norm.category) && trust("category")) {
+      setCategory(norm.category);
+    }
+    if (norm.payment_status && trust("payment_status")) setPaymentStatus(norm.payment_status);
     if (norm.notes) setNotes(norm.notes);
   }, [norm]);
 
@@ -310,34 +342,55 @@ export function ReceiptExtractionDialog({
           </div>
         )}
 
-        {showForm && (
+        {showForm && (() => {
+          const overall = job.overall_confidence ?? 0;
+          const isLowConfidence = overall < LOW_CONFIDENCE_THRESHOLD;
+          const warnings = norm?.warnings ?? [];
+          const visibleWarnings = warnings.slice(0, MAX_VISIBLE_WARNINGS);
+          const hiddenCount = Math.max(0, warnings.length - visibleWarnings.length);
+          return (
           <div className="space-y-4">
-            {/* Status banner */}
-            {job.status === "review_required" ? (
+            {/* Status banner — three honest states */}
+            {isLowConfidence ? (
+              <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3">
+                <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                <div className="text-xs">
+                  <p className="font-medium text-foreground">
+                    Low-confidence extraction ({Math.round(overall * 100)}%) — review manually before creating expense
+                  </p>
+                  <p className="text-muted-foreground mt-0.5">
+                    The system did not pre-fill values it was unsure about. Enter or correct each field from the receipt before approving.
+                  </p>
+                </div>
+              </div>
+            ) : job.status === "review_required" ? (
               <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/5 p-3">
                 <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
                 <div className="text-xs">
                   <p className="font-medium text-foreground">Review required before creating expense</p>
-                  <p className="text-muted-foreground">Confidence {Math.round((job.overall_confidence ?? 0) * 100)}%. Verify each field below.</p>
+                  <p className="text-muted-foreground">Confidence {Math.round(overall * 100)}%. Verify each field below.</p>
                 </div>
               </div>
             ) : (
               <div className="flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 p-3">
                 <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                 <div className="text-xs">
-                  <p className="font-medium text-foreground">High-confidence extraction ({Math.round((job.overall_confidence ?? 0) * 100)}%)</p>
+                  <p className="font-medium text-foreground">High-confidence extraction ({Math.round(overall * 100)}%)</p>
                   <p className="text-muted-foreground">Review the fields below, then approve to create the expense.</p>
                 </div>
               </div>
             )}
 
-            {/* Warnings */}
-            {norm && norm.warnings.length > 0 && (
+            {/* Warnings (capped to keep the UI honest, not noisy) */}
+            {visibleWarnings.length > 0 && (
               <div className="rounded-md border border-warning/30 bg-warning/5 p-3">
-                <p className="text-xs font-medium text-foreground mb-1">Warnings to verify</p>
+                <p className="text-xs font-medium text-foreground mb-1">Items to verify</p>
                 <ul className="list-disc pl-5 space-y-0.5 text-xs text-muted-foreground">
-                  {norm.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                  {visibleWarnings.map((w, i) => <li key={i}>{w}</li>)}
                 </ul>
+                {hiddenCount > 0 && (
+                  <p className="text-[11px] text-muted-foreground mt-1">+{hiddenCount} more — review fields manually.</p>
+                )}
               </div>
             )}
 
@@ -455,7 +508,8 @@ export function ReceiptExtractionDialog({
               </Button>
             </div>
           </div>
-        )}
+          );
+        })()}
       </DialogContent>
     </Dialog>
   );
