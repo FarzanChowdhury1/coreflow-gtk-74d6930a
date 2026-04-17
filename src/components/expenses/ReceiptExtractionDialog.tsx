@@ -176,6 +176,12 @@ export function ReceiptExtractionDialog({
     if (norm.payment_status && trust("payment_status")) setPaymentStatus(norm.payment_status);
     else setPaymentStatus("unpaid"); // safe default — user must opt-in to "paid"
     if (norm.notes) setNotes(norm.notes);
+    if (norm.customer_or_account_number && trust("customer_or_account_number")) {
+      setAccountNumber(norm.customer_or_account_number);
+    }
+    if (norm.due_date && isPlausibleIsoDate(norm.due_date) && trust("due_date")) {
+      setDueDate(norm.due_date);
+    }
   }, [norm]);
 
   // Fetch preview when job has a file
