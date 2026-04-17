@@ -119,6 +119,9 @@ export function ReceiptExtractionDialog({
       setPaymentMethod("bank_transfer");
       setPaymentStatus("paid");
       setNotes("");
+      setAccountNumber("");
+      setDueDate("");
+      setRawTextOpen(false);
     } else if (initialJob) {
       setJob(initialJob);
     }
