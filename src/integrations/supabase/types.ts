@@ -1181,7 +1181,9 @@ export type Database = {
           currency: string
           deleted_at: string | null
           description: string
+          due_date: string | null
           expense_date: string
+          external_account_number: string | null
           id: string
           notes: string | null
           paid_date: string | null
@@ -1200,7 +1202,9 @@ export type Database = {
           currency?: string
           deleted_at?: string | null
           description: string
+          due_date?: string | null
           expense_date?: string
+          external_account_number?: string | null
           id?: string
           notes?: string | null
           paid_date?: string | null
@@ -1219,7 +1223,9 @@ export type Database = {
           currency?: string
           deleted_at?: string | null
           description?: string
+          due_date?: string | null
           expense_date?: string
+          external_account_number?: string | null
           id?: string
           notes?: string | null
           paid_date?: string | null
