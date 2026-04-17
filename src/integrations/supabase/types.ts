@@ -3279,14 +3279,6 @@ export type Database = {
         Args: { _request_id: string; _workspace_id: string }
         Returns: Json
       }
-      rate_limit_extraction_start: {
-        Args: { _user_id: string; _workspace_id: string }
-        Returns: {
-          allowed: boolean
-          reason: string
-          retry_after_seconds: number
-        }[]
-      }
       reactivate_workspace: { Args: { _workspace_id: string }; Returns: Json }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
