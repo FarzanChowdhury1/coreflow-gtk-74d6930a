@@ -452,7 +452,7 @@ export function ReceiptExtractionDialog({
             <p className="text-[11px] text-muted-foreground mt-3">
               You can always skip this and add an expense manually.
             </p>
-            <Button variant="ghost" size="sm" className="mt-2" onClick={handleSkipToManual}>
+            <Button variant="ghost" size="sm" className="mt-2" onClick={handleSwitchToManual}>
               <PenLine className="h-3 w-3 mr-1" /> Skip OCR — enter manually
             </Button>
           </div>
@@ -476,9 +476,12 @@ export function ReceiptExtractionDialog({
                 </div>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button size="sm" variant="outline" onClick={handleRetry} disabled={busy || job.retry_count >= 3}>
                 <RotateCw className="h-3 w-3 mr-1" /> Retry ({job.retry_count}/3)
+              </Button>
+              <Button size="sm" variant="secondary" onClick={handleSwitchToManual} disabled={busy}>
+                <PenLine className="h-3 w-3 mr-1" /> Enter manually with this receipt
               </Button>
               <Button size="sm" variant="ghost" onClick={handleCancel} disabled={busy}>
                 <X className="h-3 w-3 mr-1" /> Cancel
