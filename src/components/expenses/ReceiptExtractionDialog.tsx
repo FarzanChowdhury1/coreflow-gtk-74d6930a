@@ -508,7 +508,8 @@ export function ReceiptExtractionDialog({
               </Button>
             </div>
           </div>
-        )}
+          );
+        })()}
       </DialogContent>
     </Dialog>
   );
