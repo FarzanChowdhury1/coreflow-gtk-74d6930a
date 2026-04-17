@@ -146,6 +146,8 @@ export function ReceiptExtractionDialog({
       paid_date: norm.paid_date,
       category: norm.category,
       payment_status: norm.payment_status,
+      customer_or_account_number: norm.customer_or_account_number,
+      due_date: norm.due_date,
     };
 
     // In low-confidence mode we deliberately do NOT auto-fill anything risky —
