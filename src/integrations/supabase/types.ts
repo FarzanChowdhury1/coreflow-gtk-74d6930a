@@ -3478,10 +3478,10 @@ export type Database = {
         | "processing"
         | "extracted"
         | "review_required"
+        | "approved"
         | "expense_created"
         | "failed"
         | "cancelled"
-        | "approved"
       feedback_category:
         | "bug"
         | "ui_ux"
@@ -3680,10 +3680,10 @@ export const Constants = {
         "processing",
         "extracted",
         "review_required",
+        "approved",
         "expense_created",
         "failed",
         "cancelled",
-        "approved",
       ],
       feedback_category: [
         "bug",
