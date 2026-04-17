@@ -106,18 +106,35 @@ export function ReceiptExtractionDialog({
     }
   }, [open, defaultCurrency, initialJob]);
 
-  // Seed editable fields when extraction completes
+  // Seed editable fields when extraction completes — but ONLY trust per-field
+  // confidence. Low-confidence numbers/dates would mislead the user, so we
+  // leave them blank for manual entry instead of pre-filling garbage.
   useEffect(() => {
     if (!norm) return;
-    if (norm.vendor_name) setDescription(norm.invoice_or_receipt_number
-      ? `${norm.vendor_name} — ${norm.invoice_or_receipt_number}`
-      : norm.vendor_name);
-    if (norm.total_amount !== null) setAmount(String(norm.total_amount));
-    if (norm.currency) setCurrency(norm.currency);
-    if (norm.expense_date) setExpenseDate(norm.expense_date);
-    if (norm.paid_date) setPaidDate(norm.paid_date);
-    if (norm.category && EXPENSE_CATEGORIES.includes(norm.category)) setCategory(norm.category);
-    if (norm.payment_status) setPaymentStatus(norm.payment_status);
+    const fc = norm.field_confidence ?? {};
+    const trust = (key: string) => (fc[key] ?? 0) >= LOW_CONFIDENCE_THRESHOLD;
+
+    if (norm.vendor_name && trust("vendor_name")) {
+      setDescription(norm.invoice_or_receipt_number
+        ? `${norm.vendor_name} — ${norm.invoice_or_receipt_number}`
+        : norm.vendor_name);
+    }
+    if (norm.total_amount !== null && norm.total_amount > 0 && trust("total_amount")) {
+      setAmount(String(norm.total_amount));
+    }
+    if (norm.currency && /^[A-Z]{3}$/.test(norm.currency) && trust("currency")) {
+      setCurrency(norm.currency);
+    }
+    if (norm.expense_date && isPlausibleIsoDate(norm.expense_date) && trust("expense_date")) {
+      setExpenseDate(norm.expense_date);
+    }
+    if (norm.paid_date && isPlausibleIsoDate(norm.paid_date) && trust("paid_date")) {
+      setPaidDate(norm.paid_date);
+    }
+    if (norm.category && EXPENSE_CATEGORIES.includes(norm.category) && trust("category")) {
+      setCategory(norm.category);
+    }
+    if (norm.payment_status && trust("payment_status")) setPaymentStatus(norm.payment_status);
     if (norm.notes) setNotes(norm.notes);
   }, [norm]);
 
