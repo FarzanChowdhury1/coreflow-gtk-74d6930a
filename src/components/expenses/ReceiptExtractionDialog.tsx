@@ -80,6 +80,8 @@ export function ReceiptExtractionDialog({
   const [job, setJob] = useState<ExtractionJob | null>(null);
   const [busy, setBusy] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [manualMode, setManualMode] = useState(false);
+  const originalExtractedRef = useRef<Record<string, string | null>>({});
 
   // Editable form state (seeded from extraction once available)
   const [description, setDescription] = useState("");
@@ -119,13 +121,30 @@ export function ReceiptExtractionDialog({
     }
   }, [open, defaultCurrency, initialJob]);
 
-  // Seed editable fields when extraction completes — but ONLY trust per-field
-  // confidence. Low-confidence numbers/dates would mislead the user, so we
-  // leave them blank for manual entry instead of pre-filling garbage.
+  // Seed editable fields ONLY when field confidence >= 0.85 (per spec).
+  // For low overall confidence we additionally force manual-review mode and skip autofill entirely.
   useEffect(() => {
     if (!norm) return;
     const fc = norm.field_confidence ?? {};
-    const trust = (key: string) => (fc[key] ?? 0) >= LOW_CONFIDENCE_THRESHOLD;
+    const overall = norm.overall_confidence ?? 0;
+    const trust = (key: string) => (fc[key] ?? 0) >= TRUST_THRESHOLD;
+    const lowConfidence = overall < LOW_CONFIDENCE_THRESHOLD;
+
+    // Snapshot what the model originally produced — for correction logging on approval
+    originalExtractedRef.current = {
+      vendor_name: norm.vendor_name,
+      invoice_or_receipt_number: norm.invoice_or_receipt_number,
+      total_amount: norm.total_amount !== null ? String(norm.total_amount) : null,
+      currency: norm.currency,
+      expense_date: norm.expense_date,
+      paid_date: norm.paid_date,
+      category: norm.category,
+      payment_status: norm.payment_status,
+    };
+
+    // In low-confidence mode we deliberately do NOT auto-fill anything risky —
+    // the user should enter everything from the receipt themselves.
+    if (lowConfidence) return;
 
     if (norm.vendor_name && trust("vendor_name")) {
       setDescription(norm.invoice_or_receipt_number
@@ -147,7 +166,9 @@ export function ReceiptExtractionDialog({
     if (norm.category && EXPENSE_CATEGORIES.includes(norm.category) && trust("category")) {
       setCategory(norm.category);
     }
+    // payment_status is NEVER auto-paid unless validator left it intact AND confidence high
     if (norm.payment_status && trust("payment_status")) setPaymentStatus(norm.payment_status);
+    else setPaymentStatus("unpaid"); // safe default — user must opt-in to "paid"
     if (norm.notes) setNotes(norm.notes);
   }, [norm]);
 
