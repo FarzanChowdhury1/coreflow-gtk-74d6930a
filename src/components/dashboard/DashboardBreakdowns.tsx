@@ -286,10 +286,6 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
         activeSubsCount: d.active_subs_count ?? 0,
         vendorsCount: d.vendors_count ?? 0,
         totalBudget: d.total_budget ?? 0,
-        revenueByCurrency: (d.revenue_by_currency ?? []) as Array<{ currency: string; collected_this_month: number; invoiced_this_month: number; outstanding_receivable: number; overdue_count: number }>,
-        spendByCurrency: (d.spend_by_currency ?? []) as Array<{ currency: string; expense_this_month: number; cash_out_this_month: number; unpaid_payables: number; total_budget: number; sub_burn: number }>,
-        isMultiCurrency: d.is_multi_currency ?? false,
-        currencies: (d.currencies ?? [currency]) as string[],
       };
     },
   });
@@ -315,24 +311,7 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
   const projectCounts = useMemo(() => countByStatus(projects), [projects]);
   const invoiceCounts = useMemo(() => countByStatus(invoices), [invoices]);
 
-  // Group invoice totals by currency
-  const invoiceTotalsByCurrency = useMemo(() => {
-    const map: Record<string, { invoiced: number; collected: number; receivable: number }> = {};
-    invoices.forEach((i: any) => {
-      const cur = i.currency || currency;
-      if (!map[cur]) map[cur] = { invoiced: 0, collected: 0, receivable: 0 };
-      map[cur].invoiced += Number(i.grand_total);
-      map[cur].collected += Number(i.amount_paid);
-      if (i.status !== "void" && i.status !== "paid") {
-        map[cur].receivable += Number(i.grand_total) - Number(i.amount_paid);
-      }
-    });
-    return map;
-  }, [invoices, currency]);
-
-  const pipelineCurrencies = Object.keys(invoiceTotalsByCurrency);
-
-  // Legacy single-currency totals (for single-currency workspaces / cash conversion)
+  // Legacy single-currency totals (BDT)
   const totalInvoiced = invoices.reduce((s: number, i: any) => s + Number(i.grand_total), 0);
   const totalCollected = invoices.reduce((s: number, i: any) => s + Number(i.amount_paid), 0);
 
@@ -467,28 +446,12 @@ export function DashboardBreakdowns({ workspaceId, currency }: Props) {
             </Card>
           </div>
 
-          {/* Range-based invoice summary — per-currency when mixed */}
-          {pipelineCurrencies.length <= 1 ? (
-            <div className="grid gap-3 md:grid-cols-3">
-              <KpiCard label="Total Invoiced" value={fmtCur(invoiceTotalsByCurrency[pipelineCurrencies[0]]?.invoiced ?? totalInvoiced, pipelineCurrencies[0] || currency)} icon={Receipt} iconColor="text-primary" sub={rangeLabel} />
-              <KpiCard label="Total Collected" value={fmtCur(invoiceTotalsByCurrency[pipelineCurrencies[0]]?.collected ?? totalCollected, pipelineCurrencies[0] || currency)} icon={CreditCard} iconColor="text-success" sub={rangeLabel} />
-              <KpiCard label="Outstanding Receivable" value={fmtCur(invoiceTotalsByCurrency[pipelineCurrencies[0]]?.receivable ?? 0, pipelineCurrencies[0] || currency)} icon={TrendingUp} iconColor="text-warning" sub={rangeLabel} />
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-1.5">
-                <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0" />
-                <p className="text-xs text-muted-foreground">Multiple currencies detected — totals shown per currency. Cross-currency totals are not summed.</p>
-              </div>
-              {pipelineCurrencies.sort().map((cur) => (
-                <div key={cur} className="grid gap-3 md:grid-cols-3">
-                  <KpiCard label={`Total Invoiced (${cur})`} value={fmtCur(invoiceTotalsByCurrency[cur].invoiced, cur)} icon={Receipt} iconColor="text-primary" sub={rangeLabel} />
-                  <KpiCard label={`Total Collected (${cur})`} value={fmtCur(invoiceTotalsByCurrency[cur].collected, cur)} icon={CreditCard} iconColor="text-success" sub={rangeLabel} />
-                  <KpiCard label={`Outstanding (${cur})`} value={fmtCur(invoiceTotalsByCurrency[cur].receivable, cur)} icon={TrendingUp} iconColor="text-warning" sub={rangeLabel} />
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Range-based invoice summary (BDT) */}
+          <div className="grid gap-3 md:grid-cols-3">
+            <KpiCard label="Total Invoiced" value={fmt(totalInvoiced)} icon={Receipt} iconColor="text-primary" sub={rangeLabel} />
+            <KpiCard label="Total Collected" value={fmt(totalCollected)} icon={CreditCard} iconColor="text-success" sub={rangeLabel} />
+            <KpiCard label="Outstanding Receivable" value={fmt(invoices.reduce((s: number, i: any) => i.status !== "void" && i.status !== "paid" ? s + Number(i.grand_total) - Number(i.amount_paid) : s, 0))} icon={TrendingUp} iconColor="text-warning" sub={rangeLabel} />
+          </div>
         </>
       )}
 
