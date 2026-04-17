@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Check, X, ChevronDown, ChevronUp, FileText, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
+import { formatCurrency } from "@/lib/utils";
 
 interface Props {
   session: PortalSessionInfo;
@@ -183,7 +184,7 @@ function ProposalCard({
                       {STATUS_LABELS[v.status] || v.status}
                     </Badge>
                     <span className="text-sm text-muted-foreground font-mono">
-                      {v.currency || "BDT"} {Number(v.grand_total).toLocaleString()}
+                      {formatCurrency(Number(v.grand_total))}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -243,7 +244,7 @@ function ProposalCard({
                       <div className="flex justify-between font-semibold text-foreground pt-1 border-t">
                         <span>Total</span>
                         <span className="text-primary">
-                          {v.currency || "BDT"} {Number(v.grand_total).toLocaleString()}
+                          {formatCurrency(Number(v.grand_total))}
                         </span>
                       </div>
                     </div>

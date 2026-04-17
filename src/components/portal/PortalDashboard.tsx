@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { portalLogout, portalGetResource, type PortalSessionInfo, type PortalBranding } from "@/lib/portal-api";
+import { formatCurrency } from "@/lib/utils";
 
 interface Props {
   session: PortalSessionInfo;
@@ -201,7 +202,7 @@ export function PortalDashboard({ session, initialBranding }: Props) {
                               {summary!.unpaid_invoices} unpaid invoice{summary!.unpaid_invoices > 1 ? "s" : ""}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              Outstanding balance: {summary!.currency} {summary!.total_outstanding.toLocaleString()}
+                              Outstanding balance: {formatCurrency(summary!.total_outstanding)}
                             </p>
                           </div>
                         </button>
@@ -289,7 +290,7 @@ export function PortalDashboard({ session, initialBranding }: Props) {
                 <SummaryCard
                   icon={<CreditCard className="h-5 w-5 text-violet-500" />}
                   label="Outstanding"
-                  value={summary ? `${summary.currency} ${summary.total_outstanding.toLocaleString()}` : "—"}
+                  value={summary ? formatCurrency(summary.total_outstanding) : "—"}
                   subtitle="balance due"
                   onClick={() => setActiveTab("invoices")}
                 />

@@ -2,6 +2,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Archive, RotateCcw, FileText } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
@@ -61,7 +62,7 @@ export function LeadMobileCards({
 
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               {lead.estimated_value && (
-                <span>{lead.currency} {Number(lead.estimated_value).toLocaleString()}</span>
+                <span>{formatCurrency(Number(lead.estimated_value))}</span>
               )}
               {lead.next_follow_up && (
                 <span className={new Date(lead.next_follow_up) < new Date() ? "text-destructive font-medium" : ""}>

@@ -4,6 +4,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { LeadMobileCards } from "@/components/leads/LeadMobileCards";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { guardedExportToCSV, guardedExportToXLSX } from "@/lib/guarded-export";
+import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { LeadTasksPanel } from "@/components/leads/LeadTasksPanel";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -163,7 +164,7 @@ export default function Leads() {
         <td className="px-4 py-3 text-muted-foreground">{getCompanyName(lead.company_id)}</td>
         <td className="px-4 py-3 text-muted-foreground">{getContactName(lead.contact_id)}</td>
         <td className="px-4 py-3 text-muted-foreground">
-          {lead.estimated_value ? `${lead.currency} ${Number(lead.estimated_value).toLocaleString()}` : "—"}
+          {lead.estimated_value ? formatCurrency(Number(lead.estimated_value)) : "—"}
         </td>
         <td className="px-4 py-3 text-muted-foreground">{formatFollowUp(lead.next_follow_up)}</td>
         <td className="px-4 py-3 text-right space-x-1">
@@ -254,8 +255,7 @@ export default function Leads() {
               { key: "title", label: "Title" },
               { key: "status", label: "Status" },
               { key: "source", label: "Source" },
-              { key: "estimated_value", label: "Est. Value" },
-              { key: "currency", label: "Currency" },
+              { key: "estimated_value", label: "Est. Value (BDT)" },
               { key: "next_follow_up", label: "Next Follow-Up", format: (v: any) => v ? new Date(v).toLocaleDateString() : "" },
               { key: "created_at", label: "Created", format: (v: any) => new Date(v).toLocaleDateString() },
             ];

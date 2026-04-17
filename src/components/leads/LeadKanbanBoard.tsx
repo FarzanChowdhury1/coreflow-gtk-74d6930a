@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, Calendar, Archive, Pencil } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -190,7 +191,7 @@ export function LeadKanbanBoard({
                 )}
                 {lead.estimated_value && (
                   <p className="text-[11px] font-medium text-primary mt-1">
-                    {lead.currency} {Number(lead.estimated_value).toLocaleString()}
+                    {formatCurrency(Number(lead.estimated_value))}
                   </p>
                 )}
                 {lead.next_follow_up && (
