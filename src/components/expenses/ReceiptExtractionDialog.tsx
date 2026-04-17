@@ -309,6 +309,12 @@ export function ReceiptExtractionDialog({
       };
       const userEdited = Object.keys(finals).some((k) => (orig[k] ?? "") !== (finals[k] ?? ""));
 
+      // Append account/due metadata to notes when present (no schema columns for these)
+      const noteExtras: string[] = [];
+      if (accountNumber.trim()) noteExtras.push(`Account: ${accountNumber.trim()}`);
+      if (dueDate) noteExtras.push(`Due: ${dueDate}`);
+      const finalNotes = [notes.trim(), ...noteExtras].filter(Boolean).join(" · ") || null;
+
       await approveExtractionAndCreateExpense({
         jobId: job.id,
         description: description.trim(),
