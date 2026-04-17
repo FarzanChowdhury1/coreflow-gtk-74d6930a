@@ -1,53 +1,14 @@
 -- ============================================================
 -- A — Bill/Receipt Extraction: closure-pass hardening
 -- ============================================================
+-- NOTE: The 'approved' enum value on expense_extraction_status is intentionally
+-- left in place. The approval RPC transitions directly from
+-- 'extracted'/'review_required' -> 'expense_created', so 'approved' is unreachable
+-- in code. Removing the enum value requires destructive type surgery and is not
+-- worth the production risk for a decorative cleanup. The state guard in
+-- approve_extraction_and_create_expense enforces the truthful reachable set.
 
--- 1) State machine cleanup: remove unreachable 'approved' state.
---    The approval RPC jumps directly to 'expense_created', so 'approved'
---    is decorative and confusing. We migrate any stragglers to 'extracted'
---    (none expected, but safe), drop default refs, then recreate the enum.
-DO $$
-DECLARE
-  _has_approved boolean;
-BEGIN
-  SELECT EXISTS (
-    SELECT 1 FROM pg_type t
-    JOIN pg_enum e ON e.enumtypid = t.oid
-    WHERE t.typname = 'expense_extraction_status' AND e.enumlabel = 'approved'
-  ) INTO _has_approved;
-
-  IF _has_approved THEN
-    -- Move any rows currently sitting on 'approved' (transient) back to 'review_required'
-    UPDATE public.expense_extraction_jobs
-       SET status = 'review_required'
-     WHERE status = 'approved'::public.expense_extraction_status;
-
-    -- Recreate the enum without 'approved'
-    ALTER TYPE public.expense_extraction_status RENAME TO expense_extraction_status_old;
-
-    CREATE TYPE public.expense_extraction_status AS ENUM (
-      'uploaded',
-      'processing',
-      'extracted',
-      'review_required',
-      'expense_created',
-      'failed',
-      'cancelled'
-    );
-
-    ALTER TABLE public.expense_extraction_jobs
-      ALTER COLUMN status DROP DEFAULT,
-      ALTER COLUMN status TYPE public.expense_extraction_status
-        USING status::text::public.expense_extraction_status,
-      ALTER COLUMN status SET DEFAULT 'uploaded'::public.expense_extraction_status;
-
-    DROP TYPE public.expense_extraction_status_old;
-  END IF;
-END $$;
-
--- 2) Recreate approval RPC without the 'approved' state guard,
---    and write the audit row against the JOB (entity_type=extraction job),
---    plus a second row tying the new expense back to the job.
+-- 1) Approval RPC with truthful state guard, idempotency, and bidirectional audit.
 CREATE OR REPLACE FUNCTION public.approve_extraction_and_create_expense(
   _job_id uuid,
   _description text,
@@ -88,13 +49,11 @@ BEGIN
     RAISE EXCEPTION 'Forbidden: workspace admin only';
   END IF;
 
-  -- Idempotency: already created?  Return existing expense id (no-op).
   IF _job.created_expense_id IS NOT NULL THEN
     RETURN _job.created_expense_id;
   END IF;
 
-  -- State guard: only reviewable states may approve
-  IF _job.status NOT IN ('extracted', 'review_required') THEN
+  IF _job.status::text NOT IN ('extracted', 'review_required') THEN
     RAISE EXCEPTION 'Job is in state % and cannot be approved', _job.status;
   END IF;
 
@@ -149,14 +108,13 @@ BEGIN
   END IF;
 
   UPDATE public.expense_extraction_jobs
-     SET status = 'expense_created',
+     SET status = 'expense_created'::public.expense_extraction_status,
          approved_at = now(),
          approved_by = auth.uid(),
          created_expense_id = _new_expense_id,
          updated_at = now()
    WHERE id = _job_id;
 
-  -- Audit: against the extraction job
   INSERT INTO public.audit_logs (workspace_id, actor_id, action, entity_type, entity_id, metadata)
   VALUES (
     _job.workspace_id, auth.uid(),
@@ -168,7 +126,6 @@ BEGIN
     )
   );
 
-  -- Audit: against the new expense, tying it back to the job
   INSERT INTO public.audit_logs (workspace_id, actor_id, action, entity_type, entity_id, metadata)
   VALUES (
     _job.workspace_id, auth.uid(),
@@ -183,7 +140,7 @@ $$;
 REVOKE ALL ON FUNCTION public.approve_extraction_and_create_expense(uuid, text, numeric, text, date, text, uuid, uuid, text, text, date, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.approve_extraction_and_create_expense(uuid, text, numeric, text, date, text, uuid, uuid, text, text, date, text) TO authenticated;
 
--- 3) Audit on job created (insert)
+-- 2) Audit on job created (insert)
 CREATE OR REPLACE FUNCTION public.audit_extraction_job_created()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -206,9 +163,7 @@ CREATE TRIGGER trg_eej_audit_created
   AFTER INSERT ON public.expense_extraction_jobs
   FOR EACH ROW EXECUTE FUNCTION public.audit_extraction_job_created();
 
--- 4) Rate limit RPC: ≤ 10 starts per workspace per rolling 5 minutes,
---    AND ≤ 5 starts per admin per rolling 5 minutes.
---    Counts only INSERTs (job creations), since each insert kicks one extraction.
+-- 3) Rate limit RPC
 CREATE OR REPLACE FUNCTION public.rate_limit_extraction_start(_workspace_id uuid, _user_id uuid)
 RETURNS TABLE(allowed boolean, retry_after_seconds integer, reason text)
 LANGUAGE plpgsql
