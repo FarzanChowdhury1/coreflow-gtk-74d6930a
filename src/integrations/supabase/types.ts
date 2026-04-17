@@ -995,184 +995,6 @@ export type Database = {
         }
         Relationships: []
       }
-      expense_extraction_corrections: {
-        Row: {
-          corrected_value: string | null
-          created_at: string
-          created_by: string
-          doc_type: string | null
-          extracted_value: string | null
-          field_confidence: number | null
-          field_key: string
-          id: string
-          job_id: string
-          vendor_name: string | null
-          workspace_id: string
-        }
-        Insert: {
-          corrected_value?: string | null
-          created_at?: string
-          created_by: string
-          doc_type?: string | null
-          extracted_value?: string | null
-          field_confidence?: number | null
-          field_key: string
-          id?: string
-          job_id: string
-          vendor_name?: string | null
-          workspace_id: string
-        }
-        Update: {
-          corrected_value?: string | null
-          created_at?: string
-          created_by?: string
-          doc_type?: string | null
-          extracted_value?: string | null
-          field_confidence?: number | null
-          field_key?: string
-          id?: string
-          job_id?: string
-          vendor_name?: string | null
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "expense_extraction_corrections_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "expense_extraction_jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "expense_extraction_corrections_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      expense_extraction_jobs: {
-        Row: {
-          approved_at: string | null
-          approved_by: string | null
-          cancelled_at: string | null
-          created_at: string
-          created_by: string
-          created_expense_id: string | null
-          doc_type: string | null
-          extracted_at: string | null
-          extraction_started_at: string | null
-          failure_reason: string | null
-          id: string
-          language: string | null
-          layout: string | null
-          normalized_data_json: Json | null
-          overall_confidence: number | null
-          provider: string
-          provider_model: string | null
-          raw_payload_json: Json | null
-          raw_text: string | null
-          retry_count: number
-          review_required: boolean
-          source_file_id: string | null
-          source_file_name: string | null
-          source_mime_type: string | null
-          source_storage_path: string | null
-          status: Database["public"]["Enums"]["expense_extraction_status"]
-          updated_at: string
-          user_edited_before_approval: boolean
-          validator_output: Json | null
-          workspace_id: string
-        }
-        Insert: {
-          approved_at?: string | null
-          approved_by?: string | null
-          cancelled_at?: string | null
-          created_at?: string
-          created_by: string
-          created_expense_id?: string | null
-          doc_type?: string | null
-          extracted_at?: string | null
-          extraction_started_at?: string | null
-          failure_reason?: string | null
-          id?: string
-          language?: string | null
-          layout?: string | null
-          normalized_data_json?: Json | null
-          overall_confidence?: number | null
-          provider?: string
-          provider_model?: string | null
-          raw_payload_json?: Json | null
-          raw_text?: string | null
-          retry_count?: number
-          review_required?: boolean
-          source_file_id?: string | null
-          source_file_name?: string | null
-          source_mime_type?: string | null
-          source_storage_path?: string | null
-          status?: Database["public"]["Enums"]["expense_extraction_status"]
-          updated_at?: string
-          user_edited_before_approval?: boolean
-          validator_output?: Json | null
-          workspace_id: string
-        }
-        Update: {
-          approved_at?: string | null
-          approved_by?: string | null
-          cancelled_at?: string | null
-          created_at?: string
-          created_by?: string
-          created_expense_id?: string | null
-          doc_type?: string | null
-          extracted_at?: string | null
-          extraction_started_at?: string | null
-          failure_reason?: string | null
-          id?: string
-          language?: string | null
-          layout?: string | null
-          normalized_data_json?: Json | null
-          overall_confidence?: number | null
-          provider?: string
-          provider_model?: string | null
-          raw_payload_json?: Json | null
-          raw_text?: string | null
-          retry_count?: number
-          review_required?: boolean
-          source_file_id?: string | null
-          source_file_name?: string | null
-          source_mime_type?: string | null
-          source_storage_path?: string | null
-          status?: Database["public"]["Enums"]["expense_extraction_status"]
-          updated_at?: string
-          user_edited_before_approval?: boolean
-          validator_output?: Json | null
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "expense_extraction_jobs_created_expense_id_fkey"
-            columns: ["created_expense_id"]
-            isOneToOne: false
-            referencedRelation: "expenses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "expense_extraction_jobs_source_file_id_fkey"
-            columns: ["source_file_id"]
-            isOneToOne: false
-            referencedRelation: "files"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "expense_extraction_jobs_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       expenses: {
         Row: {
           amount: number
@@ -3250,29 +3072,11 @@ export type Database = {
         Args: { _workspace_id: string }
         Returns: Json
       }
-      approve_extraction_and_create_expense: {
-        Args: {
-          _amount: number
-          _category: string
-          _currency: string
-          _description: string
-          _expense_date: string
-          _job_id: string
-          _notes: string
-          _paid_date: string
-          _payment_method: string
-          _payment_status: string
-          _project_id: string
-          _vendor_id: string
-        }
-        Returns: string
-      }
       assert_export_allowed: { Args: { _workspace_id: string }; Returns: Json }
       bootstrap_workspace: {
         Args: { _name?: string; _user_id: string }
         Returns: Json
       }
-      cancel_extraction_job: { Args: { _job_id: string }; Returns: undefined }
       check_workspace_seat_capacity: {
         Args: { _include_pending_invites?: boolean; _workspace_id: string }
         Returns: boolean
@@ -3554,15 +3358,6 @@ export type Database = {
         | "inactive"
         | "left_company"
         | "bounced"
-      expense_extraction_status:
-        | "uploaded"
-        | "processing"
-        | "extracted"
-        | "review_required"
-        | "approved"
-        | "expense_created"
-        | "failed"
-        | "cancelled"
       feedback_category:
         | "bug"
         | "ui_ux"
@@ -3755,16 +3550,6 @@ export const Constants = {
         "inactive",
         "left_company",
         "bounced",
-      ],
-      expense_extraction_status: [
-        "uploaded",
-        "processing",
-        "extracted",
-        "review_required",
-        "approved",
-        "expense_created",
-        "failed",
-        "cancelled",
       ],
       feedback_category: [
         "bug",
