@@ -327,7 +327,7 @@ export function ReceiptExtractionDialog({
         paymentMethod,
         paymentStatus,
         paidDate: paymentStatus === "paid" ? (paidDate || expenseDate) : null,
-        notes: notes.trim() || null,
+        notes: finalNotes,
       });
 
       // Best-effort observability + correction logging (never block on failure)
