@@ -284,6 +284,19 @@ export function ReceiptExtractionDialog({
     if (!job || !canApprove) return;
     setBusy(true);
     try {
+      // Detect user edits vs original extraction (best-effort, never blocks)
+      const orig = originalExtractedRef.current;
+      const finals: Record<string, string | null> = {
+        vendor_name: description.split(" — ")[0] || null,
+        total_amount: amount || null,
+        currency: currency.toUpperCase() || null,
+        expense_date: expenseDate || null,
+        paid_date: paymentStatus === "paid" ? (paidDate || expenseDate) : null,
+        category: category || null,
+        payment_status: paymentStatus,
+      };
+      const userEdited = Object.keys(finals).some((k) => (orig[k] ?? "") !== (finals[k] ?? ""));
+
       await approveExtractionAndCreateExpense({
         jobId: job.id,
         description: description.trim(),
@@ -298,6 +311,26 @@ export function ReceiptExtractionDialog({
         paidDate: paymentStatus === "paid" ? (paidDate || expenseDate) : null,
         notes: notes.trim() || null,
       });
+
+      // Best-effort observability + correction logging (never block on failure)
+      try {
+        if (userEdited) await markJobUserEdited(job.id);
+        await logExtractionCorrections({
+          workspaceId: workspaceId,
+          jobId: job.id,
+          vendorName: norm?.vendor_name ?? null,
+          docType: (job as any).doc_type ?? null,
+          entries: Object.keys(finals).map((k) => ({
+            field_key: k,
+            extracted_value: orig[k] ?? null,
+            corrected_value: finals[k],
+            field_confidence: norm?.field_confidence?.[k] ?? null,
+          })),
+        });
+      } catch (logErr) {
+        console.warn("Correction logging failed (non-fatal):", logErr);
+      }
+
       toast.success("Expense created from receipt");
       qc.invalidateQueries({ queryKey: ["expenses"] });
       onExpenseCreated();
@@ -307,6 +340,14 @@ export function ReceiptExtractionDialog({
     } finally {
       setBusy(false);
     }
+  };
+
+  // Manual-first fallback: skip OCR entirely, open ExpenseFormDialog with attached file context
+  const handleSkipToManual = () => {
+    toast.message("OCR skipped — create the expense manually. The receipt remains attached to this scan job.");
+    setManualMode(true);
+    onOpenChange(false);
+    onExpenseCreated(); // signals parent to open manual form
   };
 
   const showForm = job && (job.status === "extracted" || job.status === "review_required");
