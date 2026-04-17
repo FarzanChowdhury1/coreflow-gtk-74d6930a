@@ -105,14 +105,14 @@ export default function Landing() {
           {
             "@type": "Offer",
             price: "0",
-            priceCurrency: "USD",
+            priceCurrency: "BDT",
             name: "Free",
             description: "Up to 3 seats per workspace",
           },
           {
             "@type": "Offer",
             price: "4.99",
-            priceCurrency: "USD",
+            priceCurrency: "BDT",
             name: "Growth",
             description: "Per seat per month, unlimited seats",
           },

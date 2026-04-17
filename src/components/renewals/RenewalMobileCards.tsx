@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pencil, Pause, Play, Receipt, FileText } from "lucide-react";
 import { format } from "date-fns";
+import { formatCurrency } from "@/lib/utils";
 
 interface Renewal {
   id: string;
@@ -45,7 +46,7 @@ export function RenewalMobileCards({
                 <p className="text-xs text-muted-foreground">{r.companies?.legal_name || "—"}</p>
               </div>
               <span className="font-medium text-foreground shrink-0">
-                {r.currency} {Number(r.amount).toLocaleString()}
+                {formatCurrency(Number(r.amount))}
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-xs">

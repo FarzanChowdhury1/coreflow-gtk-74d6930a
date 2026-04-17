@@ -52,8 +52,9 @@ export interface PdfDocumentData {
 
 // ── Helpers ─────────────────────────────────────────────────────
 
-function fmt(value: number, currency: string): string {
-  return `${currency} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+// CoreFlow is Bangladesh-only — all exported amounts are BDT.
+function fmt(value: number, _currency: string): string {
+  return `৳${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 // ── Main generator ──────────────────────────────────────────────

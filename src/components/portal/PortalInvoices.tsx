@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/table";
 import { Receipt, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
+import { formatCurrency } from "@/lib/utils";
 
 interface Props {
   session: PortalSessionInfo;
@@ -69,8 +70,6 @@ export function PortalInvoices({ session: _session }: Props) {
     .filter((inv) => inv.status !== "paid" && inv.status !== "void")
     .reduce((sum, inv) => sum + (Number(inv.grand_total) - Number(inv.amount_paid)), 0);
 
-  const currency = invoices[0]?.currency || "BDT";
-
   return (
     <div className="mt-4 space-y-4">
       {/* Summary bar */}
@@ -80,7 +79,7 @@ export function PortalInvoices({ session: _session }: Props) {
         </Badge>
         {totalOutstanding > 0 && (
           <Badge variant="outline" className="text-xs font-mono">
-            Outstanding: {currency} {totalOutstanding.toLocaleString()}
+            Outstanding: {formatCurrency(totalOutstanding)}
           </Badge>
         )}
         {overdueIds.size > 0 && (
@@ -124,13 +123,13 @@ export function PortalInvoices({ session: _session }: Props) {
                     </div>
                   </TableCell>
                   <TableCell className="text-right font-mono">
-                    {currency} {Number(inv.grand_total).toLocaleString()}
+                    {formatCurrency(Number(inv.grand_total))}
                   </TableCell>
                   <TableCell className="text-right font-mono text-muted-foreground">
-                    {currency} {Number(inv.amount_paid).toLocaleString()}
+                    {formatCurrency(Number(inv.amount_paid))}
                   </TableCell>
                   <TableCell className={`text-right font-mono font-medium ${balance > 0 ? "text-destructive" : "text-emerald-600"}`}>
-                    {currency} {balance.toLocaleString()}
+                    {formatCurrency(balance)}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {inv.issue_date ? format(new Date(inv.issue_date), "dd MMM yyyy") : "—"}

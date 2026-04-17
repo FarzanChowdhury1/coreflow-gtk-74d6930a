@@ -2,6 +2,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { formatCurrency } from "@/lib/utils";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Invoice = Tables<"invoices"> & { companies?: { legal_name: string } | null };
@@ -44,9 +45,9 @@ export function InvoiceMobileCards({ invoices, onSelect }: Props) {
           </div>
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>
-              {inv.currency} {Number(inv.grand_total).toLocaleString()}
+              {formatCurrency(Number(inv.grand_total))}
               {Number(inv.amount_paid) > 0 && Number(inv.amount_paid) < Number(inv.grand_total) && (
-                <span className="ml-1">(paid: {Number(inv.amount_paid).toLocaleString()})</span>
+                <span className="ml-1">(paid: {formatCurrency(Number(inv.amount_paid))})</span>
               )}
             </span>
             <span>{inv.due_date ? format(new Date(inv.due_date), "MMM d, yyyy") : "No due date"}</span>
