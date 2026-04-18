@@ -1,52 +1,38 @@
 /**
  * Product entitlement / plan logic.
  *
- * Defines plan shapes and provides helpers to check limits.
- * No billing integration — just product-side awareness.
+ * Commercial model (current):
+ *  - Starter — ৳999 / user / month, up to 10 seats, ALL features
+ *  - Growth  — ৳1,999 / user / month, unlimited seats, ALL features
+ *  - No Enterprise tier in active product
+ *  - Annual = 11× monthly (1 month free)
+ *  - Every eligible new workspace starts on a 28-day full Growth trial
+ *  - Then a 7-day INTERNAL grace window
+ *  - After grace, access is suspended until paid activation
+ *  - Same account cannot trial again, even via a new workspace (enforced in DB)
  *
- * Plan model:
- *  - starter — paid base tier (৳799 / user / month, up to 3 seats, core spine only)
- *  - growth — paid full tier (৳1,799 / user / month, unlimited seats, all modules)
- *  - enterprise — custom commercial lane (same product surface as growth)
- *
- * Internal compat:
- *  - The string "free" is treated as a deprecated alias for "starter" so existing
- *    workspaces.plan = 'free' rows continue to work without a migration. No
- *    user-facing surface should render "Free" any more.
- *  - Every workspace begins on a 14-day Growth trial via trial_ends_at.
+ * Legacy compat (DB-only, never user-facing):
+ *  - 'free' rows were migrated to 'starter'
+ *  - 'enterprise' rows were migrated to 'growth'
+ *  - The string "enterprise" is still accepted here as a safety alias mapping to growth.
  */
 
-export type PlanId = "starter" | "growth" | "enterprise";
+export type PlanId = "starter" | "growth";
+export type BillingState = "trial" | "grace" | "starter" | "growth" | "suspended";
 
 export interface PlanConfig {
   id: PlanId;
   name: string;
-  seatLimit: number | null; // null = unlimited
-  trialDays: number;
-  features: {
-    approvalWorkflows: boolean;
-    expenseTracking: boolean;
-    vendorManagement: boolean;
-    subscriptionTracking: boolean;
-    budgetVsActual: boolean;
-    profitability: boolean;
-    auditLog: boolean;
-    csvExport: boolean;
-  };
+  monthlyPrice: number;   // BDT per user per month
+  annualPrice: number;    // BDT per user per year (11× monthly)
+  seatLimit: number | null;
+  features: Record<string, boolean>;
 }
 
-const STARTER_FEATURES: PlanConfig["features"] = {
-  approvalWorkflows: false,
-  expenseTracking: false,
-  vendorManagement: false,
-  subscriptionTracking: false,
-  budgetVsActual: false,
-  profitability: false,
-  auditLog: false,
-  csvExport: false,
-};
-
-const GROWTH_FEATURES: PlanConfig["features"] = {
+// Feature parity: both plans get all features. Kept as an object so the
+// `feature="..."` API on FeatureGate stays type-compatible during the
+// transition. Suspended state is enforced server-side via RLS.
+const ALL_FEATURES: Record<string, boolean> = {
   approvalWorkflows: true,
   expenseTracking: true,
   vendorManagement: true,
@@ -61,102 +47,138 @@ export const PLANS: Record<PlanId, PlanConfig> = {
   starter: {
     id: "starter",
     name: "Starter",
-    seatLimit: 3,
-    trialDays: 0,
-    features: STARTER_FEATURES,
+    monthlyPrice: 999,
+    annualPrice: 999 * 11,
+    seatLimit: 10,
+    features: ALL_FEATURES,
   },
   growth: {
     id: "growth",
     name: "Growth",
+    monthlyPrice: 1999,
+    annualPrice: 1999 * 11,
     seatLimit: null,
-    trialDays: 14,
-    features: GROWTH_FEATURES,
-  },
-  enterprise: {
-    id: "enterprise",
-    name: "Enterprise",
-    seatLimit: null,
-    trialDays: 0,
-    features: GROWTH_FEATURES,
+    features: ALL_FEATURES,
   },
 };
 
 export interface WorkspaceEntitlement {
   plan: PlanId;
+  state: BillingState;
   seatLimit: number | null;
   seatCount: number;
   isOverSeatLimit: boolean;
   isTrialing: boolean;
+  isInGrace: boolean;
   trialDaysLeft: number;
+  graceDaysLeft: number;
   trialExpired: boolean;
+  suspended: boolean;
   canAddSeat: boolean;
-  features: PlanConfig["features"];
+  features: Record<string, boolean>;
   upgradeCta: string | null;
 }
 
-/**
- * Normalize a stored plan string into a real PlanId.
- * Accepts the deprecated "free" alias and maps it to "starter".
- */
 function normalizePlan(plan: string | undefined): PlanId {
-  if (plan === "growth" || plan === "enterprise") return plan;
-  // "free" (legacy) and anything unknown collapse to starter (the paid base tier).
+  if (plan === "growth" || plan === "enterprise") return "growth";
+  // 'free' (legacy) and anything unknown collapse to starter.
   return "starter";
 }
 
-/**
- * Derive the entitlement state for a workspace.
- */
 export function resolveEntitlement(
   plan: string | undefined,
   trialEndsAt: string | null | undefined,
+  graceEndsAt: string | null | undefined,
+  nextRenewalAt: string | null | undefined,
   seatLimit: number | undefined,
   currentSeatCount: number,
 ): WorkspaceEntitlement {
   const planId = normalizePlan(plan);
   const config = PLANS[planId];
 
-  // Trial logic — only meaningful while the workspace is still on the base/starter
-  // tier OR explicitly on growth. Enterprise is treated as already-active.
   const now = new Date();
   const trialEnd = trialEndsAt ? new Date(trialEndsAt) : null;
-  const trialingPlan = planId === "growth" || planId === "starter";
-  const isTrialing = trialingPlan && !!trialEnd && trialEnd > now;
-  const trialExpired = trialingPlan && !!trialEnd && trialEnd <= now;
+  const graceEnd = graceEndsAt ? new Date(graceEndsAt) : null;
+  const hasPaid = !!nextRenewalAt;
+
+  // Mirror DB workspace_billing_state precisely
+  let state: BillingState;
+  if (trialEnd && trialEnd > now && (!graceEnd || graceEnd > now) && !hasPaid) {
+    state = "trial";
+  } else if (trialEnd && trialEnd <= now && graceEnd && graceEnd > now && !hasPaid) {
+    state = "grace";
+  } else if (trialEnd && graceEnd && graceEnd <= now && !hasPaid) {
+    state = "suspended";
+  } else {
+    state = planId; // 'starter' or 'growth'
+  }
+
+  const isTrialing = state === "trial";
+  const isInGrace = state === "grace";
+  const trialExpired = !!trialEnd && trialEnd <= now;
+  const suspended = state === "suspended";
+
   const trialDaysLeft = trialEnd
     ? Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
     : 0;
+  const graceDaysLeft = graceEnd
+    ? Math.max(0, Math.ceil((graceEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
 
-  // While trialing, every workspace gets the full Growth feature set regardless
-  // of its stored plan. After trial ends, fall back to the workspace's actual
-  // plan config (starter / growth / enterprise).
-  const effectiveConfig = isTrialing ? PLANS.growth : config;
-  const effectiveSeatLimit = isTrialing
-    ? PLANS.growth.seatLimit
-    : (seatLimit ?? config.seatLimit);
+  // During trial/grace and growth: unlimited seats. Starter: 10 seats.
+  const effectiveSeatLimit =
+    state === "growth" || state === "trial" || state === "grace"
+      ? null
+      : (seatLimit ?? config.seatLimit);
 
   const isOverSeatLimit = effectiveSeatLimit !== null && currentSeatCount > effectiveSeatLimit;
   const canAddSeat = effectiveSeatLimit === null || currentSeatCount < effectiveSeatLimit;
 
   let upgradeCta: string | null = null;
-  if (trialExpired) {
-    upgradeCta = "Your Growth trial has ended. Choose Starter, Growth, or Enterprise to continue.";
-  } else if (planId === "starter" && isOverSeatLimit) {
-    upgradeCta = "You've exceeded the 3-seat Starter limit. Upgrade to Growth for unlimited seats.";
-  } else if (planId === "starter" && !canAddSeat) {
-    upgradeCta = "You're at the Starter seat limit. Upgrade to Growth for unlimited seats.";
+  if (suspended) {
+    upgradeCta = "Your trial and grace window have ended. Activate Starter or Growth to restore access.";
+  } else if (isInGrace) {
+    upgradeCta = `Your trial ended. ${graceDaysLeft} day${graceDaysLeft !== 1 ? "s" : ""} of grace left — activate Starter or Growth to keep your team running.`;
+  } else if (state === "starter" && currentSeatCount >= 10) {
+    upgradeCta = "You're at the 10-seat Starter limit. Add an 11th seat and your workspace moves to Growth automatically.";
   }
 
   return {
     plan: planId,
+    state,
     seatLimit: effectiveSeatLimit,
     seatCount: currentSeatCount,
     isOverSeatLimit,
     isTrialing,
+    isInGrace,
     trialDaysLeft,
+    graceDaysLeft,
     trialExpired,
+    suspended,
     canAddSeat,
-    features: effectiveConfig.features,
+    features: suspended ? {} : ALL_FEATURES,
     upgradeCta,
   };
+}
+
+/** Annual price = 11× monthly. */
+export function annualFromMonthly(monthly: number): number {
+  return monthly * 11;
+}
+
+/**
+ * Mid-cycle upgrade proration (Starter -> Growth).
+ * Returns the prorated charge for the remainder of the current billing cycle.
+ * Pure function — used for display only; commercial team confirms the actual invoice.
+ */
+export function prorateUpgrade(
+  fromMonthly: number,
+  toMonthly: number,
+  daysIntoCycle: number,
+  cycleDays: number,
+  seats: number,
+): number {
+  const daysRemaining = Math.max(0, cycleDays - daysIntoCycle);
+  const dailyDelta = (toMonthly - fromMonthly) / cycleDays;
+  return Math.round(dailyDelta * daysRemaining * seats);
 }
