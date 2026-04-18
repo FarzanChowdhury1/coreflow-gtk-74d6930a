@@ -3,7 +3,7 @@ import { JSDOM } from 'jsdom';
 const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost/' });
 globalThis.window = dom.window;
 globalThis.document = dom.window.document;
-globalThis.navigator = dom.window.navigator;
+try { globalThis.navigator = dom.window.navigator; } catch {}
 globalThis.HTMLElement = dom.window.HTMLElement;
 globalThis.Image = dom.window.Image;
 globalThis.btoa = (s) => Buffer.from(s, 'binary').toString('base64');
