@@ -36,13 +36,29 @@ export interface PdfMushak63 {
   [key: string]: any;
 }
 
+export interface PdfBankDetails {
+  account_name?: string;
+  account_number?: string;
+  bank_name?: string;
+  branch?: string;
+  instructions?: string;
+}
+
 export interface PdfDocumentData {
-  // Issuer (workspace) — only `name` is reliably present today.
+  // Issuer identity — `workspaceName` remains the safe fallback label.
+  // When `issuerRegisteredName` is provided it is used as the primary issuer
+  // name on formal documents, with `issuerTradeName` shown as a secondary line.
   workspaceName: string;
+  issuerRegisteredName?: string;
+  issuerTradeName?: string;
   workspaceBin?: string;
   workspaceAddress?: string;
   workspaceEmail?: string;
   workspacePhone?: string;
+  // Optional logo, pre-loaded as a data URL (PNG/JPEG). Rendered top-left.
+  issuerLogoDataUrl?: string;
+  // Optional bank/remit block — only rendered when at least one field present.
+  bank?: PdfBankDetails;
 
   currency: string;
 
@@ -120,18 +136,47 @@ export function generateDocumentPdf(data: PdfDocumentData): jsPDF {
   const pageHeight = doc.internal.pageSize.getHeight();
   const contentWidth = pageWidth - MARGIN * 2;
 
+  // Resolve issuer display names
+  const issuerPrimary = (data.issuerRegisteredName || data.workspaceName || "").trim();
+  const issuerSecondary =
+    data.issuerTradeName && data.issuerTradeName.trim() && data.issuerTradeName.trim() !== issuerPrimary
+      ? data.issuerTradeName.trim()
+      : "";
+
   // ─── Header band ─────────────────────────────────────────────
   doc.setFillColor(...COLOR_NAVY);
   doc.rect(0, 0, pageWidth, HEADER_BAND_HEIGHT, "F");
 
+  // Optional logo top-left inside the band
+  let headerTextX = MARGIN;
+  if (data.issuerLogoDataUrl) {
+    try {
+      const fmt = data.issuerLogoDataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
+      doc.addImage(data.issuerLogoDataUrl, fmt, MARGIN, 4, 14, 14, undefined, "FAST");
+      headerTextX = MARGIN + 18;
+    } catch {
+      headerTextX = MARGIN;
+    }
+  }
+
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text(data.workspaceName, MARGIN, 13);
+  doc.setFontSize(15);
+  const maxNameW = pageWidth - headerTextX - MARGIN - 50;
+  const namePrint = (doc.splitTextToSize(issuerPrimary || "—", maxNameW) as string[])[0];
+  doc.text(namePrint, headerTextX, issuerSecondary ? 11 : 13);
+  if (issuerSecondary) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(203, 213, 225);
+    const tradePrint = (doc.splitTextToSize(issuerSecondary, maxNameW) as string[])[0];
+    doc.text(tradePrint, headerTextX, 16);
+  }
 
-  const docLabel = (data.documentLabel || data.documentType).toUpperCase();
+  doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
+  const docLabel = (data.documentLabel || data.documentType).toUpperCase();
   doc.text(docLabel, pageWidth - MARGIN, 13, { align: "right" });
 
   // Reference line under header band
@@ -165,8 +210,16 @@ export function generateDocumentPdf(data: PdfDocumentData): jsPDF {
   // FROM block
   drawLabel("FROM", leftX, y);
   let ly = y + 5;
-  drawLine(data.workspaceName, leftX, ly, { bold: true, size: 11 });
-  ly += 5;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(...COLOR_INK);
+  const fromNameLines = doc.splitTextToSize(issuerPrimary || "—", colWidth) as string[];
+  doc.text(fromNameLines, leftX, ly);
+  ly += fromNameLines.length * 5;
+  if (issuerSecondary) {
+    drawLine(`(${issuerSecondary})`, leftX, ly, { color: COLOR_MUTED, size: 9 });
+    ly += 4;
+  }
   if (data.workspaceAddress) {
     const lines = doc.splitTextToSize(data.workspaceAddress, colWidth);
     doc.setFont("helvetica", "normal");
@@ -432,6 +485,60 @@ export function generateDocumentPdf(data: PdfDocumentData): jsPDF {
     y += splitNotes.length * 4 + 6;
   }
 
+  // ─── Bank / Remit block (invoices, when populated) ───────────
+  if (data.documentType === "Invoice" && data.bank && hasBankContent(data.bank)) {
+    const bankRows: Array<[string, string]> = [];
+    if (data.bank.account_name) bankRows.push(["Account Name", data.bank.account_name]);
+    if (data.bank.account_number) bankRows.push(["Account No.", data.bank.account_number]);
+    if (data.bank.bank_name) bankRows.push(["Bank", data.bank.bank_name]);
+    if (data.bank.branch) bankRows.push(["Branch", data.bank.branch]);
+
+    const instructionLines = data.bank.instructions
+      ? (doc.splitTextToSize(data.bank.instructions, contentWidth - 8) as string[])
+      : [];
+    const blockH = 8 + Math.ceil(bankRows.length / 2) * 6 + (instructionLines.length ? instructionLines.length * 4 + 4 : 0) + 4;
+
+    if (y + blockH > pageHeight - FOOTER_HEIGHT - 32) {
+      doc.addPage();
+      y = MARGIN;
+    }
+
+    doc.setFillColor(...COLOR_BAND_BG);
+    doc.setDrawColor(...COLOR_RULE);
+    doc.roundedRect(MARGIN, y, contentWidth, blockH, 1.5, 1.5, "FD");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(...COLOR_MUTED);
+    doc.text("REMIT / BANK DETAILS", MARGIN + 4, y + 5);
+
+    let by = y + 11;
+    bankRows.forEach((row, i) => {
+      const col = i % 2;
+      const cx = MARGIN + 4 + col * (contentWidth / 2);
+      const cy = by + Math.floor(i / 2) * 6;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(...COLOR_MUTED);
+      doc.text(row[0], cx, cy);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(...COLOR_INK);
+      doc.text(row[1], cx + 24, cy);
+    });
+
+    if (instructionLines.length) {
+      const ix = MARGIN + 4;
+      const iy = by + Math.ceil(bankRows.length / 2) * 6 + 2;
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(8);
+      doc.setTextColor(...COLOR_MUTED);
+      doc.text(instructionLines, ix, iy);
+    }
+
+    y += blockH + 6;
+  }
+
   // ─── Signature / issuer area ─────────────────────────────────
   // Always reserve a clean signature area near the bottom of the
   // last content page, but if not enough room remains, push to a new page.
@@ -451,13 +558,18 @@ export function generateDocumentPdf(data: PdfDocumentData): jsPDF {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(...COLOR_MUTED);
-  doc.text(data.signatureLabel || `For ${data.workspaceName}`, sigX, y + 19);
+  const sigIssuerLabel = issuerPrimary || data.workspaceName;
+  doc.text(data.signatureLabel || `For ${sigIssuerLabel}`, sigX, y + 19);
   doc.text("Authorised Signatory", sigX, y + 23);
 
   // ─── Footer + page numbers across all pages ──────────────────
-  finalisePages(doc, data.workspaceName);
+  finalisePages(doc, issuerPrimary || data.workspaceName);
 
   return doc;
+}
+
+function hasBankContent(b: PdfBankDetails): boolean {
+  return Boolean(b.account_name || b.account_number || b.bank_name || b.branch || b.instructions);
 }
 
 function hasMushakContent(m: PdfMushak63): boolean {

@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Download, Plus, Trash2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { exportInvoicePdf } from "@/lib/invoice-pdf";
+import { resolveWorkspaceIssuer } from "@/lib/workspace-issuer";
 
 interface Props {
   invoice: Tables<"invoices">;
@@ -190,11 +191,11 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
             variant="outline"
             onClick={async () => {
               try {
+                const issuer = await resolveWorkspaceIssuer(currentWorkspace);
                 await exportInvoicePdf({
                   invoiceId: invoice.id,
-                  workspaceName: currentWorkspace?.name || "CoreFlow",
                   workspaceCurrency: currentWorkspace?.currency,
-                  workspaceEmail: currentWorkspace?.portal_support_email || undefined,
+                  issuer,
                 });
                 toast.success("PDF downloaded");
               } catch (err: any) {

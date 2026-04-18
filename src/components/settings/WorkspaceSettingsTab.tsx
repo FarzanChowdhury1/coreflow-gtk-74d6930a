@@ -15,7 +15,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Loader2, AlertTriangle, Download, Palette } from "lucide-react";
+import { Loader2, AlertTriangle, Download, Palette, FileText } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { useEntitlement } from "@/hooks/use-entitlement";
 import { useNavigate } from "react-router-dom";
 
@@ -50,6 +51,22 @@ export function WorkspaceSettingsTab() {
   const [savingBranding, setSavingBranding] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
+  // Document identity (formal PDFs) state
+  const [docRegisteredName, setDocRegisteredName] = useState("");
+  const [docTradeName, setDocTradeName] = useState("");
+  const [docAddress, setDocAddress] = useState("");
+  const [docPhone, setDocPhone] = useState("");
+  const [docEmail, setDocEmail] = useState("");
+  const [docBin, setDocBin] = useState("");
+  const [docLogoPath, setDocLogoPath] = useState("");
+  const [docBankAccountName, setDocBankAccountName] = useState("");
+  const [docBankAccountNumber, setDocBankAccountNumber] = useState("");
+  const [docBankName, setDocBankName] = useState("");
+  const [docBankBranch, setDocBankBranch] = useState("");
+  const [docPaymentInstructions, setDocPaymentInstructions] = useState("");
+  const [savingDocIdentity, setSavingDocIdentity] = useState(false);
+  const [uploadingDocLogo, setUploadingDocLogo] = useState(false);
+
   const ws = currentWorkspace as any;
   const alreadyClaimed = !!ws?.offboarding_export_used_at;
 
@@ -74,6 +91,19 @@ export function WorkspaceSettingsTab() {
       setPortalAccentColor(ws.portal_accent_color || "");
       setPortalSupportEmail(ws.portal_support_email || "");
       setPortalLogoPath(ws.portal_logo_storage_path || "");
+      // Document identity fields
+      setDocRegisteredName(ws.doc_registered_name || "");
+      setDocTradeName(ws.doc_trade_name || "");
+      setDocAddress(ws.doc_address || "");
+      setDocPhone(ws.doc_phone || "");
+      setDocEmail(ws.doc_email || "");
+      setDocBin(ws.doc_bin || "");
+      setDocLogoPath(ws.doc_logo_storage_path || "");
+      setDocBankAccountName(ws.doc_bank_account_name || "");
+      setDocBankAccountNumber(ws.doc_bank_account_number || "");
+      setDocBankName(ws.doc_bank_name || "");
+      setDocBankBranch(ws.doc_bank_branch || "");
+      setDocPaymentInstructions(ws.doc_payment_instructions || "");
     }
   }, [currentWorkspace]);
 
@@ -157,7 +187,61 @@ export function WorkspaceSettingsTab() {
     toast.success("Logo uploaded — click Save Branding to apply");
   };
 
+  const handleSaveDocIdentity = async () => {
+    if (!currentWorkspace) return;
+    setSavingDocIdentity(true);
+    const { error } = await supabase
+      .from("workspaces")
+      .update({
+        doc_registered_name: docRegisteredName.trim() || null,
+        doc_trade_name: docTradeName.trim() || null,
+        doc_address: docAddress.trim() || null,
+        doc_phone: docPhone.trim() || null,
+        doc_email: docEmail.trim() || null,
+        doc_bin: docBin.trim() || null,
+        doc_logo_storage_path: docLogoPath || null,
+        doc_bank_account_name: docBankAccountName.trim() || null,
+        doc_bank_account_number: docBankAccountNumber.trim() || null,
+        doc_bank_name: docBankName.trim() || null,
+        doc_bank_branch: docBankBranch.trim() || null,
+        doc_payment_instructions: docPaymentInstructions.trim() || null,
+      } as any)
+      .eq("id", currentWorkspace.id);
+    setSavingDocIdentity(false);
+    if (error) {
+      toast.error("Failed to save document identity");
+    } else {
+      toast.success("Document identity saved");
+      refreshWorkspaces();
+    }
+  };
 
+  const handleDocLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentWorkspace) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Logo must be under 2MB");
+      return;
+    }
+    setUploadingDocLogo(true);
+    const ext = file.name.split(".").pop() || "png";
+    const storagePath = `${currentWorkspace.id}/doc-logo.${ext}`;
+    const { error: uploadErr } = await supabase.storage
+      .from("workspace-files")
+      .upload(storagePath, file, { upsert: true });
+    if (uploadErr) {
+      toast.error("Failed to upload document logo");
+      setUploadingDocLogo(false);
+      return;
+    }
+    setDocLogoPath(storagePath);
+    setUploadingDocLogo(false);
+    toast.success("Logo uploaded — click Save Document Identity to apply");
+  };
   const handleDeactivate = async () => {
     if (!currentWorkspace) return;
     setDeactivating(true);

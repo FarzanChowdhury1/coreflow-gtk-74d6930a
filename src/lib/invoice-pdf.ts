@@ -5,13 +5,14 @@
 import { supabase } from "@/integrations/supabase/client";
 import { generateDocumentPdf, downloadPdf } from "./pdf-export";
 import type { PdfLineItem, PdfTaxEntry, PdfMushak63 } from "./pdf-export";
+import type { ResolvedIssuerIdentity } from "./workspace-issuer";
 import { format } from "date-fns";
 
 export interface InvoicePdfOptions {
   invoiceId: string;
-  workspaceName: string;
   workspaceCurrency?: string;
-  workspaceEmail?: string;
+  /** Pre-resolved workspace document identity (logo, registered name, bank, etc.) */
+  issuer: ResolvedIssuerIdentity;
 }
 
 export async function exportInvoicePdf(opts: InvoicePdfOptions) {
@@ -35,7 +36,6 @@ export async function exportInvoicePdf(opts: InvoicePdfOptions) {
   const company = invoice.companies as any;
   const currency = invoice.currency || opts.workspaceCurrency || "BDT";
 
-  // Tax breakdown — invoice may use { label, bps } or { name, rate_bps }
   const taxConfig: Array<{ name: string; rate_bps: number }> = Array.isArray(invoice.tax_config)
     ? (invoice.tax_config as any[]).map((t: any) => ({
         name: t.label || t.name || "Tax",
@@ -56,7 +56,6 @@ export async function exportInvoicePdf(opts: InvoicePdfOptions) {
     amount: Number(li.amount),
   }));
 
-  // Status label (handle partially_paid)
   let statusLabel = invoice.status?.replace("_", " ");
   if (invoice.status === "partially_paid" && Number(invoice.amount_paid) > 0) {
     statusLabel = "partially paid";
@@ -68,7 +67,6 @@ export async function exportInvoicePdf(opts: InvoicePdfOptions) {
   const amountPaid = Number(invoice.amount_paid) || 0;
   const amountDue = Math.max(grandTotal - amountPaid, 0);
 
-  // Pull through Mushak 6.3 only if there is real content
   const mushakRaw = (invoice.mushak_6_3 || {}) as Record<string, any>;
   const mushak: PdfMushak63 | null = Object.keys(mushakRaw).length
     ? {
@@ -81,8 +79,15 @@ export async function exportInvoicePdf(opts: InvoicePdfOptions) {
     : null;
 
   const doc = generateDocumentPdf({
-    workspaceName: opts.workspaceName,
-    workspaceEmail: opts.workspaceEmail,
+    workspaceName: opts.issuer.workspaceName,
+    issuerRegisteredName: opts.issuer.issuerRegisteredName,
+    issuerTradeName: opts.issuer.issuerTradeName,
+    workspaceAddress: opts.issuer.workspaceAddress,
+    workspacePhone: opts.issuer.workspacePhone,
+    workspaceEmail: opts.issuer.workspaceEmail,
+    workspaceBin: opts.issuer.workspaceBin,
+    issuerLogoDataUrl: opts.issuer.issuerLogoDataUrl,
+    bank: opts.issuer.bank,
     currency,
     documentType: "Invoice",
     documentLabel: mushak && (mushak.challan_no || mushak.vat_reg_no) ? "TAX INVOICE" : "INVOICE",
