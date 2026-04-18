@@ -3003,7 +3003,9 @@ export type Database = {
           currency: string
           deleted_at: string | null
           grace_ends_at: string | null
+          grace_reminders_sent: number
           id: string
+          last_grace_reminder_at: string | null
           name: string
           next_renewal_at: string | null
           offboarding_export_claimed_by: string | null
@@ -3013,6 +3015,7 @@ export type Database = {
           portal_accent_color: string | null
           portal_logo_storage_path: string | null
           portal_support_email: string | null
+          renewal_grace_ends_at: string | null
           seat_limit: number
           timezone: string
           trial_ends_at: string | null
@@ -3026,7 +3029,9 @@ export type Database = {
           currency?: string
           deleted_at?: string | null
           grace_ends_at?: string | null
+          grace_reminders_sent?: number
           id?: string
+          last_grace_reminder_at?: string | null
           name: string
           next_renewal_at?: string | null
           offboarding_export_claimed_by?: string | null
@@ -3036,6 +3041,7 @@ export type Database = {
           portal_accent_color?: string | null
           portal_logo_storage_path?: string | null
           portal_support_email?: string | null
+          renewal_grace_ends_at?: string | null
           seat_limit?: number
           timezone?: string
           trial_ends_at?: string | null
@@ -3049,7 +3055,9 @@ export type Database = {
           currency?: string
           deleted_at?: string | null
           grace_ends_at?: string | null
+          grace_reminders_sent?: number
           id?: string
+          last_grace_reminder_at?: string | null
           name?: string
           next_renewal_at?: string | null
           offboarding_export_claimed_by?: string | null
@@ -3059,6 +3067,7 @@ export type Database = {
           portal_accent_color?: string | null
           portal_logo_storage_path?: string | null
           portal_support_email?: string | null
+          renewal_grace_ends_at?: string | null
           seat_limit?: number
           timezone?: string
           trial_ends_at?: string | null
@@ -3115,6 +3124,7 @@ export type Database = {
         Args: { _workspace_id: string }
         Returns: Json
       }
+      apply_pending_downgrades: { Args: never; Returns: Json }
       assert_export_allowed: { Args: { _workspace_id: string }; Returns: Json }
       bootstrap_workspace: {
         Args: { _name?: string; _user_id: string }
@@ -3344,6 +3354,7 @@ export type Database = {
         Returns: Json
       }
       select_retention_candidates: { Args: never; Returns: Json }
+      send_grace_reminders: { Args: never; Returns: Json }
       set_billing_owner: {
         Args: { _new_owner_id: string; _workspace_id: string }
         Returns: Json

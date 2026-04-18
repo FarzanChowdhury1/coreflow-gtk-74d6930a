@@ -99,9 +99,14 @@ export function resolveEntitlement(
   const now = new Date();
   const trialEnd = trialEndsAt ? new Date(trialEndsAt) : null;
   const graceEnd = graceEndsAt ? new Date(graceEndsAt) : null;
-  const hasPaid = !!nextRenewalAt;
+  const renewalAt = nextRenewalAt ? new Date(nextRenewalAt) : null;
+  const hasPaid = !!renewalAt;
 
-  // Mirror DB workspace_billing_state precisely
+  // Paid plans: 7-day post-renewal grace, then suspended.
+  const renewalGraceEnd = renewalAt
+    ? new Date(renewalAt.getTime() + 7 * 24 * 60 * 60 * 1000)
+    : null;
+
   let state: BillingState;
   if (trialEnd && trialEnd > now && (!graceEnd || graceEnd > now) && !hasPaid) {
     state = "trial";
@@ -109,6 +114,10 @@ export function resolveEntitlement(
     state = "grace";
   } else if (trialEnd && graceEnd && graceEnd <= now && !hasPaid) {
     state = "suspended";
+  } else if (renewalAt && renewalGraceEnd && renewalGraceEnd <= now) {
+    state = "suspended";
+  } else if (renewalAt && renewalAt <= now) {
+    state = "grace";
   } else {
     state = planId; // 'starter' or 'growth'
   }
@@ -121,8 +130,13 @@ export function resolveEntitlement(
   const trialDaysLeft = trialEnd
     ? Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
     : 0;
-  const graceDaysLeft = graceEnd
-    ? Math.max(0, Math.ceil((graceEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+  // Grace days left covers either trial-grace OR renewal-grace
+  const activeGraceEnd =
+    graceEnd && graceEnd > now ? graceEnd
+    : renewalGraceEnd && renewalGraceEnd > now ? renewalGraceEnd
+    : null;
+  const graceDaysLeft = activeGraceEnd
+    ? Math.max(0, Math.ceil((activeGraceEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
     : 0;
 
   // During trial/grace and growth: unlimited seats. Starter: 10 seats.
@@ -132,15 +146,18 @@ export function resolveEntitlement(
       : (seatLimit ?? config.seatLimit);
 
   const isOverSeatLimit = effectiveSeatLimit !== null && currentSeatCount > effectiveSeatLimit;
-  const canAddSeat = effectiveSeatLimit === null || currentSeatCount < effectiveSeatLimit;
+  // 11th seat is allowed; backend auto-promotes to Growth. Only suspension blocks adds.
+  const canAddSeat = !suspended;
 
   let upgradeCta: string | null = null;
   if (suspended) {
-    upgradeCta = "Your trial and grace window have ended. Activate Starter or Growth to restore access.";
+    upgradeCta = "Access is suspended. Activate Starter or Growth to restore your workspace.";
+  } else if (isInGrace && hasPaid) {
+    upgradeCta = `Renewal overdue — ${graceDaysLeft} day${graceDaysLeft !== 1 ? "s" : ""} left before suspension. Renew to keep working.`;
   } else if (isInGrace) {
     upgradeCta = `Your trial ended. ${graceDaysLeft} day${graceDaysLeft !== 1 ? "s" : ""} of grace left — activate Starter or Growth to keep your team running.`;
   } else if (state === "starter" && currentSeatCount >= 10) {
-    upgradeCta = "You're at the 10-seat Starter limit. Add an 11th seat and your workspace moves to Growth automatically.";
+    upgradeCta = "You're at the 10-seat Starter limit. Adding the 11th seat will move your workspace to Growth automatically.";
   }
 
   return {
