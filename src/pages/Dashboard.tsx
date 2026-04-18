@@ -4,6 +4,7 @@ import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist"
 import { DashboardBreakdowns } from "@/components/dashboard/DashboardBreakdowns";
 import { FinanceAnalytics } from "@/components/dashboard/FinanceAnalytics";
 import { LenderReadiness } from "@/components/dashboard/LenderReadiness";
+import { BurdenAnalytics } from "@/components/dashboard/BurdenAnalytics";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -135,6 +136,13 @@ export default function Dashboard() {
           <div className="mt-4">
             <LenderReadiness
               workspaceId={currentWorkspace.id}
+              isAdmin={currentRole === "admin"}
+            />
+          </div>
+          <div className="mt-4">
+            <BurdenAnalytics
+              workspaceId={currentWorkspace.id}
+              currency={currency}
               isAdmin={currentRole === "admin"}
             />
           </div>
