@@ -238,10 +238,15 @@ export function FinanceAnalytics({ workspaceId, currency, isAdmin }: Props) {
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-3 mb-3">
                   <div className="text-3xl font-semibold tabular-nums">{health.score}</div>
                   <div className="text-xs text-muted-foreground">/ 100</div>
                 </div>
+                {health.summary_text && (
+                  <p className="text-xs text-foreground/90 mb-4 leading-relaxed">
+                    {health.summary_text}
+                  </p>
+                )}
                 <div className="space-y-1.5">
                   {health.drivers.length === 0 ? (
                     <p className="text-xs text-muted-foreground">No notable drivers.</p>
@@ -260,7 +265,7 @@ export function FinanceAnalytics({ workspaceId, currency, isAdmin }: Props) {
                           <Icon className={`h-3.5 w-3.5 ${tone}`} />
                           <span className="text-foreground">{d.label}</span>
                           {d.value !== undefined && d.value !== null && (
-                            <span className="text-muted-foreground tabular-nums">({d.value}{d.label.toLowerCase().includes("rate") || d.label.toLowerCase().includes("trending") ? "%" : ""})</span>
+                            <span className="text-muted-foreground tabular-nums">({d.value}{d.label.toLowerCase().includes("rate") || d.label.toLowerCase().includes("trending") || d.label.toLowerCase().includes("budget") ? "%" : ""})</span>
                           )}
                         </div>
                       );
