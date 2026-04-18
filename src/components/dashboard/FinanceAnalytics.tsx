@@ -289,37 +289,51 @@ export function FinanceAnalytics({ workspaceId, currency, isAdmin }: Props) {
             </p>
           </CardHeader>
           <CardContent>
-            {!cc.sufficient_data ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                <Info className="h-5 w-5 mx-auto mb-2 opacity-50" />
-                Insufficient payment history to compute DSO/DPO.
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                <div>
-                  <p className="text-[10px] text-muted-foreground">DSO</p>
-                  <p className="text-lg font-semibold tabular-nums">
-                    {cc.dso_days !== null ? `${Math.round(cc.dso_days)}d` : "—"}
-                  </p>
+            {(() => {
+              const canDso = cc.can_compute_dso ?? (cc.dso_days !== null);
+              const canDpo = cc.can_compute_dpo ?? (cc.dpo_days !== null);
+              const canCcc = cc.can_compute_ccc ?? (canDso && canDpo);
+              if (!canDso && !canDpo) {
+                return (
+                  <div className="py-6 text-center text-sm text-muted-foreground">
+                    <Info className="h-5 w-5 mx-auto mb-2 opacity-50" />
+                    Insufficient payment history to compute DSO or DPO.
+                  </div>
+                );
+              }
+              const dpoBasisLabel =
+                cc.dpo_basis === "due_date" ? "vs due date" :
+                cc.dpo_basis === "expense_date_fallback" ? "vs expense date (fallback)" :
+                null;
+              return (
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">DSO</p>
+                    <p className="text-lg font-semibold tabular-nums">
+                      {canDso && cc.dso_days !== null ? `${Math.round(cc.dso_days)}d` : <span className="text-xs text-muted-foreground font-normal">Insufficient data</span>}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">
+                      DPO{dpoBasisLabel && canDpo ? <span className="ml-1 opacity-70">· {dpoBasisLabel}</span> : null}
+                    </p>
+                    <p className="text-lg font-semibold tabular-nums">
+                      {canDpo && cc.dpo_days !== null ? `${Math.round(cc.dpo_days)}d` : <span className="text-xs text-muted-foreground font-normal">Insufficient data</span>}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">CCC</p>
+                    <p className={`text-lg font-semibold tabular-nums ${
+                      !canCcc || cc.ccc_days === null ? "" :
+                      cc.ccc_days <= 30 ? "text-success" :
+                      cc.ccc_days <= 60 ? "text-warning" : "text-destructive"
+                    }`}>
+                      {canCcc && cc.ccc_days !== null ? `${Math.round(cc.ccc_days)}d` : <span className="text-xs text-muted-foreground font-normal">Insufficient data</span>}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground">DPO</p>
-                  <p className="text-lg font-semibold tabular-nums">
-                    {cc.dpo_days !== null ? `${Math.round(cc.dpo_days)}d` : "—"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground">CCC</p>
-                  <p className={`text-lg font-semibold tabular-nums ${
-                    cc.ccc_days === null ? "" :
-                    cc.ccc_days <= 30 ? "text-success" :
-                    cc.ccc_days <= 60 ? "text-warning" : "text-destructive"
-                  }`}>
-                    {cc.ccc_days !== null ? `${Math.round(cc.ccc_days)}d` : "—"}
-                  </p>
-                </div>
-              </div>
-            )}
+              );
+            })()}
             <div className="grid grid-cols-2 gap-2 pt-3 border-t text-xs">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Receivables</span>
