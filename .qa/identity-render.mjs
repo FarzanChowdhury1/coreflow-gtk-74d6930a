@@ -1,15 +1,45 @@
-import { createServer } from 'vite';
 import fs from 'node:fs';
-globalThis.window = globalThis;
+import { JSDOM } from 'jsdom';
+const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost/' });
+globalThis.window = dom.window;
+globalThis.document = dom.window.document;
+globalThis.navigator = dom.window.navigator;
+globalThis.HTMLElement = dom.window.HTMLElement;
+globalThis.Image = dom.window.Image;
+globalThis.btoa = (s) => Buffer.from(s, 'binary').toString('base64');
+globalThis.atob = (s) => Buffer.from(s, 'base64').toString('binary');
 fs.mkdirSync('/tmp/pdfqa', { recursive: true });
 
-const server = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' });
-const jspdfMod = await server.ssrLoadModule('jspdf');
-const Ctor = jspdfMod.jsPDF || jspdfMod.default?.jsPDF || jspdfMod.default;
-try { Object.defineProperty(jspdfMod, 'default', { value: Ctor, writable: true, configurable: true }); } catch {}
+// Use the browser ESM build directly to avoid the node CJS shim.
+const jspdfMod = await import('jspdf/dist/jspdf.es.min.js');
+const jsPDF = jspdfMod.jsPDF || jspdfMod.default;
+globalThis.jsPDF = jsPDF;
 
-const eng = await server.ssrLoadModule('/src/lib/pdf-export.ts');
-const { generateDocumentPdf } = eng;
+await import('jspdf-autotable');
+
+// Now load the engine; patch its jspdf import via a tiny shim file.
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+
+// Read the engine source and eval it inline with our jsPDF + autoTable.
+import { readFileSync } from 'node:fs';
+import * as ts from 'typescript';
+const tsSrc = readFileSync('/dev-server/src/lib/pdf-export.ts', 'utf8');
+const jsSrc = ts.transpileModule(tsSrc, {
+  compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2020, esModuleInterop: true },
+}).outputText;
+
+// Replace bare imports with global hooks.
+const patched = jsSrc
+  .replace(/import\s+jsPDF\s+from\s+["']jspdf["'];?/g, 'const jsPDF = globalThis.jsPDF;')
+  .replace(/import\s+autoTable\s+from\s+["']jspdf-autotable["'];?/g, 'const autoTable = globalThis.__autoTable;');
+
+// Pull autoTable as a global
+const at = await import('jspdf-autotable');
+globalThis.__autoTable = at.default || at.autoTable || at;
+
+const mod = await import('data:text/javascript;base64,' + Buffer.from(patched).toString('base64'));
+const { generateDocumentPdf } = mod;
 
 function save(doc, name) {
   fs.writeFileSync(`/tmp/pdfqa/${name}`, Buffer.from(doc.output('arraybuffer')));
@@ -30,12 +60,9 @@ const baseTotals = { subtotal: 400000, taxes: [{ name: 'VAT', rate_bps: 1500, am
 
 save(generateDocumentPdf({
   workspaceName: 'darviz-internal',
-  issuerRegisteredName: 'DARVIZ Labs Limited',
-  issuerTradeName: 'DARVIZ',
+  issuerRegisteredName: 'DARVIZ Labs Limited', issuerTradeName: 'DARVIZ',
   workspaceAddress: 'House 12, Road 4, Banani, Dhaka 1213, Bangladesh',
-  workspacePhone: '+880 1700 123456',
-  workspaceEmail: 'billing@darviz.io',
-  workspaceBin: '000123456-0101',
+  workspacePhone: '+880 1700 123456', workspaceEmail: 'billing@darviz.io', workspaceBin: '000123456-0101',
   bank: { account_name: 'DARVIZ Labs Limited', account_number: '1234567890123', bank_name: 'BRAC Bank', branch: 'Gulshan', instructions: 'Wire reference: invoice number. Email confirmation to billing@darviz.io.' },
   currency: 'BDT', documentType: 'Invoice', documentTitle: 'INV-000042', documentRef: 'INV-000042',
   status: 'sent', date: '18 Apr 2026', validUntil: '02 May 2026', dueDateLabel: 'DUE DATE',
@@ -79,5 +106,4 @@ save(generateDocumentPdf({
   ...baseClient, lineItems: baseItems, ...baseTotals, termsLabel: 'Notes',
 }), 'identity-proposal-bank-suppressed.pdf');
 
-await server.close();
 console.log('OK');
