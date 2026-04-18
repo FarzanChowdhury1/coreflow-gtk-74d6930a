@@ -20,7 +20,9 @@ export function PlanBillingTab() {
 
   const planLabel =
     ent.plan === "enterprise" ? "Enterprise" :
-    ent.plan === "growth" ? "Growth" : "Starter";
+    ent.plan === "growth" ? "Growth" :
+    ent.isTrialing ? "Trial" :
+    ent.trialExpired ? "Trial ended" : "Trial";
 
   const seatPct = ent.seatLimit ? Math.min(100, Math.round((seatCount / ent.seatLimit) * 100)) : 0;
 
@@ -111,10 +113,10 @@ export function PlanBillingTab() {
           {/* Plan-specific messaging */}
           {ent.plan === "free" && (
             <div className="rounded-md border bg-muted/30 p-4 space-y-3">
-              <p className="text-sm font-medium text-foreground">Starter — ৳799 / user / month (up to 3 seats)</p>
+              <p className="text-sm font-medium text-foreground">14-day Growth trial</p>
               <p className="text-sm text-muted-foreground">
-                Includes core CRM features: leads, proposals, projects, invoices, and payments.
-                Try Growth (৳1,799 / user / month) free for 14 days for advanced modules like expense tracking, approvals, audit logs, and unlimited seats.
+                Every workspace begins with a 14-day Growth trial — full access to all features. After the trial, choose a paid plan to continue:
+                Starter (৳799 / user / month, up to 3 seats), Growth (৳1,799 / user / month, unlimited seats), or Enterprise (custom).
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" onClick={handleStartTrial} disabled={startingTrial || trialAlreadyUsed}>
@@ -123,7 +125,7 @@ export function PlanBillingTab() {
                   ) : (
                     <Rocket className="mr-1.5 h-3.5 w-3.5" />
                   )}
-                  Start 14-Day Growth Trial
+                  Start 14-Day Trial
                 </Button>
                 <Button size="sm" variant="outline" asChild>
                   <a href="mailto:hello@coreflow.app?subject=Enterprise%20Inquiry">
