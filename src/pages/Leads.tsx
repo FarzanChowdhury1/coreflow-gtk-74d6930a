@@ -141,6 +141,23 @@ export default function Leads() {
     }
   };
 
+  /**
+   * Start lead → proposal conversion. If the lead has no company, open the
+   * inline resolver first; otherwise jump straight into the proposal dialog.
+   */
+  const startConvert = (lead: Lead) => {
+    if (lead.company_id) {
+      setProposalPrefill({
+        title: lead.title,
+        company_id: lead.company_id,
+        notes: lead.notes || undefined,
+        lead_id: lead.id,
+      });
+    } else {
+      setResolveCompanyForLead(lead);
+    }
+  };
+
   const renderLeadRow = (lead: Lead) => {
     const isArchived = !!lead.deleted_at;
     return (
