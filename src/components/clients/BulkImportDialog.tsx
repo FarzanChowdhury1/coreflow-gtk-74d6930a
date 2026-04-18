@@ -38,14 +38,38 @@ interface ParsedRow {
   status: RowStatus;
 }
 
-const COMPANY_HEADERS = ["legal_name", "bin", "address", "phone", "notes", "website"];
-const CONTACT_HEADERS = ["full_name", "email", "phone", "alt_phone", "designation", "company_name", "notes", "website", "linkedin"];
+// Social columns supported in CSV import. Mirrors the 8-platform whitelist
+// in src/lib/socials.ts so import ↔ export are symmetric.
+const SOCIAL_IMPORT_COLS = [
+  "website",
+  "facebook",
+  "instagram",
+  "linkedin",
+  "twitter",
+  "youtube",
+  "tiktok",
+  "whatsapp",
+] as const;
+type SocialCol = (typeof SOCIAL_IMPORT_COLS)[number];
+
+const COMPANY_HEADERS = ["legal_name", "bin", "address", "phone", "notes", ...SOCIAL_IMPORT_COLS];
+const CONTACT_HEADERS = ["full_name", "email", "phone", "alt_phone", "designation", "company_name", "notes", ...SOCIAL_IMPORT_COLS];
+
+function buildSocialsFromRow(data: Record<string, string>): { platform: string; value: string }[] {
+  const out: { platform: string; value: string }[] = [];
+  for (const col of SOCIAL_IMPORT_COLS) {
+    const v = data[col]?.trim();
+    if (v) out.push({ platform: col, value: v });
+  }
+  return out;
+}
 
 function downloadTemplate(type: ImportType) {
   const headers = type === "companies" ? COMPANY_HEADERS : CONTACT_HEADERS;
+  // Example row only fills a couple of socials; the rest are optional.
   const example = type === "companies"
-    ? ["Acme Corp", "1234567890123", "123 Main St", "+8801712345678", "Important client"]
-    : ["Jane Doe", "jane@example.com", "+8801712345678", "", "CEO", "Acme Corp", "Key contact"];
+    ? ["Acme Corp", "1234567890123", "123 Main St", "+8801712345678", "Important client", "https://acme.com", "", "", "linkedin.com/company/acme", "", "", "", ""]
+    : ["Jane Doe", "jane@example.com", "+8801712345678", "", "CEO", "Acme Corp", "Key contact", "", "", "", "linkedin.com/in/janedoe", "", "", "", ""];
   const csv = [headers.join(","), example.join(",")].join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
@@ -278,8 +302,7 @@ export function BulkImportDialog({ open, onOpenChange, companies, contacts }: Pr
 
     if (importType === "companies") {
       for (const row of validRows) {
-        const socials: { platform: string; value: string }[] = [];
-        if (row.data.website?.trim()) socials.push({ platform: "website", value: row.data.website.trim() });
+        const socials = buildSocialsFromRow(row.data);
         const { error } = await supabase.from("companies").insert({
           workspace_id: currentWorkspace.id,
           legal_name: row.data.legal_name.trim(),
@@ -313,9 +336,7 @@ export function BulkImportDialog({ open, onOpenChange, companies, contacts }: Pr
         if (primary) phonesArr.push({ label: "primary", number: primary });
         if (alternate) phonesArr.push({ label: "alternate", number: alternate });
 
-        const socials: { platform: string; value: string }[] = [];
-        if (row.data.website?.trim()) socials.push({ platform: "website", value: row.data.website.trim() });
-        if (row.data.linkedin?.trim()) socials.push({ platform: "linkedin", value: row.data.linkedin.trim() });
+        const socials = buildSocialsFromRow(row.data);
 
         const { error } = await supabase.from("contacts").insert({
           workspace_id: currentWorkspace.id,
