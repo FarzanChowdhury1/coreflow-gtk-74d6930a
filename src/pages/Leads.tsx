@@ -383,11 +383,7 @@ export default function Leads() {
           onEdit={(lead) => { setEditingLead(lead); setDialogOpen(true); }}
           onArchive={handleArchive}
           onRestore={handleRestore}
-          onConvert={(lead) => {
-            if (lead.company_id) {
-              setProposalPrefill({ title: lead.title, company_id: lead.company_id, notes: lead.notes || undefined, lead_id: lead.id });
-            }
-          }}
+          onConvert={startConvert}
           onMeeting={(lead) => setMeetingContext({ lead_id: lead.id, company_id: lead.company_id || undefined, contact_id: lead.contact_id || undefined })}
         />
       ) : viewMode === "kanban" ? (
@@ -399,11 +395,7 @@ export default function Leads() {
           userId={user?.id}
           onEdit={(lead) => { setEditingLead(lead); setDialogOpen(true); }}
           onArchive={handleArchive}
-          onConvert={(lead) => {
-            if (lead.company_id) {
-              setProposalPrefill({ title: lead.title, company_id: lead.company_id, notes: lead.notes || undefined, lead_id: lead.id });
-            }
-          }}
+          onConvert={startConvert}
           onMeeting={(lead) => setMeetingContext({ lead_id: lead.id, company_id: lead.company_id || undefined, contact_id: lead.contact_id || undefined })}
         />
       ) : (
