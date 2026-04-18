@@ -11,58 +11,44 @@ import {
 const PLANS = [
   {
     name: "Starter",
-    price: "৳799",
+    price: "৳999",
     period: "user / month",
+    annual: "or ৳10,989 / user / year (1 month free)",
     description: "For small Bangladeshi teams running their first structured operations.",
-    cta: "Start Trial",
+    cta: "Start 28-Day Trial",
     ctaVariant: "outline" as const,
     ctaLink: "/login",
     highlight: false,
     features: [
-      "Up to 3 seats per workspace",
+      "Up to 10 seats per workspace",
+      "Every feature included",
       "Leads, proposals & projects",
       "Client portal",
-      "Invoicing & payments (Mushak 6.3 ready)",
-      "CSV exports",
+      "Mushak 6.3-ready invoicing",
+      "Approvals, expenses, vendors, budgets",
+      "Audit log & profitability reports",
     ],
-    trialNote: "Begins with 14-day Growth trial · paid plan after trial",
+    trialNote: "28-day full Growth trial · then choose Starter or Growth",
   },
   {
     name: "Growth",
-    price: "৳1,799",
+    price: "৳1,999",
     period: "user / month",
-    description: "For growing Bangladeshi agencies and service firms that need full operational control.",
-    cta: "Start 14-Day Trial",
+    annual: "or ৳21,989 / user / year (1 month free)",
+    description: "For Bangladeshi agencies with larger teams and dedicated commercial handling.",
+    cta: "Start 28-Day Trial",
     ctaVariant: "default" as const,
     ctaLink: "/login",
     highlight: true,
-    badge: "Most Popular",
+    badge: "Larger teams",
     features: [
       "Everything in Starter",
-      "Unlimited seats",
-      "Approval workflows",
-      "Expense & vendor tracking",
-      "Subscriptions & renewals",
-      "Budget vs actual reporting",
-      "Audit log & profitability reports",
+      "Unlimited seats (from seat 11 onward)",
+      "Same feature set as Starter",
+      "Priority commercial support",
+      "Dedicated onboarding handling",
     ],
-    trialNote: "No payment details required during trial",
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    period: "talk to us",
-    description: "For larger Bangladeshi organisations needing custom setup and a direct commercial conversation.",
-    cta: "Contact Us",
-    ctaVariant: "outline" as const,
-    ctaLink: "mailto:hello@coreflow.app?subject=Enterprise%20inquiry",
-    highlight: false,
-    features: [
-      "Everything in Growth",
-      "Built for larger teams",
-      "Custom workspace setup",
-      "Direct commercial discussion",
-    ],
+    trialNote: "Same 28-day trial — no payment details required",
   },
 ];
 
@@ -101,32 +87,17 @@ export default function Landing() {
         description:
           "Bangladesh-first operations platform for agencies and service firms. Manage leads, proposals, projects, invoicing, payments, and renewals with a client portal.",
         offers: [
-          {
-            "@type": "Offer",
-            price: "799",
-            priceCurrency: "BDT",
-            name: "Starter",
-            description: "Per user per month, up to 3 seats per workspace",
-          },
-          {
-            "@type": "Offer",
-            price: "1799",
-            priceCurrency: "BDT",
-            name: "Growth",
-            description: "Per user per month, unlimited seats",
-          },
+          { "@type": "Offer", price: "999", priceCurrency: "BDT", name: "Starter", description: "Per user per month, up to 10 seats per workspace" },
+          { "@type": "Offer", price: "1999", priceCurrency: "BDT", name: "Growth", description: "Per user per month, unlimited seats" },
         ],
       });
       document.head.appendChild(script);
     }
-    return () => {
-      document.getElementById(id)?.remove();
-    };
+    return () => { document.getElementById(id)?.remove(); };
   }, []);
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Nav */}
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <Link to="/" className="flex items-center gap-2">
@@ -136,21 +107,14 @@ export default function Landing() {
             <span className="text-lg font-semibold text-foreground">CoreFlow</span>
           </Link>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild>
-              <a href="#pricing">Pricing</a>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/login">Sign In</Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link to="/login">Get Started</Link>
-            </Button>
+            <Button variant="ghost" size="sm" asChild><a href="#pricing">Pricing</a></Button>
+            <Button variant="outline" size="sm" asChild><Link to="/login">Sign In</Link></Button>
+            <Button size="sm" asChild><Link to="/login">Start 28-Day Trial</Link></Button>
           </div>
         </div>
       </header>
 
       <main>
-      {/* Hero */}
       <section className="mx-auto max-w-4xl px-4 py-20 text-center">
         <Badge variant="secondary" className="mb-4">Built in Bangladesh, for Bangladeshi service businesses</Badge>
         <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
@@ -161,17 +125,12 @@ export default function Landing() {
           CoreFlow is the operations platform for Bangladeshi agencies, service firms, and distributor–supplier teams. Manage leads, proposals, projects, Mushak 6.3-ready invoicing, payments, and renewals — with a client portal your customers will actually use.
         </p>
         <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-          <Button size="lg" asChild>
-            <Link to="/login">Start 14-Day Trial</Link>
-          </Button>
-          <Button variant="outline" size="lg" asChild>
-            <a href="#pricing">View Pricing</a>
-          </Button>
+          <Button size="lg" asChild><Link to="/login">Start 28-Day Trial</Link></Button>
+          <Button variant="outline" size="lg" asChild><a href="#pricing">View Pricing</a></Button>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">Every workspace starts on a 14-day Growth trial · then choose Starter, Growth, or Enterprise · no payment details required during trial</p>
+        <p className="mt-3 text-xs text-muted-foreground">Full Growth access for 28 days · then choose Starter or Growth · no payment details required during trial</p>
       </section>
 
-      {/* Workflow spine */}
       <section className="border-y bg-muted/30 py-16">
         <div className="mx-auto max-w-5xl px-4">
           <h2 className="mb-10 text-center text-2xl font-semibold text-foreground">One connected workflow</h2>
@@ -182,9 +141,7 @@ export default function Landing() {
                   <step.icon className="h-4 w-4 text-primary" />
                   {step.label}
                 </span>
-                {i < WORKFLOW_STEPS.length - 1 && (
-                  <ArrowRight className="h-4 w-4 text-muted-foreground/50" />
-                )}
+                {i < WORKFLOW_STEPS.length - 1 && <ArrowRight className="h-4 w-4 text-muted-foreground/50" />}
               </span>
             ))}
           </div>
@@ -194,7 +151,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Benefits */}
       <section className="mx-auto max-w-6xl px-4 py-20">
         <h2 className="mb-10 text-center text-2xl font-semibold text-foreground">Why teams choose CoreFlow</h2>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -214,14 +170,16 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Pricing */}
       <section id="pricing" className="border-t bg-muted/30 py-20">
-        <div className="mx-auto max-w-5xl px-4">
+        <div className="mx-auto max-w-4xl px-4">
           <h2 className="mb-2 text-center text-2xl font-semibold text-foreground">Simple, transparent pricing</h2>
-          <p className="mb-10 text-center text-sm text-muted-foreground">
-            Billed per user, per workspace, in BDT. Same person in multiple workspaces is billed separately.
+          <p className="mb-2 text-center text-sm text-muted-foreground">
+            Billed per user, per workspace, in BDT. Same feature set in both plans — Growth is for larger teams.
           </p>
-          <div className="grid gap-6 md:grid-cols-3">
+          <p className="mb-10 text-center text-xs text-muted-foreground">
+            Annual = 11× monthly (one month free). Upgrades are prorated; downgrades take effect at renewal.
+          </p>
+          <div className="grid gap-6 md:grid-cols-2">
             {PLANS.map((plan) => (
               <Card
                 key={plan.name}
@@ -238,7 +196,8 @@ export default function Landing() {
                     <span className="text-3xl font-bold text-foreground">{plan.price}</span>
                     {plan.period && <span className="ml-1 text-sm text-muted-foreground">/ {plan.period}</span>}
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{plan.annual}</p>
+                  <p className="text-sm text-muted-foreground mt-2">{plan.description}</p>
                 </CardHeader>
                 <CardContent className="flex flex-1 flex-col">
                   <ul className="mb-6 flex-1 space-y-2">
@@ -254,11 +213,7 @@ export default function Landing() {
                     className={`w-full ${plan.highlight ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
                     asChild
                   >
-                    {plan.ctaLink.startsWith("mailto") ? (
-                      <a href={plan.ctaLink}>{plan.cta}</a>
-                    ) : (
-                      <Link to={plan.ctaLink}>{plan.cta}</Link>
-                    )}
+                    <Link to={plan.ctaLink}>{plan.cta}</Link>
                   </Button>
                   {plan.trialNote && (
                     <p className="mt-2 text-center text-xs text-muted-foreground">{plan.trialNote}</p>
@@ -270,16 +225,13 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="mx-auto max-w-3xl px-4 py-20 text-center">
         <h2 className="text-2xl font-semibold text-foreground">Ready to streamline your operations?</h2>
         <p className="mt-3 text-muted-foreground">
-          Every workspace starts on a 14-day Growth trial. Choose Starter, Growth, or Enterprise when the trial ends.
+          Start with a 28-day Growth trial — every feature, no card required. Choose Starter or Growth when the trial ends.
         </p>
         <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-          <Button size="lg" asChild>
-            <Link to="/login">Start 14-Day Trial</Link>
-          </Button>
+          <Button size="lg" asChild><Link to="/login">Start 28-Day Trial</Link></Button>
           <Button variant="outline" size="lg" asChild>
             <a href="mailto:hello@coreflow.app?subject=CoreFlow%20Demo%20Request">Book a Demo</a>
           </Button>
@@ -288,7 +240,6 @@ export default function Landing() {
 
       </main>
 
-      {/* Footer */}
       <footer className="border-t py-8">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 text-sm text-muted-foreground sm:flex-row sm:justify-between">
           <span>© {new Date().getFullYear()} CoreFlow. All rights reserved.</span>

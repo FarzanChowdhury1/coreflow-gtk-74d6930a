@@ -2,9 +2,6 @@ import { useMemo } from "react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { resolveEntitlement, type WorkspaceEntitlement } from "@/lib/entitlements";
 
-/**
- * Hook that returns the current workspace's entitlement state.
- */
 export function useEntitlement(): WorkspaceEntitlement {
   const { currentWorkspace, memberships } = useWorkspace();
 
@@ -17,6 +14,8 @@ export function useEntitlement(): WorkspaceEntitlement {
     return resolveEntitlement(
       ws?.plan,
       ws?.trial_ends_at,
+      ws?.grace_ends_at,
+      ws?.next_renewal_at,
       ws?.seat_limit,
       seatCount,
     );

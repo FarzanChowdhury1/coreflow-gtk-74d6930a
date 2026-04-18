@@ -2697,6 +2697,30 @@ export type Database = {
           },
         ]
       }
+      trial_consumed_accounts: {
+        Row: {
+          consumed_at: string
+          id: string
+          normalized_email: string
+          user_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          consumed_at?: string
+          id?: string
+          normalized_email: string
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          consumed_at?: string
+          id?: string
+          normalized_email?: string
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       vendors: {
         Row: {
           category: string | null
@@ -2973,14 +2997,18 @@ export type Database = {
       }
       workspaces: {
         Row: {
+          billing_cycle: string
           billing_owner_id: string | null
           created_at: string
           currency: string
           deleted_at: string | null
+          grace_ends_at: string | null
           id: string
           name: string
+          next_renewal_at: string | null
           offboarding_export_claimed_by: string | null
           offboarding_export_used_at: string | null
+          pending_downgrade_to: string | null
           plan: string
           portal_accent_color: string | null
           portal_logo_storage_path: string | null
@@ -2988,17 +3016,22 @@ export type Database = {
           seat_limit: number
           timezone: string
           trial_ends_at: string | null
+          trial_started_at: string | null
           updated_at: string
         }
         Insert: {
+          billing_cycle?: string
           billing_owner_id?: string | null
           created_at?: string
           currency?: string
           deleted_at?: string | null
+          grace_ends_at?: string | null
           id?: string
           name: string
+          next_renewal_at?: string | null
           offboarding_export_claimed_by?: string | null
           offboarding_export_used_at?: string | null
+          pending_downgrade_to?: string | null
           plan?: string
           portal_accent_color?: string | null
           portal_logo_storage_path?: string | null
@@ -3006,17 +3039,22 @@ export type Database = {
           seat_limit?: number
           timezone?: string
           trial_ends_at?: string | null
+          trial_started_at?: string | null
           updated_at?: string
         }
         Update: {
+          billing_cycle?: string
           billing_owner_id?: string | null
           created_at?: string
           currency?: string
           deleted_at?: string | null
+          grace_ends_at?: string | null
           id?: string
           name?: string
+          next_renewal_at?: string | null
           offboarding_export_claimed_by?: string | null
           offboarding_export_used_at?: string | null
+          pending_downgrade_to?: string | null
           plan?: string
           portal_accent_color?: string | null
           portal_logo_storage_path?: string | null
@@ -3024,6 +3062,7 @@ export type Database = {
           seat_limit?: number
           timezone?: string
           trial_ends_at?: string | null
+          trial_started_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -3067,6 +3106,10 @@ export type Database = {
       }
       accept_invite_by_token: { Args: { _token: string }; Returns: Json }
       accept_workspace_invite: { Args: { _invite_id: string }; Returns: Json }
+      activate_paid_plan: {
+        Args: { _billing_cycle?: string; _plan: string; _workspace_id: string }
+        Returns: Json
+      }
       aggregate_daily_digest: { Args: never; Returns: Json }
       aggregate_daily_digest_for_workspace: {
         Args: { _workspace_id: string }
@@ -3252,6 +3295,7 @@ export type Database = {
         Args: { _company_id: string; _workspace_id: string }
         Returns: undefined
       }
+      normalize_email: { Args: { _email: string }; Returns: string }
       platform_workspace_overview: { Args: never; Returns: Json }
       portal_respond_proposal: {
         Args: { _action: string; _token: string; _version_id: string }
@@ -3295,6 +3339,10 @@ export type Database = {
       }
       retention_days_ops_log: { Args: { _log_type: string }; Returns: number }
       revoke_workspace_invite: { Args: { _invite_id: string }; Returns: Json }
+      schedule_downgrade: {
+        Args: { _target: string; _workspace_id: string }
+        Returns: Json
+      }
       select_retention_candidates: { Args: never; Returns: Json }
       set_billing_owner: {
         Args: { _new_owner_id: string; _workspace_id: string }
@@ -3318,6 +3366,7 @@ export type Database = {
       sweep_lead_followups: { Args: never; Returns: Json }
       sweep_overdue_invoices: { Args: never; Returns: Json }
       sweep_renewal_reminders: { Args: never; Returns: Json }
+      upgrade_to_growth: { Args: { _workspace_id: string }; Returns: Json }
       validate_portal_token: { Args: { _token: string }; Returns: Json }
       void_invoice: {
         Args: { _invoice_id: string; _workspace_id: string }
@@ -3326,6 +3375,14 @@ export type Database = {
       void_proposal_version: {
         Args: { _version_id: string; _workspace_id: string }
         Returns: Json
+      }
+      workspace_billing_state: {
+        Args: { _workspace_id: string }
+        Returns: string
+      }
+      workspace_effective_seat_count: {
+        Args: { _workspace_id: string }
+        Returns: number
       }
       workspace_has_active_feature: {
         Args: { _feature: string; _workspace_id: string }
