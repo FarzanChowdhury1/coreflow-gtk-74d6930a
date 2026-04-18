@@ -124,6 +124,16 @@ export default function Dashboard() {
         <DashboardBreakdowns workspaceId={currentWorkspace.id} currency={currency} />
       )}
 
+      {currentWorkspace?.id && currentRole === "admin" && (
+        <div className="mt-8">
+          <FinanceAnalytics
+            workspaceId={currentWorkspace.id}
+            currency={currency}
+            isAdmin={currentRole === "admin"}
+          />
+        </div>
+      )}
+
       {/* Onboarding checklist for new admins */}
       <OnboardingChecklist userId={user?.id} />
 
