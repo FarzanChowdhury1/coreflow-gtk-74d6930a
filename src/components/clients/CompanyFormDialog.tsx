@@ -196,6 +196,8 @@ export function CompanyFormDialog({ open, onOpenChange, company }: Props) {
             />
           </div>
           <SocialLinksEditor value={socials} onChange={setSocials} errors={socialErrors} />
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Notes</label>
             <textarea
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
