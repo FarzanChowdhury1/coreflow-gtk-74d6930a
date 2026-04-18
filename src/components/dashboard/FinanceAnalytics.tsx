@@ -305,6 +305,7 @@ export function FinanceAnalytics({ workspaceId, currency, isAdmin }: Props) {
               const dpoBasisLabel =
                 cc.dpo_basis === "due_date" ? "vs due date" :
                 cc.dpo_basis === "expense_date_fallback" ? "vs expense date (fallback)" :
+                cc.dpo_basis === "mixed" ? "mixed basis" :
                 null;
               return (
                 <div className="grid grid-cols-3 gap-3 mb-4">
