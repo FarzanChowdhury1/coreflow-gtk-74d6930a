@@ -27,11 +27,17 @@ interface FinanceAnalyticsData {
     drivers: HealthDriver[];
     collection_rate: number | null;
     trend_pct: number | null;
+    budget_status?: "none" | "within" | "at_limit" | "overspent";
+    summary_text?: string;
   };
   cash_conversion: {
     dso_days: number | null;
     dpo_days: number | null;
     ccc_days: number | null;
+    dpo_basis?: "due_date" | "expense_date_fallback" | "insufficient_data";
+    can_compute_dso?: boolean;
+    can_compute_dpo?: boolean;
+    can_compute_ccc?: boolean;
     receivables: number;
     overdue_amount: number;
     overdue_count: number;
