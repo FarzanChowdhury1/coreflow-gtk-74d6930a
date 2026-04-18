@@ -124,11 +124,12 @@ export function generateDocumentPdf(data: PdfDocumentData): jsPDF {
   doc.text(data.workspaceName, MARGIN, 13);
 
   const docLabel = (data.documentLabel || data.documentType).toUpperCase();
-  doc.setFont("helvetica", "normal");
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.text(docLabel, pageWidth - MARGIN, 13, { align: "right" });
 
   // Reference line under header band
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(203, 213, 225);
   doc.text(`Ref: ${data.documentRef}`, pageWidth - MARGIN, 18, { align: "right" });
@@ -206,6 +207,8 @@ export function generateDocumentPdf(data: PdfDocumentData): jsPDF {
   y = Math.max(ly, ry) + 4;
 
   // ─── Document meta strip ─────────────────────────────────────
+  // Wrap-aware: each cell can wrap to multiple lines so long titles
+  // (e.g. proposal titles, invoice numbers) are never silently clipped.
   const metaItems: Array<{ label: string; value: string }> = [
     { label: "DOCUMENT", value: data.documentTitle },
     { label: "DATE", value: data.date },
@@ -220,13 +223,24 @@ export function generateDocumentPdf(data: PdfDocumentData): jsPDF {
     metaItems.push({ label: "STATUS", value: data.status.toUpperCase() });
   }
 
-  const metaH = 14;
+  const cellW = contentWidth / metaItems.length;
+  const cellInnerW = cellW - 8;
+
+  // Pre-compute wrapped lines per cell to size the strip.
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  const wrappedValues = metaItems.map((item) =>
+    doc.splitTextToSize(item.value || "—", cellInnerW) as string[]
+  );
+  const maxLines = Math.max(1, ...wrappedValues.map((l) => l.length));
+  const valueLineH = 4.2;
+  const metaH = Math.max(14, 7 + maxLines * valueLineH + 3);
+
   doc.setFillColor(...COLOR_BAND_BG);
   doc.setDrawColor(...COLOR_RULE);
   doc.setLineWidth(0.2);
   doc.roundedRect(MARGIN, y, contentWidth, metaH, 1.5, 1.5, "FD");
 
-  const cellW = contentWidth / metaItems.length;
   metaItems.forEach((item, i) => {
     const x = MARGIN + i * cellW + 4;
     doc.setFont("helvetica", "bold");
@@ -236,8 +250,7 @@ export function generateDocumentPdf(data: PdfDocumentData): jsPDF {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.setTextColor(...COLOR_INK);
-    const valueLines = doc.splitTextToSize(item.value, cellW - 8);
-    doc.text(valueLines[0], x, y + 11);
+    doc.text(wrappedValues[i], x, y + 10);
   });
 
   y += metaH + 6;
@@ -258,6 +271,10 @@ export function generateDocumentPdf(data: PdfDocumentData): jsPDF {
     body: tableBody,
     margin: { left: MARGIN, right: MARGIN, bottom: FOOTER_HEIGHT + 6 },
     theme: "plain",
+    // Keep each row intact across page breaks — prevents the phantom
+    // "row 0" continuation artifact when a long description wraps near
+    // the bottom of a page.
+    rowPageBreak: "avoid",
     styles: {
       font: "helvetica",
       fontSize: 9.5,
@@ -265,13 +282,16 @@ export function generateDocumentPdf(data: PdfDocumentData): jsPDF {
       textColor: COLOR_INK,
       lineColor: COLOR_RULE,
       lineWidth: 0.1,
+      overflow: "linebreak",
+      valign: "top",
     },
     headStyles: {
       fillColor: COLOR_NAVY,
       textColor: [255, 255, 255],
       fontStyle: "bold",
-      fontSize: 8.5,
+      fontSize: 9,
       cellPadding: 3.5,
+      halign: "left",
     },
     bodyStyles: {
       textColor: COLOR_INK,
@@ -287,9 +307,6 @@ export function generateDocumentPdf(data: PdfDocumentData): jsPDF {
     },
     alternateRowStyles: {
       fillColor: [249, 250, 251],
-    },
-    didDrawPage: () => {
-      // Footer drawn once per page in finalisePages() below.
     },
   });
 
