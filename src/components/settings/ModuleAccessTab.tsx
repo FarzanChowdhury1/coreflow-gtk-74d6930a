@@ -54,25 +54,24 @@ export function ModuleAccessTab() {
 
     const userIds = (memberships ?? []).map((m) => m.user_id);
     const profilesRes = userIds.length
-      ? await supabase.from("profiles").select("id, full_name, email").in("id", userIds)
-      : { data: [] as Array<{ id: string; full_name: string | null; email: string | null }> };
-    const profileMap = new Map((profilesRes.data ?? []).map((p) => [p.id, p]));
+      ? await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds)
+      : { data: [] as Array<{ user_id: string; full_name: string | null }> };
+    const profileMap = new Map((profilesRes.data ?? []).map((p) => [p.user_id, p.full_name]));
 
     const rows: MemberRow[] = (memberships ?? [])
       .filter((m) => m.role === "team_member") // admins always have access
       .map((m) => {
-        const p = profileMap.get(m.user_id);
         const userGrants = (grants ?? []).filter((g) => g.user_id === m.user_id);
         return {
           user_id: m.user_id,
-          full_name: p?.full_name ?? null,
-          email: p?.email ?? null,
+          full_name: profileMap.get(m.user_id) ?? null,
+          email: null,
           role: m.role as "team_member",
           vendor: userGrants.some((g) => g.module === "vendor_management"),
           subscription: userGrants.some((g) => g.module === "subscription_management"),
         };
       })
-      .sort((a, b) => (a.full_name || a.email || "").localeCompare(b.full_name || b.email || ""));
+      .sort((a, b) => (a.full_name || a.user_id).localeCompare(b.full_name || b.user_id));
 
     setMembers(rows);
     setLoading(false);
