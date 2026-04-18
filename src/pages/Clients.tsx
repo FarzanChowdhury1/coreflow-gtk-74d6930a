@@ -181,11 +181,22 @@ export default function Clients() {
           />
         </div>
         {isAdmin && (() => {
+            const companyData = displayCompanies.map((c) => {
+              const socials = Array.isArray((c as any).socials) ? (c as any).socials : [];
+              return {
+                ...c,
+                socials_text: socials
+                  .map((s: any) => `${s?.platform ?? ""}:${s?.value ?? ""}`)
+                  .filter((s: string) => s !== ":" && !s.startsWith(":") && !s.endsWith(":"))
+                  .join(" | "),
+              };
+            });
             const companyCols = [
               { key: "legal_name", label: "Company Name" },
               { key: "phone", label: "Phone" },
               { key: "address", label: "Address" },
               { key: "bin", label: "BIN" },
+              { key: "socials_text", label: "Social Profiles" },
               { key: "deleted_at", label: "Status", format: (v: any) => v ? "Archived" : "Active" },
               { key: "created_at", label: "Created", format: (v: any) => new Date(v).toLocaleDateString() },
             ];
@@ -194,10 +205,16 @@ export default function Clients() {
               const all = phones.length > 0
                 ? phones.map((p: any) => `${p?.label ?? "other"}:${p?.number ?? ""}`).filter((s: string) => s.endsWith(":") === false).join(" | ")
                 : [c.phone, (c as any).alt_phone].filter(Boolean).join(" | ");
+              const socials = Array.isArray((c as any).socials) ? (c as any).socials : [];
+              const socials_text = socials
+                .map((s: any) => `${s?.platform ?? ""}:${s?.value ?? ""}`)
+                .filter((s: string) => s !== ":" && !s.startsWith(":") && !s.endsWith(":"))
+                .join(" | ");
               return {
                 ...c,
                 company_name: c.company_id ? companies.find((co) => co.id === c.company_id)?.legal_name ?? "—" : "Independent",
                 all_phones: all,
+                socials_text,
               };
             });
             const contactCols = [
@@ -205,6 +222,7 @@ export default function Clients() {
               { key: "email", label: "Email" },
               { key: "phone", label: "Phone (Primary)" },
               { key: "all_phones", label: "All Phones" },
+              { key: "socials_text", label: "Social Profiles" },
               { key: "designation", label: "Designation" },
               { key: "company_name", label: "Company" },
               { key: "deleted_at", label: "Status", format: (v: any) => v ? "Archived" : "Active" },
