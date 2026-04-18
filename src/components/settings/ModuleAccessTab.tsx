@@ -12,7 +12,6 @@ type Module = "vendor_management" | "subscription_management";
 interface MemberRow {
   user_id: string;
   full_name: string | null;
-  email: string | null;
   role: "admin" | "team_member";
   vendor: boolean;
   subscription: boolean;
@@ -65,7 +64,6 @@ export function ModuleAccessTab() {
         return {
           user_id: m.user_id,
           full_name: profileMap.get(m.user_id) ?? null,
-          email: null,
           role: m.role as "team_member",
           vendor: userGrants.some((g) => g.module === "vendor_management"),
           subscription: userGrants.some((g) => g.module === "subscription_management"),
@@ -158,11 +156,8 @@ export function ModuleAccessTab() {
                   >
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">
-                        {m.full_name || m.email || "Unknown user"}
+                        {m.full_name || "Team member"}
                       </p>
-                      {m.full_name && m.email && (
-                        <p className="text-xs text-muted-foreground truncate">{m.email}</p>
-                      )}
                     </div>
                     <div className="flex md:justify-center items-center gap-2">
                       <Switch
