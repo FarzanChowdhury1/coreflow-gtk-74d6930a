@@ -20,7 +20,7 @@ export function PlanBillingTab() {
 
   const planLabel =
     ent.plan === "enterprise" ? "Enterprise" :
-    ent.plan === "growth" ? "Growth" : "Free";
+    ent.plan === "growth" ? "Growth" : "Starter";
 
   const seatPct = ent.seatLimit ? Math.min(100, Math.round((seatCount / ent.seatLimit) * 100)) : 0;
 
