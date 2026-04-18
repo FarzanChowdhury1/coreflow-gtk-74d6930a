@@ -18,15 +18,19 @@ export function PlanBillingTab() {
   const seatCount = memberships.filter((m) => m.workspace_id === currentWorkspace?.id).length;
   const [startingTrial, setStartingTrial] = useState(false);
 
+  // User-facing label. Internal `starter` (and legacy `free` rows mapped to it)
+  // is rendered as Trial / Trial ended / Starter depending on workspace state.
   const planLabel =
     ent.plan === "enterprise" ? "Enterprise" :
     ent.plan === "growth" ? "Growth" :
     ent.isTrialing ? "Trial" :
-    ent.trialExpired ? "Trial ended" : "Trial";
+    ent.trialExpired ? "Trial ended" :
+    "Starter";
 
   const seatPct = ent.seatLimit ? Math.min(100, Math.round((seatCount / ent.seatLimit) * 100)) : 0;
 
   const trialAlreadyUsed = !!(currentWorkspace as any)?.trial_ends_at;
+  const isStarterBase = ent.plan === "starter";
 
   const handleStartTrial = async () => {
     if (!currentWorkspace) return;
@@ -66,7 +70,7 @@ export function PlanBillingTab() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex flex-wrap items-center gap-3">
-            <Badge variant={ent.plan === "free" ? "secondary" : "default"} className="text-sm px-3 py-1">
+            <Badge variant={isStarterBase ? "secondary" : "default"} className="text-sm px-3 py-1">
               {planLabel}
             </Badge>
             {ent.isTrialing && (
@@ -105,18 +109,19 @@ export function PlanBillingTab() {
             {!ent.canAddSeat && !ent.isOverSeatLimit && (
               <p className="text-sm text-warning flex items-center gap-1">
                 <Info className="h-3.5 w-3.5" />
-                At seat limit — upgrade to add more team members.
+                At seat limit — upgrade to Growth to add more team members.
               </p>
             )}
           </div>
 
           {/* Plan-specific messaging */}
-          {ent.plan === "free" && (
+          {isStarterBase && !ent.isTrialing && !ent.trialExpired && (
             <div className="rounded-md border bg-muted/30 p-4 space-y-3">
               <p className="text-sm font-medium text-foreground">14-day Growth trial</p>
               <p className="text-sm text-muted-foreground">
-                Every workspace begins with a 14-day Growth trial — full access to all features. After the trial, choose a paid plan to continue:
-                Starter (৳799 / user / month, up to 3 seats), Growth (৳1,799 / user / month, unlimited seats), or Enterprise (custom).
+                Every workspace begins with a 14-day Growth trial — full access to all features. After the trial,
+                choose a paid plan to continue: Starter (৳799 / user / month, up to 3 seats), Growth (৳1,799 / user / month,
+                unlimited seats), or Enterprise (custom).
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" onClick={handleStartTrial} disabled={startingTrial || trialAlreadyUsed}>
@@ -141,7 +146,7 @@ export function PlanBillingTab() {
             <div className="rounded-md border bg-muted/30 p-4 space-y-2">
               <p className="text-sm font-medium text-foreground">Growth — ৳1,799 / user / month</p>
               <p className="text-sm text-muted-foreground">
-                All features unlocked. Unlimited seats. Priority support.
+                All features unlocked. Unlimited seats.
                 {ent.isTrialing && ` Your trial ends in ${ent.trialDaysLeft} day${ent.trialDaysLeft !== 1 ? "s" : ""}. No payment details required during trial.`}
               </p>
               {!ent.isTrialing && (
@@ -153,16 +158,34 @@ export function PlanBillingTab() {
           )}
 
           {ent.trialExpired && (
-            <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 space-y-2">
+            <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 space-y-3">
               <p className="text-sm font-medium text-foreground">Growth trial has ended</p>
               <p className="text-sm text-muted-foreground">
-                Contact us to activate Growth (৳1,799 / user / month) and keep advanced modules available to your team.
+                Choose a paid plan to continue. Contact us to activate any plan — manual billing in BDT.
               </p>
-              <Button size="sm" variant="default" asChild>
-                <a href="mailto:hello@coreflow.app?subject=Activate%20Growth%20Plan">
-                  Contact Us to Activate <ArrowUpRight className="ml-1 h-3 w-3" />
-                </a>
-              </Button>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <Button size="sm" variant="outline" asChild>
+                  <a href="mailto:hello@coreflow.app?subject=Activate%20Starter%20Plan">
+                    Activate Starter
+                    <span className="ml-auto text-xs text-muted-foreground">৳799/user</span>
+                  </a>
+                </Button>
+                <Button size="sm" variant="default" asChild>
+                  <a href="mailto:hello@coreflow.app?subject=Activate%20Growth%20Plan">
+                    Activate Growth
+                    <span className="ml-auto text-xs opacity-80">৳1,799/user</span>
+                  </a>
+                </Button>
+                <Button size="sm" variant="outline" asChild>
+                  <a href="mailto:hello@coreflow.app?subject=Enterprise%20Inquiry">
+                    Talk to Sales
+                    <ArrowUpRight className="ml-auto h-3 w-3" />
+                  </a>
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Starter = core spine (3 seats, leads/proposals/projects/invoicing/portal). Growth = all modules + unlimited seats. Enterprise = custom commercial setup.
+              </p>
             </div>
           )}
 
@@ -170,7 +193,7 @@ export function PlanBillingTab() {
             <div className="rounded-md border bg-muted/30 p-4 space-y-2">
               <p className="text-sm font-medium text-foreground">Enterprise</p>
               <p className="text-sm text-muted-foreground">
-                Custom plan for larger Bangladeshi organisations. Contact your account manager for any plan changes or commercial discussions.
+                Custom commercial setup for larger Bangladeshi organisations. Same product surface as Growth, handled directly with our team for any plan changes.
               </p>
             </div>
           )}
@@ -197,7 +220,7 @@ export function PlanBillingTab() {
           </div>
           <div className="flex items-start gap-2">
             <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-            <p><strong className="text-foreground">Manual billing.</strong> Activations and Enterprise plans are handled directly with our team — contact us and we'll set it up.</p>
+            <p><strong className="text-foreground">Manual billing.</strong> Plan activations and Enterprise setup are handled directly with our team — contact us and we'll set it up.</p>
           </div>
         </CardContent>
       </Card>

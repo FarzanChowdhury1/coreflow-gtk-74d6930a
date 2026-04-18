@@ -105,10 +105,10 @@ function getFollowUpFlags(ws: WorkspaceRow): string[] {
   }
 
   if (ws.seat_count > ws.seat_limit) flags.push("Over seat limit");
-  if (ws.seat_count >= ws.seat_limit && ws.plan === "free") flags.push("At seat limit (free)");
+  if (ws.seat_count >= ws.seat_limit && (ws.plan === "free" || ws.plan === "starter")) flags.push("At seat limit (Starter)");
 
   const moduleCount = ws.event_names?.filter(e => MODULE_EVENTS.includes(e as any)).length ?? 0;
-  if (moduleCount >= 5 && ws.plan === "free") flags.push("Strong activation, still free");
+  if (moduleCount >= 5 && (ws.plan === "free" || ws.plan === "starter")) flags.push("Strong activation, still on Starter");
 
   if (ws.last_activity) {
     const daysSince = differenceInDays(now, new Date(ws.last_activity));
