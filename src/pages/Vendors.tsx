@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { VendorFormDialog } from "@/components/vendors/VendorFormDialog";
+import { useModuleAccess } from "@/hooks/use-module-access";
 
 export interface Vendor {
   id: string;
@@ -31,9 +32,10 @@ export interface Vendor {
 
 
 export default function Vendors() {
-  const { currentWorkspace, currentRole } = useWorkspace();
+  const { currentWorkspace } = useWorkspace();
+  const { canManage } = useModuleAccess("vendor_management");
   const queryClient = useQueryClient();
-  const isAdmin = currentRole === "admin";
+  const isAdmin = canManage;
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Vendor | null>(null);
   const [search, setSearch] = useState("");
