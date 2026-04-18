@@ -229,10 +229,10 @@ export default function Clients() {
             ];
             return (
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToCSV(currentWorkspace.id, displayCompanies, companyCols, "companies-export")}>
+                <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToCSV(currentWorkspace.id, companyData, companyCols, "companies-export")}>
                   <Download className="h-4 w-4 mr-1" /> CSV
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToXLSX(currentWorkspace.id, displayCompanies, companyCols, "companies-export")}>
+                <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToXLSX(currentWorkspace.id, companyData, companyCols, "companies-export")}>
                   <Download className="h-4 w-4 mr-1" /> XLSX
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => currentWorkspace && guardedExportToCSV(currentWorkspace.id, contactData, contactCols, "contacts-export")}>
