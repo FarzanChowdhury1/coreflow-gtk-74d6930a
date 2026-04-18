@@ -33,6 +33,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { usePlatformAdmin } from "@/hooks/use-platform-admin";
+import { useModuleAccess } from "@/hooks/use-module-access";
 
 interface NavItem {
   label: string;
@@ -81,13 +82,14 @@ export function AppSidebar({ mobileOpen, onClose }: Props) {
   const { signOut, user } = useAuth();
   const { currentWorkspace, currentRole, workspaces, setCurrentWorkspaceId } = useWorkspace();
   const { isPlatformAdmin } = usePlatformAdmin();
+  const { canManage: canManageVendors } = useModuleAccess("vendor_management");
+  const { canManage: canManageSubs } = useModuleAccess("subscription_management");
   const [showWorkspacePicker, setShowWorkspacePicker] = useState(false);
 
   const filteredItems = navItems.filter((item) => {
-    // Show vendors/subscriptions to admins and members with explicit grants
-    // (link will resolve to access-denied surface if no grant — handled by ModuleAccessGuard).
-    // Keep them visible to all members; the page itself shows clear "request access" UX.
-    if (item.path === "/vendors" || item.path === "/subscriptions") return true;
+    // Vendors / Subscriptions: only admins or explicitly granted members.
+    if (item.path === "/vendors") return canManageVendors;
+    if (item.path === "/subscriptions") return canManageSubs;
     return !item.adminOnly || currentRole === "admin";
   });
 
