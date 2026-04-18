@@ -462,6 +462,24 @@ export default function Leads() {
         onSaved={() => setMeetingContext(null)}
         defaultContext={meetingContext || undefined}
       />
+
+      <ConvertLeadCompanyDialog
+        open={!!resolveCompanyForLead}
+        onOpenChange={(open) => { if (!open) setResolveCompanyForLead(null); }}
+        lead={resolveCompanyForLead}
+        companies={companies}
+        onResolved={(companyId) => {
+          if (resolveCompanyForLead) {
+            setProposalPrefill({
+              title: resolveCompanyForLead.title,
+              company_id: companyId,
+              notes: resolveCompanyForLead.notes || undefined,
+              lead_id: resolveCompanyForLead.id,
+            });
+            setResolveCompanyForLead(null);
+          }
+        }}
+      />
     </div>
   );
 }
