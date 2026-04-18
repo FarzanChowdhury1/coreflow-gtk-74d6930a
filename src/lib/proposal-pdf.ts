@@ -5,18 +5,18 @@
 import { supabase } from "@/integrations/supabase/client";
 import { generateDocumentPdf, downloadPdf } from "./pdf-export";
 import type { PdfLineItem, PdfTaxEntry } from "./pdf-export";
+import type { ResolvedIssuerIdentity } from "./workspace-issuer";
 import { format } from "date-fns";
 
 export interface ProposalPdfOptions {
   proposalId: string;
   versionId: string;
-  workspaceName: string;
   workspaceCurrency?: string;
-  workspaceEmail?: string;
+  /** Pre-resolved workspace document identity (logo, registered name, etc.) */
+  issuer: ResolvedIssuerIdentity;
 }
 
 export async function exportProposalPdf(opts: ProposalPdfOptions) {
-  // Fetch proposal with company (incl. address & BIN where present)
   const { data: proposal, error: pErr } = await supabase
     .from("proposals")
     .select("*, companies(legal_name, bin, address)")
@@ -37,7 +37,6 @@ export async function exportProposalPdf(opts: ProposalPdfOptions) {
     .eq("version_id", opts.versionId)
     .order("sort_order", { ascending: true });
 
-  // Build tax breakdown
   const taxConfig: Array<{ name: string; rate_bps: number }> = Array.isArray(version.tax_config)
     ? (version.tax_config as any[]).map((t: any) => ({
         name: t.name || "Tax",
@@ -64,8 +63,14 @@ export async function exportProposalPdf(opts: ProposalPdfOptions) {
   }));
 
   const doc = generateDocumentPdf({
-    workspaceName: opts.workspaceName,
-    workspaceEmail: opts.workspaceEmail,
+    workspaceName: opts.issuer.workspaceName,
+    issuerRegisteredName: opts.issuer.issuerRegisteredName,
+    issuerTradeName: opts.issuer.issuerTradeName,
+    workspaceAddress: opts.issuer.workspaceAddress,
+    workspacePhone: opts.issuer.workspacePhone,
+    workspaceEmail: opts.issuer.workspaceEmail,
+    workspaceBin: opts.issuer.workspaceBin,
+    issuerLogoDataUrl: opts.issuer.issuerLogoDataUrl,
     currency,
     documentType: "Proposal",
     documentLabel: "QUOTATION",

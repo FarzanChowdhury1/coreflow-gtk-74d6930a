@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowLeft, Send, Copy, Download, Check, XCircle, FolderPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { exportProposalPdf } from "@/lib/proposal-pdf";
+import { resolveWorkspaceIssuer } from "@/lib/workspace-issuer";
 import { Badge } from "@/components/ui/badge";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -220,12 +221,12 @@ export function ProposalDetail({ proposalId, onBack }: Props) {
     if (!activeVersion || !currentWorkspace) return;
     setExporting(true);
     try {
+      const issuer = await resolveWorkspaceIssuer(currentWorkspace);
       await exportProposalPdf({
         proposalId,
         versionId: activeVersion.id,
-        workspaceName: currentWorkspace.name,
         workspaceCurrency: currentWorkspace.currency,
-        workspaceEmail: currentWorkspace.portal_support_email || undefined,
+        issuer,
       });
       toast({ title: "PDF downloaded" });
     } catch (err: unknown) {
