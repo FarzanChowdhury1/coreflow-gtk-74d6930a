@@ -5,6 +5,7 @@ import { CompanyHealthDialog } from "@/components/clients/CompanyHealthDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CompanyMobileCards } from "@/components/clients/CompanyMobileCards";
 import { ContactMobileCards } from "@/components/clients/ContactMobileCards";
+import { SocialChipsCell } from "@/components/clients/SocialChipsCell";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { guardedExportToCSV, guardedExportToXLSX } from "@/lib/guarded-export";
 import { Button } from "@/components/ui/button";
@@ -341,6 +342,7 @@ export default function Clients() {
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Legal Name</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">BIN</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Address</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Socials</th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
@@ -357,6 +359,7 @@ export default function Clients() {
                         </td>
                         <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{company.bin || "—"}</td>
                         <td className="px-4 py-3 text-muted-foreground">{company.address || "—"}</td>
+                        <td className="px-4 py-3"><SocialChipsCell socials={(company as any).socials} /></td>
                         <td className="px-4 py-3 text-right space-x-1">
                           {isAdmin && (
                             <>
@@ -472,6 +475,7 @@ export default function Clients() {
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Email</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Phone</th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">Company</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Socials</th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
@@ -508,6 +512,7 @@ export default function Clients() {
                           })()}
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{getCompanyName(contact.company_id)}</td>
+                        <td className="px-4 py-3"><SocialChipsCell socials={(contact as any).socials} /></td>
                         <td className="px-4 py-3 text-right space-x-1">
                           {isAdmin && (
                             <>
