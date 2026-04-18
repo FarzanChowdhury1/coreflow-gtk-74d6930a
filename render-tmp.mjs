@@ -6,12 +6,17 @@ await build({
   format: 'cjs',
   platform: 'node',
   outfile: '/tmp/pdf-engine.cjs',
-  // Force jspdf to be inlined as CJS so default export is the constructor.
   mainFields: ['main'],
   conditions: ['node','require','default'],
   logLevel: 'silent',
 });
-const mod = await import('/tmp/pdf-engine.cjs');
+// Patch: jspdf CJS exposes both `.default` and `.jsPDF`. esbuild sometimes
+// hits the non-constructor `.default`. Force the named export.
+let src = fs.readFileSync('/tmp/pdf-engine.cjs','utf8');
+src = src.replace(/import_jspdf\.default/g, 'import_jspdf.jsPDF');
+fs.writeFileSync('/tmp/pdf-engine.cjs', src);
+
+const mod = await import('/tmp/pdf-engine.cjs?t=' + Date.now());
 const { generateDocumentPdf } = mod;
 function save(doc, name) {
   const buf = Buffer.from(doc.output('arraybuffer'));
