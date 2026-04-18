@@ -3189,6 +3189,7 @@ export type Database = {
       }
     }
     Functions: {
+      _fa_test_compute: { Args: { _workspace_id: string }; Returns: Json }
       _generate_renewal_invoice_internal: {
         Args: { _actor_id?: string; _renewal_id: string }
         Returns: Json
