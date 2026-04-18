@@ -194,6 +194,7 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
                   invoiceId: invoice.id,
                   workspaceName: currentWorkspace?.name || "CoreFlow",
                   workspaceCurrency: currentWorkspace?.currency,
+                  workspaceEmail: currentWorkspace?.portal_support_email || undefined,
                 });
                 toast.success("PDF downloaded");
               } catch (err: any) {
