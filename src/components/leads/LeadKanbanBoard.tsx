@@ -209,8 +209,8 @@ export function LeadKanbanBoard({
                     <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => onMeeting(lead)} title="Schedule meeting">
                       <Calendar className="h-3 w-3" />
                     </Button>
-                    {isAdmin && lead.status !== "converted" && lead.status !== "unqualified" && lead.company_id && (
-                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-primary" onClick={() => onConvert(lead)} title="Convert to proposal">
+                    {isAdmin && lead.status !== "converted" && lead.status !== "unqualified" && (
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-primary" onClick={() => onConvert(lead)} title={lead.company_id ? "Convert to proposal" : "Convert to proposal (will ask for a company)"}>
                         <FileText className="h-3 w-3" />
                       </Button>
                     )}
