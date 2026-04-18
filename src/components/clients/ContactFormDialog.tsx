@@ -19,6 +19,13 @@ import {
   type ContactPhone,
   type PhoneLabel,
 } from "@/lib/phone";
+import { SocialLinksEditor } from "@/components/clients/SocialLinksEditor";
+import {
+  cleanSocialsForSave,
+  normalizeSocials,
+  validateSocialEntry,
+  type SocialEntry,
+} from "@/lib/socials";
 import type { Tables } from "@/integrations/supabase/types";
 import { Plus, X } from "lucide-react";
 
@@ -50,6 +57,8 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
     lifecycle_status: "active" as string,
   });
   const [phones, setPhones] = useState<ContactPhone[]>([]);
+  const [socials, setSocials] = useState<SocialEntry[]>([]);
+  const [socialErrors, setSocialErrors] = useState<Record<number, string>>({});
 
   useEffect(() => {
     if (contact) {
@@ -62,6 +71,7 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
         initialPhones = legacy;
       }
       setPhones(initialPhones);
+      setSocials(normalizeSocials((contact as any).socials));
       setForm({
         full_name: contact.full_name,
         email: contact.email || "",
@@ -72,6 +82,7 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
       });
     } else {
       setPhones([]);
+      setSocials([]);
       setForm({
         full_name: "",
         email: "",
@@ -82,6 +93,7 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
       });
     }
     setErrors({});
+    setSocialErrors({});
   }, [contact, open]);
 
   const updatePhone = (idx: number, patch: Partial<ContactPhone>) => {
