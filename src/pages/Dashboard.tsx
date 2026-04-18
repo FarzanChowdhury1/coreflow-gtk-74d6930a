@@ -3,6 +3,7 @@ import { LayoutDashboard, Users, FileText, FolderKanban, Receipt, AlertTriangle,
 import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 import { DashboardBreakdowns } from "@/components/dashboard/DashboardBreakdowns";
 import { FinanceAnalytics } from "@/components/dashboard/FinanceAnalytics";
+import { LenderReadiness } from "@/components/dashboard/LenderReadiness";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -131,6 +132,12 @@ export default function Dashboard() {
             currency={currency}
             isAdmin={currentRole === "admin"}
           />
+          <div className="mt-4">
+            <LenderReadiness
+              workspaceId={currentWorkspace.id}
+              isAdmin={currentRole === "admin"}
+            />
+          </div>
         </div>
       )}
 
