@@ -347,6 +347,8 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
             </div>
           </div>
 
+          <SocialLinksEditor value={socials} onChange={setSocials} errors={socialErrors} />
+
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">Notes</label>
             <textarea
