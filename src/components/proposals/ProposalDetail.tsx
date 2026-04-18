@@ -225,6 +225,7 @@ export function ProposalDetail({ proposalId, onBack }: Props) {
         versionId: activeVersion.id,
         workspaceName: currentWorkspace.name,
         workspaceCurrency: currentWorkspace.currency,
+        workspaceEmail: currentWorkspace.portal_support_email || undefined,
       });
       toast({ title: "PDF downloaded" });
     } catch (err: unknown) {
