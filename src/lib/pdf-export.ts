@@ -110,6 +110,12 @@ const COLOR_BAND_BG: [number, number, number] = [248, 250, 252];
 
 export function generateDocumentPdf(data: PdfDocumentData): jsPDF {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  // Force zero character spacing — guards against accumulated tracking
+  // that can make bold helvetica render with visible inter-letter gaps
+  // (e.g. "BIL L TO") in some rasterizers.
+  if (typeof (doc as any).setCharSpace === "function") {
+    (doc as any).setCharSpace(0);
+  }
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const contentWidth = pageWidth - MARGIN * 2;

@@ -11,6 +11,7 @@ export interface InvoicePdfOptions {
   invoiceId: string;
   workspaceName: string;
   workspaceCurrency?: string;
+  workspaceEmail?: string;
 }
 
 export async function exportInvoicePdf(opts: InvoicePdfOptions) {
@@ -81,6 +82,7 @@ export async function exportInvoicePdf(opts: InvoicePdfOptions) {
 
   const doc = generateDocumentPdf({
     workspaceName: opts.workspaceName,
+    workspaceEmail: opts.workspaceEmail,
     currency,
     documentType: "Invoice",
     documentLabel: mushak && (mushak.challan_no || mushak.vat_reg_no) ? "TAX INVOICE" : "INVOICE",

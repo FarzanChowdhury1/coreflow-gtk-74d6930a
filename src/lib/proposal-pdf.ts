@@ -12,6 +12,7 @@ export interface ProposalPdfOptions {
   versionId: string;
   workspaceName: string;
   workspaceCurrency?: string;
+  workspaceEmail?: string;
 }
 
 export async function exportProposalPdf(opts: ProposalPdfOptions) {
@@ -64,6 +65,7 @@ export async function exportProposalPdf(opts: ProposalPdfOptions) {
 
   const doc = generateDocumentPdf({
     workspaceName: opts.workspaceName,
+    workspaceEmail: opts.workspaceEmail,
     currency,
     documentType: "Proposal",
     documentLabel: "QUOTATION",
