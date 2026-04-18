@@ -82,7 +82,7 @@ export function LeadMobileCards({
                     <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => onMeeting(lead)}>
                       <Calendar className="h-3 w-3 mr-1" /> Meet
                     </Button>
-                    {isAdmin && lead.status !== "converted" && lead.status !== "unqualified" && lead.company_id && (
+                    {isAdmin && lead.status !== "converted" && lead.status !== "unqualified" && (
                       <Button variant="ghost" size="sm" className="h-7 text-xs text-primary" onClick={() => onConvert(lead)}>
                         <FileText className="h-3 w-3 mr-1" /> Convert
                       </Button>
