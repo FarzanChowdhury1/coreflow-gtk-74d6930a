@@ -1,10 +1,10 @@
 /**
  * Invoice-specific PDF export logic.
- * Gathers data from Supabase and delegates to the shared PDF generator.
+ * Gathers data from Supabase and delegates to the shared formal A4 engine.
  */
 import { supabase } from "@/integrations/supabase/client";
 import { generateDocumentPdf, downloadPdf } from "./pdf-export";
-import type { PdfLineItem, PdfTaxEntry } from "./pdf-export";
+import type { PdfLineItem, PdfTaxEntry, PdfMushak63 } from "./pdf-export";
 import { format } from "date-fns";
 
 export interface InvoicePdfOptions {
@@ -17,7 +17,7 @@ export async function exportInvoicePdf(opts: InvoicePdfOptions) {
   const [invRes, liRes] = await Promise.all([
     supabase
       .from("invoices")
-      .select("*, companies(legal_name, bin)")
+      .select("*, companies(legal_name, bin, address)")
       .eq("id", opts.invoiceId)
       .single(),
     supabase
@@ -34,11 +34,11 @@ export async function exportInvoicePdf(opts: InvoicePdfOptions) {
   const company = invoice.companies as any;
   const currency = invoice.currency || opts.workspaceCurrency || "BDT";
 
-  // Tax breakdown — invoice uses { label, bps } format
+  // Tax breakdown — invoice may use { label, bps } or { name, rate_bps }
   const taxConfig: Array<{ name: string; rate_bps: number }> = Array.isArray(invoice.tax_config)
     ? (invoice.tax_config as any[]).map((t: any) => ({
         name: t.label || t.name || "Tax",
-        rate_bps: Number(t.bps || t.rate_bps) || 0,
+        rate_bps: Number(t.bps ?? t.rate_bps) || 0,
       }))
     : [];
 
@@ -55,16 +55,35 @@ export async function exportInvoicePdf(opts: InvoicePdfOptions) {
     amount: Number(li.amount),
   }));
 
-  // Build status label with payment info
+  // Status label (handle partially_paid)
   let statusLabel = invoice.status?.replace("_", " ");
   if (invoice.status === "partially_paid" && Number(invoice.amount_paid) > 0) {
-    statusLabel = `partially paid`;
+    statusLabel = "partially paid";
   }
+
+  const grandTotal =
+    Number(invoice.grand_total) ||
+    subtotal + taxes.reduce((s, t) => s + t.amount, 0);
+  const amountPaid = Number(invoice.amount_paid) || 0;
+  const amountDue = Math.max(grandTotal - amountPaid, 0);
+
+  // Pull through Mushak 6.3 only if there is real content
+  const mushakRaw = (invoice.mushak_6_3 || {}) as Record<string, any>;
+  const mushak: PdfMushak63 | null = Object.keys(mushakRaw).length
+    ? {
+        challan_no: mushakRaw.challan_no,
+        vat_reg_no: mushakRaw.vat_reg_no,
+        hs_code: mushakRaw.hs_code,
+        buyer_address: mushakRaw.buyer_address,
+        notes: mushakRaw.notes,
+      }
+    : null;
 
   const doc = generateDocumentPdf({
     workspaceName: opts.workspaceName,
     currency,
     documentType: "Invoice",
+    documentLabel: mushak && (mushak.challan_no || mushak.vat_reg_no) ? "TAX INVOICE" : "INVOICE",
     documentTitle: invoice.invoice_number,
     documentRef: invoice.invoice_number,
     status: statusLabel,
@@ -74,13 +93,19 @@ export async function exportInvoicePdf(opts: InvoicePdfOptions) {
     validUntil: invoice.due_date
       ? format(new Date(invoice.due_date), "dd MMM yyyy")
       : undefined,
+    dueDateLabel: "DUE DATE",
     clientCompanyName: company?.legal_name || "—",
-    clientCompanyBin: company?.bin,
+    clientCompanyBin: company?.bin || undefined,
+    clientCompanyAddress: company?.address || undefined,
     lineItems: pdfLineItems,
     subtotal,
     taxes,
-    grandTotal: Number(invoice.grand_total) || subtotal + taxes.reduce((s, t) => s + t.amount, 0),
+    grandTotal,
+    amountPaid: amountPaid > 0 ? amountPaid : undefined,
+    amountDue: amountPaid > 0 ? amountDue : undefined,
     notes: invoice.notes || undefined,
+    termsLabel: "Notes",
+    mushak,
   });
 
   downloadPdf(doc, `${invoice.invoice_number}.pdf`);
