@@ -50,7 +50,7 @@ const SOCIAL_IMPORT_COLS = [
   "tiktok",
   "whatsapp",
 ] as const;
-type SocialCol = (typeof SOCIAL_IMPORT_COLS)[number];
+
 
 const COMPANY_HEADERS = ["legal_name", "bin", "address", "phone", "notes", ...SOCIAL_IMPORT_COLS];
 const CONTACT_HEADERS = ["full_name", "email", "phone", "alt_phone", "designation", "company_name", "notes", ...SOCIAL_IMPORT_COLS];
