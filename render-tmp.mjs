@@ -6,10 +6,13 @@ await build({
   format: 'cjs',
   platform: 'node',
   outfile: '/tmp/pdf-engine.cjs',
-  external: [],
+  // Force jspdf to be inlined as CJS so default export is the constructor.
+  mainFields: ['main'],
+  conditions: ['node','require','default'],
   logLevel: 'silent',
 });
-const { generateDocumentPdf } = await import('/tmp/pdf-engine.cjs');
+const mod = await import('/tmp/pdf-engine.cjs');
+const { generateDocumentPdf } = mod;
 function save(doc, name) {
   const buf = Buffer.from(doc.output('arraybuffer'));
   fs.writeFileSync(`/tmp/pdfqa/${name}`, buf);
