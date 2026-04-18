@@ -36,13 +36,29 @@ export interface PdfMushak63 {
   [key: string]: any;
 }
 
+export interface PdfBankDetails {
+  account_name?: string;
+  account_number?: string;
+  bank_name?: string;
+  branch?: string;
+  instructions?: string;
+}
+
 export interface PdfDocumentData {
-  // Issuer (workspace) — only `name` is reliably present today.
+  // Issuer identity — `workspaceName` remains the safe fallback label.
+  // When `issuerRegisteredName` is provided it is used as the primary issuer
+  // name on formal documents, with `issuerTradeName` shown as a secondary line.
   workspaceName: string;
+  issuerRegisteredName?: string;
+  issuerTradeName?: string;
   workspaceBin?: string;
   workspaceAddress?: string;
   workspaceEmail?: string;
   workspacePhone?: string;
+  // Optional logo, pre-loaded as a data URL (PNG/JPEG). Rendered top-left.
+  issuerLogoDataUrl?: string;
+  // Optional bank/remit block — only rendered when at least one field present.
+  bank?: PdfBankDetails;
 
   currency: string;
 
