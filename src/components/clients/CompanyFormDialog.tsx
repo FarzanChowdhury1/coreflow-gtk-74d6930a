@@ -11,7 +11,8 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { companySchema, type CompanyFormData } from "@/lib/validations";
+import { companySchema } from "@/lib/validations";
+import { PhoneInputIntl } from "@/components/ui/phone-input-intl";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Company = Tables<"companies">;
