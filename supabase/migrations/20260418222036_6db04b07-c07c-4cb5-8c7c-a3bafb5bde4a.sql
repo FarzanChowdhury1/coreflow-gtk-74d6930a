@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.get_lender_readiness(uuid) TO authenticated;
