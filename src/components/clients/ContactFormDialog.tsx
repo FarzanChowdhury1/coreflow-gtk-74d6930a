@@ -19,6 +19,13 @@ import {
   type ContactPhone,
   type PhoneLabel,
 } from "@/lib/phone";
+import { SocialLinksEditor } from "@/components/clients/SocialLinksEditor";
+import {
+  cleanSocialsForSave,
+  normalizeSocials,
+  validateSocialEntry,
+  type SocialEntry,
+} from "@/lib/socials";
 import type { Tables } from "@/integrations/supabase/types";
 import { Plus, X } from "lucide-react";
 
@@ -50,6 +57,8 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
     lifecycle_status: "active" as string,
   });
   const [phones, setPhones] = useState<ContactPhone[]>([]);
+  const [socials, setSocials] = useState<SocialEntry[]>([]);
+  const [socialErrors, setSocialErrors] = useState<Record<number, string>>({});
 
   useEffect(() => {
     if (contact) {
@@ -62,6 +71,7 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
         initialPhones = legacy;
       }
       setPhones(initialPhones);
+      setSocials(normalizeSocials((contact as any).socials));
       setForm({
         full_name: contact.full_name,
         email: contact.email || "",
@@ -72,6 +82,7 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
       });
     } else {
       setPhones([]);
+      setSocials([]);
       setForm({
         full_name: "",
         email: "",
@@ -82,6 +93,7 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
       });
     }
     setErrors({});
+    setSocialErrors({});
   }, [contact, open]);
 
   const updatePhone = (idx: number, patch: Partial<ContactPhone>) => {
@@ -140,6 +152,18 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
       return;
     }
 
+    // Socials per-entry validation
+    const sErrs: Record<number, string> = {};
+    socials.forEach((s, i) => {
+      const msg = validateSocialEntry(s);
+      if (msg) sErrs[i] = msg;
+    });
+    if (Object.keys(sErrs).length > 0) {
+      setSocialErrors(sErrs);
+      return;
+    }
+    setSocialErrors({});
+
     if (!currentWorkspace) return;
     setLoading(true);
 
@@ -152,6 +176,7 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
       phone: primary || null,
       alt_phone: alternate || null,
       phones: cleanedPhones,
+      socials: cleanSocialsForSave(socials),
       designation: result.data.designation || null,
       company_id: result.data.company_id || null,
       notes: result.data.notes || null,
@@ -321,6 +346,8 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
               </select>
             </div>
           </div>
+
+          <SocialLinksEditor value={socials} onChange={setSocials} errors={socialErrors} />
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">Notes</label>

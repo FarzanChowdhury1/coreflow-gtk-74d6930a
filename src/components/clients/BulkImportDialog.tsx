@@ -38,8 +38,8 @@ interface ParsedRow {
   status: RowStatus;
 }
 
-const COMPANY_HEADERS = ["legal_name", "bin", "address", "phone", "notes"];
-const CONTACT_HEADERS = ["full_name", "email", "phone", "alt_phone", "designation", "company_name", "notes"];
+const COMPANY_HEADERS = ["legal_name", "bin", "address", "phone", "notes", "website"];
+const CONTACT_HEADERS = ["full_name", "email", "phone", "alt_phone", "designation", "company_name", "notes", "website", "linkedin"];
 
 function downloadTemplate(type: ImportType) {
   const headers = type === "companies" ? COMPANY_HEADERS : CONTACT_HEADERS;
@@ -278,6 +278,8 @@ export function BulkImportDialog({ open, onOpenChange, companies, contacts }: Pr
 
     if (importType === "companies") {
       for (const row of validRows) {
+        const socials: { platform: string; value: string }[] = [];
+        if (row.data.website?.trim()) socials.push({ platform: "website", value: row.data.website.trim() });
         const { error } = await supabase.from("companies").insert({
           workspace_id: currentWorkspace.id,
           legal_name: row.data.legal_name.trim(),
@@ -285,7 +287,8 @@ export function BulkImportDialog({ open, onOpenChange, companies, contacts }: Pr
           address: row.data.address?.trim() || null,
           phone: row.data.phone?.trim() || null,
           notes: row.data.notes?.trim() || null,
-        });
+          socials,
+        } as any);
         if (error) {
           dbErrors++;
           errorDetails.push(`Row ${row.rowNum}: ${error.message}`);
@@ -310,6 +313,10 @@ export function BulkImportDialog({ open, onOpenChange, companies, contacts }: Pr
         if (primary) phonesArr.push({ label: "primary", number: primary });
         if (alternate) phonesArr.push({ label: "alternate", number: alternate });
 
+        const socials: { platform: string; value: string }[] = [];
+        if (row.data.website?.trim()) socials.push({ platform: "website", value: row.data.website.trim() });
+        if (row.data.linkedin?.trim()) socials.push({ platform: "linkedin", value: row.data.linkedin.trim() });
+
         const { error } = await supabase.from("contacts").insert({
           workspace_id: currentWorkspace.id,
           full_name: row.data.full_name.trim(),
@@ -317,6 +324,7 @@ export function BulkImportDialog({ open, onOpenChange, companies, contacts }: Pr
           phone: primary || null,
           alt_phone: alternate || null,
           phones: phonesArr,
+          socials,
           designation: row.data.designation?.trim() || null,
           company_id: companyId,
           notes: row.data.notes?.trim() || null,

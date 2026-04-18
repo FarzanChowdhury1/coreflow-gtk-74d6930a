@@ -13,6 +13,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { companySchema } from "@/lib/validations";
 import { PhoneInputIntl } from "@/components/ui/phone-input-intl";
+import { SocialLinksEditor } from "@/components/clients/SocialLinksEditor";
+import {
+  cleanSocialsForSave,
+  normalizeSocials,
+  validateSocialEntry,
+  type SocialEntry,
+} from "@/lib/socials";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Company = Tables<"companies">;
@@ -37,6 +44,8 @@ export function CompanyFormDialog({ open, onOpenChange, company }: Props) {
     phone: "",
     notes: "",
   });
+  const [socials, setSocials] = useState<SocialEntry[]>([]);
+  const [socialErrors, setSocialErrors] = useState<Record<number, string>>({});
 
   useEffect(() => {
     if (company) {
@@ -47,10 +56,13 @@ export function CompanyFormDialog({ open, onOpenChange, company }: Props) {
         phone: (company as any).phone || "",
         notes: company.notes || "",
       });
+      setSocials(normalizeSocials((company as any).socials));
     } else {
       setForm({ legal_name: "", bin: "", address: "", phone: "", notes: "" });
+      setSocials([]);
     }
     setErrors({});
+    setSocialErrors({});
   }, [company, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,6 +80,18 @@ export function CompanyFormDialog({ open, onOpenChange, company }: Props) {
       return;
     }
 
+    // Validate socials per-entry
+    const sErrs: Record<number, string> = {};
+    socials.forEach((s, i) => {
+      const msg = validateSocialEntry(s);
+      if (msg) sErrs[i] = msg;
+    });
+    if (Object.keys(sErrs).length > 0) {
+      setSocialErrors(sErrs);
+      return;
+    }
+    setSocialErrors({});
+
     if (!currentWorkspace) return;
     setLoading(true);
 
@@ -77,6 +101,7 @@ export function CompanyFormDialog({ open, onOpenChange, company }: Props) {
       address: result.data.address || null,
       phone: result.data.phone || null,
       notes: result.data.notes || null,
+      socials: cleanSocialsForSave(socials),
       workspace_id: currentWorkspace.id,
     } as any;
 
@@ -114,7 +139,7 @@ export function CompanyFormDialog({ open, onOpenChange, company }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{company ? "Edit Company" : "Add Company"}</DialogTitle>
           <DialogDescription>
@@ -170,6 +195,7 @@ export function CompanyFormDialog({ open, onOpenChange, company }: Props) {
               placeholder="Business address"
             />
           </div>
+          <SocialLinksEditor value={socials} onChange={setSocials} errors={socialErrors} />
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">Notes</label>
             <textarea
