@@ -3004,6 +3004,41 @@ export type Database = {
           },
         ]
       }
+      workspace_module_access: {
+        Row: {
+          created_at: string
+          granted_by: string | null
+          id: string
+          module: Database["public"]["Enums"]["workspace_module"]
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          module: Database["public"]["Enums"]["workspace_module"]
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          module?: Database["public"]["Enums"]["workspace_module"]
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_module_access_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspaces: {
         Row: {
           billing_cycle: string
@@ -3292,6 +3327,14 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
+      has_module_access: {
+        Args: {
+          _module: Database["public"]["Enums"]["workspace_module"]
+          _user_id: string
+          _workspace_id: string
+        }
+        Returns: boolean
+      }
       has_workspace_access: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
@@ -3526,6 +3569,7 @@ export type Database = {
         | "churn_risk"
         | "inactive"
         | "closed_lost"
+      workspace_module: "vendor_management" | "subscription_management"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3725,6 +3769,7 @@ export const Constants = {
         "inactive",
         "closed_lost",
       ],
+      workspace_module: ["vendor_management", "subscription_management"],
     },
   },
 } as const
