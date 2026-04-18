@@ -17,6 +17,7 @@ import { useWorkspaceCompanies, useWorkspaceContacts } from "@/hooks/use-workspa
 import { LeadFormDialog } from "@/components/leads/LeadFormDialog";
 import { ProposalFormDialog } from "@/components/proposals/ProposalFormDialog";
 import type { ProposalFormPrefill } from "@/components/proposals/ProposalFormDialog";
+import { ConvertLeadCompanyDialog } from "@/components/leads/ConvertLeadCompanyDialog";
 import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
 import { LeadKanbanBoard } from "@/components/leads/LeadKanbanBoard";
 import { Badge } from "@/components/ui/badge";
