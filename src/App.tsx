@@ -9,6 +9,7 @@ import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminGuard } from "@/components/auth/AdminGuard";
 import { PlatformAdminGuard } from "@/components/auth/PlatformAdminGuard";
+import { ModuleAccessGuard } from "@/components/auth/ModuleAccessGuard";
 import { FeatureGate } from "@/components/auth/FeatureGate";
 import { AppLayout } from "@/components/layout/AppLayout";
 
@@ -115,9 +116,9 @@ const App = () => (
                 <Route path="/invoices" element={<AdminGuard><Invoices /></AdminGuard>} />
                 <Route path="/payments" element={<AdminGuard><Payments /></AdminGuard>} />
                 <Route path="/renewals" element={<AdminGuard><Renewals /></AdminGuard>} />
-                <Route path="/vendors" element={<AdminGuard><FeatureGate feature="vendorManagement" label="Vendor Management"><Vendors /></FeatureGate></AdminGuard>} />
+                <Route path="/vendors" element={<ModuleAccessGuard module="vendor_management"><FeatureGate feature="vendorManagement" label="Vendor Management"><Vendors /></FeatureGate></ModuleAccessGuard>} />
                 <Route path="/expenses" element={<AdminGuard><FeatureGate feature="expenseTracking" label="Expense Tracking"><Expenses /></FeatureGate></AdminGuard>} />
-                <Route path="/subscriptions" element={<AdminGuard><FeatureGate feature="subscriptionTracking" label="Subscription Tracking"><Subscriptions /></FeatureGate></AdminGuard>} />
+                <Route path="/subscriptions" element={<ModuleAccessGuard module="subscription_management"><FeatureGate feature="subscriptionTracking" label="Subscription Tracking"><Subscriptions /></FeatureGate></ModuleAccessGuard>} />
                 <Route path="/budget" element={<AdminGuard><FeatureGate feature="budgetVsActual" label="Budget vs Actual"><BudgetActual /></FeatureGate></AdminGuard>} />
                 <Route path="/profitability" element={<AdminGuard><FeatureGate feature="profitability" label="Project Profitability"><Profitability /></FeatureGate></AdminGuard>} />
                 <Route path="/audit" element={<AdminGuard><FeatureGate feature="auditLog" label="Audit Log"><AuditLog /></FeatureGate></AdminGuard>} />
