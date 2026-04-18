@@ -27,11 +27,17 @@ interface FinanceAnalyticsData {
     drivers: HealthDriver[];
     collection_rate: number | null;
     trend_pct: number | null;
+    budget_status?: "none" | "within" | "at_limit" | "overspent";
+    summary_text?: string;
   };
   cash_conversion: {
     dso_days: number | null;
     dpo_days: number | null;
     ccc_days: number | null;
+    dpo_basis?: "due_date" | "expense_date_fallback" | "insufficient_data";
+    can_compute_dso?: boolean;
+    can_compute_dpo?: boolean;
+    can_compute_ccc?: boolean;
     receivables: number;
     overdue_amount: number;
     overdue_count: number;
@@ -232,10 +238,15 @@ export function FinanceAnalytics({ workspaceId, currency, isAdmin }: Props) {
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-3 mb-3">
                   <div className="text-3xl font-semibold tabular-nums">{health.score}</div>
                   <div className="text-xs text-muted-foreground">/ 100</div>
                 </div>
+                {health.summary_text && (
+                  <p className="text-xs text-foreground/90 mb-4 leading-relaxed">
+                    {health.summary_text}
+                  </p>
+                )}
                 <div className="space-y-1.5">
                   {health.drivers.length === 0 ? (
                     <p className="text-xs text-muted-foreground">No notable drivers.</p>
@@ -254,7 +265,7 @@ export function FinanceAnalytics({ workspaceId, currency, isAdmin }: Props) {
                           <Icon className={`h-3.5 w-3.5 ${tone}`} />
                           <span className="text-foreground">{d.label}</span>
                           {d.value !== undefined && d.value !== null && (
-                            <span className="text-muted-foreground tabular-nums">({d.value}{d.label.toLowerCase().includes("rate") || d.label.toLowerCase().includes("trending") ? "%" : ""})</span>
+                            <span className="text-muted-foreground tabular-nums">({d.value}{d.label.toLowerCase().includes("rate") || d.label.toLowerCase().includes("trending") || d.label.toLowerCase().includes("budget") ? "%" : ""})</span>
                           )}
                         </div>
                       );
@@ -278,37 +289,51 @@ export function FinanceAnalytics({ workspaceId, currency, isAdmin }: Props) {
             </p>
           </CardHeader>
           <CardContent>
-            {!cc.sufficient_data ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                <Info className="h-5 w-5 mx-auto mb-2 opacity-50" />
-                Insufficient payment history to compute DSO/DPO.
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                <div>
-                  <p className="text-[10px] text-muted-foreground">DSO</p>
-                  <p className="text-lg font-semibold tabular-nums">
-                    {cc.dso_days !== null ? `${Math.round(cc.dso_days)}d` : "—"}
-                  </p>
+            {(() => {
+              const canDso = cc.can_compute_dso ?? (cc.dso_days !== null);
+              const canDpo = cc.can_compute_dpo ?? (cc.dpo_days !== null);
+              const canCcc = cc.can_compute_ccc ?? (canDso && canDpo);
+              if (!canDso && !canDpo) {
+                return (
+                  <div className="py-6 text-center text-sm text-muted-foreground">
+                    <Info className="h-5 w-5 mx-auto mb-2 opacity-50" />
+                    Insufficient payment history to compute DSO or DPO.
+                  </div>
+                );
+              }
+              const dpoBasisLabel =
+                cc.dpo_basis === "due_date" ? "vs due date" :
+                cc.dpo_basis === "expense_date_fallback" ? "vs expense date (fallback)" :
+                null;
+              return (
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">DSO</p>
+                    <p className="text-lg font-semibold tabular-nums">
+                      {canDso && cc.dso_days !== null ? `${Math.round(cc.dso_days)}d` : <span className="text-xs text-muted-foreground font-normal">Insufficient data</span>}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">
+                      DPO{dpoBasisLabel && canDpo ? <span className="ml-1 opacity-70">· {dpoBasisLabel}</span> : null}
+                    </p>
+                    <p className="text-lg font-semibold tabular-nums">
+                      {canDpo && cc.dpo_days !== null ? `${Math.round(cc.dpo_days)}d` : <span className="text-xs text-muted-foreground font-normal">Insufficient data</span>}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">CCC</p>
+                    <p className={`text-lg font-semibold tabular-nums ${
+                      !canCcc || cc.ccc_days === null ? "" :
+                      cc.ccc_days <= 30 ? "text-success" :
+                      cc.ccc_days <= 60 ? "text-warning" : "text-destructive"
+                    }`}>
+                      {canCcc && cc.ccc_days !== null ? `${Math.round(cc.ccc_days)}d` : <span className="text-xs text-muted-foreground font-normal">Insufficient data</span>}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground">DPO</p>
-                  <p className="text-lg font-semibold tabular-nums">
-                    {cc.dpo_days !== null ? `${Math.round(cc.dpo_days)}d` : "—"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground">CCC</p>
-                  <p className={`text-lg font-semibold tabular-nums ${
-                    cc.ccc_days === null ? "" :
-                    cc.ccc_days <= 30 ? "text-success" :
-                    cc.ccc_days <= 60 ? "text-warning" : "text-destructive"
-                  }`}>
-                    {cc.ccc_days !== null ? `${Math.round(cc.ccc_days)}d` : "—"}
-                  </p>
-                </div>
-              </div>
-            )}
+              );
+            })()}
             <div className="grid grid-cols-2 gap-2 pt-3 border-t text-xs">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Receivables</span>
