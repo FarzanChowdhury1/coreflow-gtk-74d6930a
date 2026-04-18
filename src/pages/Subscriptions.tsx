@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { SubscriptionFormDialog } from "@/components/subscriptions/SubscriptionFormDialog";
+import { useModuleAccess } from "@/hooks/use-module-access";
 
 export interface Subscription {
   id: string;
@@ -36,9 +37,10 @@ function formatCurrency(value: number, currency: string = "BDT") {
 }
 
 export default function Subscriptions() {
-  const { currentWorkspace, currentRole } = useWorkspace();
+  const { currentWorkspace } = useWorkspace();
+  const { canManage } = useModuleAccess("subscription_management");
   const queryClient = useQueryClient();
-  const isAdmin = currentRole === "admin";
+  const isAdmin = canManage;
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Subscription | null>(null);
   const [search, setSearch] = useState("");
@@ -96,7 +98,7 @@ export default function Subscriptions() {
           <h1 className="text-2xl font-semibold text-foreground">Subscriptions</h1>
         </div>
         <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">
-          Subscription management is available to workspace admins only.
+          You don't have access to subscriptions. Ask a workspace admin to grant you access from Settings → Module Access.
         </CardContent></Card>
       </div>
     );
