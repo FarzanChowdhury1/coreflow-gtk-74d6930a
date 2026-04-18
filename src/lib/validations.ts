@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidPhone } from "@/lib/phone";
 
 // 13-digit alphanumeric BIN (Bangladesh Business Identification Number) — now optional
 export const binSchema = z
@@ -13,14 +14,25 @@ export const binSchema = z
     )
   );
 
-// International phone: +[country code][number], 7-15 digits after +
-// E.164: + followed by 5-14 digits
+// International phone — validated by libphonenumber-js (real per-country rules,
+// not a generic regex). Empty is allowed (optional field).
 export const internationalPhoneSchema = z
   .string()
-  .regex(/^\+[1-9]\d{4,13}$/, "Phone must be in E.164 international format (e.g. +8801712345678)")
   .optional()
   .or(z.literal(""))
+  .transform((v) => (v ? v.trim() : ""))
+  .refine(
+    (v) => v === "" || isValidPhone(v),
+    "Enter a valid phone number for the selected country"
+  )
   .transform((v) => v || undefined);
+
+// Structured multi-phone list for contacts.
+export const contactPhoneSchema = z.object({
+  label: z.enum(["primary", "alternate", "whatsapp", "office", "other"]),
+  number: z.string().refine((v) => isValidPhone(v), "Invalid phone number"),
+});
+export const contactPhonesSchema = z.array(contactPhoneSchema).max(10, "Up to 10 phone numbers");
 
 export const companySchema = z.object({
   legal_name: z.string().trim().min(1, "Legal name is required").max(255),
