@@ -14,7 +14,7 @@ const PLANS = [
     price: "৳799",
     period: "user / month",
     description: "For small Bangladeshi teams running their first structured operations.",
-    cta: "Start Free",
+    cta: "Start 14-Day Trial",
     ctaVariant: "outline" as const,
     ctaLink: "/login",
     highlight: false,
@@ -25,13 +25,14 @@ const PLANS = [
       "Invoicing & payments (Mushak 6.3 ready)",
       "CSV exports",
     ],
+    trialNote: "14-day trial · paid plan after trial",
   },
   {
     name: "Growth",
     price: "৳1,799",
     period: "user / month",
     description: "For growing Bangladeshi agencies and service firms that need full operational control.",
-    cta: "Start 14-Day Free Trial",
+    cta: "Try Growth Free for 14 Days",
     ctaVariant: "default" as const,
     ctaLink: "/login",
     highlight: true,
@@ -61,7 +62,6 @@ const PLANS = [
       "Built for larger teams",
       "Custom workspace setup",
       "Direct commercial discussion",
-      "Audit & compliance support",
     ],
   },
 ];
@@ -162,13 +162,13 @@ export default function Landing() {
         </p>
         <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <Button size="lg" asChild>
-            <Link to="/login">Get Started Free</Link>
+            <Link to="/login">Start Your 14-Day Trial</Link>
           </Button>
           <Button variant="outline" size="lg" asChild>
             <a href="#pricing">View Pricing</a>
           </Button>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">Free Starter tier up to 3 seats · 14-day Growth trial included</p>
+        <p className="mt-3 text-xs text-muted-foreground">14-day trial · paid plans from ৳799 / user / month · no payment details required during trial</p>
       </section>
 
       {/* Workflow spine */}
@@ -274,11 +274,11 @@ export default function Landing() {
       <section className="mx-auto max-w-3xl px-4 py-20 text-center">
         <h2 className="text-2xl font-semibold text-foreground">Ready to streamline your operations?</h2>
         <p className="mt-3 text-muted-foreground">
-          Start with the free Starter tier — move to Growth when your team is ready.
+          Start your 14-day trial — choose Starter or Growth when your team is ready.
         </p>
         <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <Button size="lg" asChild>
-            <Link to="/login">Get Started for Free</Link>
+            <Link to="/login">Start Your 14-Day Trial</Link>
           </Button>
           <Button variant="outline" size="lg" asChild>
             <a href="mailto:hello@coreflow.app?subject=CoreFlow%20Demo%20Request">Book a Demo</a>

@@ -111,10 +111,10 @@ export function PlanBillingTab() {
           {/* Plan-specific messaging */}
           {ent.plan === "free" && (
             <div className="rounded-md border bg-muted/30 p-4 space-y-3">
-              <p className="text-sm font-medium text-foreground">Starter — ৳799 / user / month (free up to 3 seats)</p>
+              <p className="text-sm font-medium text-foreground">Starter — ৳799 / user / month (up to 3 seats)</p>
               <p className="text-sm text-muted-foreground">
                 Includes core CRM features: leads, proposals, projects, invoices, and payments.
-                Move to Growth (৳1,799 / user / month) for advanced modules like expense tracking, approvals, audit logs, and unlimited seats.
+                Try Growth (৳1,799 / user / month) free for 14 days for advanced modules like expense tracking, approvals, audit logs, and unlimited seats.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" onClick={handleStartTrial} disabled={startingTrial || trialAlreadyUsed}>
