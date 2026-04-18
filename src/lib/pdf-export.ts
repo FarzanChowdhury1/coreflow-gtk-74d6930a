@@ -485,6 +485,60 @@ export function generateDocumentPdf(data: PdfDocumentData): jsPDF {
     y += splitNotes.length * 4 + 6;
   }
 
+  // ─── Bank / Remit block (invoices, when populated) ───────────
+  if (data.documentType === "Invoice" && data.bank && hasBankContent(data.bank)) {
+    const bankRows: Array<[string, string]> = [];
+    if (data.bank.account_name) bankRows.push(["Account Name", data.bank.account_name]);
+    if (data.bank.account_number) bankRows.push(["Account No.", data.bank.account_number]);
+    if (data.bank.bank_name) bankRows.push(["Bank", data.bank.bank_name]);
+    if (data.bank.branch) bankRows.push(["Branch", data.bank.branch]);
+
+    const instructionLines = data.bank.instructions
+      ? (doc.splitTextToSize(data.bank.instructions, contentWidth - 8) as string[])
+      : [];
+    const blockH = 8 + Math.ceil(bankRows.length / 2) * 6 + (instructionLines.length ? instructionLines.length * 4 + 4 : 0) + 4;
+
+    if (y + blockH > pageHeight - FOOTER_HEIGHT - 32) {
+      doc.addPage();
+      y = MARGIN;
+    }
+
+    doc.setFillColor(...COLOR_BAND_BG);
+    doc.setDrawColor(...COLOR_RULE);
+    doc.roundedRect(MARGIN, y, contentWidth, blockH, 1.5, 1.5, "FD");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(...COLOR_MUTED);
+    doc.text("REMIT / BANK DETAILS", MARGIN + 4, y + 5);
+
+    let by = y + 11;
+    bankRows.forEach((row, i) => {
+      const col = i % 2;
+      const cx = MARGIN + 4 + col * (contentWidth / 2);
+      const cy = by + Math.floor(i / 2) * 6;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(...COLOR_MUTED);
+      doc.text(row[0], cx, cy);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(...COLOR_INK);
+      doc.text(row[1], cx + 24, cy);
+    });
+
+    if (instructionLines.length) {
+      const ix = MARGIN + 4;
+      const iy = by + Math.ceil(bankRows.length / 2) * 6 + 2;
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(8);
+      doc.setTextColor(...COLOR_MUTED);
+      doc.text(instructionLines, ix, iy);
+    }
+
+    y += blockH + 6;
+  }
+
   // ─── Signature / issuer area ─────────────────────────────────
   // Always reserve a clean signature area near the bottom of the
   // last content page, but if not enough room remains, push to a new page.
@@ -504,13 +558,18 @@ export function generateDocumentPdf(data: PdfDocumentData): jsPDF {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(...COLOR_MUTED);
-  doc.text(data.signatureLabel || `For ${data.workspaceName}`, sigX, y + 19);
+  const sigIssuerLabel = issuerPrimary || data.workspaceName;
+  doc.text(data.signatureLabel || `For ${sigIssuerLabel}`, sigX, y + 19);
   doc.text("Authorised Signatory", sigX, y + 23);
 
   // ─── Footer + page numbers across all pages ──────────────────
-  finalisePages(doc, data.workspaceName);
+  finalisePages(doc, issuerPrimary || data.workspaceName);
 
   return doc;
+}
+
+function hasBankContent(b: PdfBankDetails): boolean {
+  return Boolean(b.account_name || b.account_number || b.bank_name || b.branch || b.instructions);
 }
 
 function hasMushakContent(m: PdfMushak63): boolean {
