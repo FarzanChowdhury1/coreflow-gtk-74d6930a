@@ -3311,6 +3311,18 @@ export type Database = {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
       }
+      is_workspace_branding_insertable: {
+        Args: { _object_name: string; _user_id: string }
+        Returns: boolean
+      }
+      is_workspace_branding_readable: {
+        Args: { _object_name: string; _user_id: string }
+        Returns: boolean
+      }
+      is_workspace_branding_writable: {
+        Args: { _object_name: string; _user_id: string }
+        Returns: boolean
+      }
       issue_invoice: {
         Args: { _invoice_id: string; _line_items: Json; _workspace_id: string }
         Returns: Json
