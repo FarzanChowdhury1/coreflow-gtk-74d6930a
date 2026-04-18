@@ -209,20 +209,16 @@ export default function Leads() {
                   >
                     <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
                   </Button>
-                  {isAdmin && lead.status !== "converted" && lead.status !== "unqualified" && lead.company_id && (
+                  {isAdmin && lead.status !== "converted" && lead.status !== "unqualified" && (
                     <Button
                       variant="ghost"
                       size="sm"
                       className="text-primary"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setProposalPrefill({
-                          title: lead.title,
-                          company_id: lead.company_id!,
-                          notes: lead.notes || undefined,
-                          lead_id: lead.id,
-                        });
+                        startConvert(lead);
                       }}
+                      title={lead.company_id ? "Convert to proposal" : "Convert to proposal (will ask for a company)"}
                     >
                       <FileText className="h-3.5 w-3.5 mr-1" /> Convert
                     </Button>
