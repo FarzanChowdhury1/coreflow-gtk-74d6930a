@@ -14,8 +14,10 @@ import {
 
 export function PlanBillingTab() {
   const ent = useEntitlement();
-  const { memberships, currentWorkspace, refreshWorkspaces } = useWorkspace();
-  const seatCount = memberships.filter((m) => m.workspace_id === currentWorkspace?.id).length;
+  const { currentWorkspace, refreshWorkspaces } = useWorkspace();
+  // Use the entitlement's effective seat count (members + pending invites) so the
+  // UI matches backend enforcement and the auto-promotion threshold.
+  const seatCount = ent.seatCount;
   const [startingTrial, setStartingTrial] = useState(false);
 
   const planLabel =
