@@ -3011,6 +3011,18 @@ export type Database = {
           created_at: string
           currency: string
           deleted_at: string | null
+          doc_address: string | null
+          doc_bank_account_name: string | null
+          doc_bank_account_number: string | null
+          doc_bank_branch: string | null
+          doc_bank_name: string | null
+          doc_bin: string | null
+          doc_email: string | null
+          doc_logo_storage_path: string | null
+          doc_payment_instructions: string | null
+          doc_phone: string | null
+          doc_registered_name: string | null
+          doc_trade_name: string | null
           grace_ends_at: string | null
           grace_reminders_sent: number
           id: string
@@ -3037,6 +3049,18 @@ export type Database = {
           created_at?: string
           currency?: string
           deleted_at?: string | null
+          doc_address?: string | null
+          doc_bank_account_name?: string | null
+          doc_bank_account_number?: string | null
+          doc_bank_branch?: string | null
+          doc_bank_name?: string | null
+          doc_bin?: string | null
+          doc_email?: string | null
+          doc_logo_storage_path?: string | null
+          doc_payment_instructions?: string | null
+          doc_phone?: string | null
+          doc_registered_name?: string | null
+          doc_trade_name?: string | null
           grace_ends_at?: string | null
           grace_reminders_sent?: number
           id?: string
@@ -3063,6 +3087,18 @@ export type Database = {
           created_at?: string
           currency?: string
           deleted_at?: string | null
+          doc_address?: string | null
+          doc_bank_account_name?: string | null
+          doc_bank_account_number?: string | null
+          doc_bank_branch?: string | null
+          doc_bank_name?: string | null
+          doc_bin?: string | null
+          doc_email?: string | null
+          doc_logo_storage_path?: string | null
+          doc_payment_instructions?: string | null
+          doc_phone?: string | null
+          doc_registered_name?: string | null
+          doc_trade_name?: string | null
           grace_ends_at?: string | null
           grace_reminders_sent?: number
           id?: string
