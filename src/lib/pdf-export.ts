@@ -136,18 +136,47 @@ export function generateDocumentPdf(data: PdfDocumentData): jsPDF {
   const pageHeight = doc.internal.pageSize.getHeight();
   const contentWidth = pageWidth - MARGIN * 2;
 
+  // Resolve issuer display names
+  const issuerPrimary = (data.issuerRegisteredName || data.workspaceName || "").trim();
+  const issuerSecondary =
+    data.issuerTradeName && data.issuerTradeName.trim() && data.issuerTradeName.trim() !== issuerPrimary
+      ? data.issuerTradeName.trim()
+      : "";
+
   // ─── Header band ─────────────────────────────────────────────
   doc.setFillColor(...COLOR_NAVY);
   doc.rect(0, 0, pageWidth, HEADER_BAND_HEIGHT, "F");
 
+  // Optional logo top-left inside the band
+  let headerTextX = MARGIN;
+  if (data.issuerLogoDataUrl) {
+    try {
+      const fmt = data.issuerLogoDataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
+      doc.addImage(data.issuerLogoDataUrl, fmt, MARGIN, 4, 14, 14, undefined, "FAST");
+      headerTextX = MARGIN + 18;
+    } catch {
+      headerTextX = MARGIN;
+    }
+  }
+
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text(data.workspaceName, MARGIN, 13);
+  doc.setFontSize(15);
+  const maxNameW = pageWidth - headerTextX - MARGIN - 50;
+  const namePrint = (doc.splitTextToSize(issuerPrimary || "—", maxNameW) as string[])[0];
+  doc.text(namePrint, headerTextX, issuerSecondary ? 11 : 13);
+  if (issuerSecondary) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(203, 213, 225);
+    const tradePrint = (doc.splitTextToSize(issuerSecondary, maxNameW) as string[])[0];
+    doc.text(tradePrint, headerTextX, 16);
+  }
 
-  const docLabel = (data.documentLabel || data.documentType).toUpperCase();
+  doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
+  const docLabel = (data.documentLabel || data.documentType).toUpperCase();
   doc.text(docLabel, pageWidth - MARGIN, 13, { align: "right" });
 
   // Reference line under header band
@@ -181,8 +210,16 @@ export function generateDocumentPdf(data: PdfDocumentData): jsPDF {
   // FROM block
   drawLabel("FROM", leftX, y);
   let ly = y + 5;
-  drawLine(data.workspaceName, leftX, ly, { bold: true, size: 11 });
-  ly += 5;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(...COLOR_INK);
+  const fromNameLines = doc.splitTextToSize(issuerPrimary || "—", colWidth) as string[];
+  doc.text(fromNameLines, leftX, ly);
+  ly += fromNameLines.length * 5;
+  if (issuerSecondary) {
+    drawLine(`(${issuerSecondary})`, leftX, ly, { color: COLOR_MUTED, size: 9 });
+    ly += 4;
+  }
   if (data.workspaceAddress) {
     const lines = doc.splitTextToSize(data.workspaceAddress, colWidth);
     doc.setFont("helvetica", "normal");
