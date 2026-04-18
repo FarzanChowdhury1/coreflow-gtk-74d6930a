@@ -20,7 +20,7 @@ export function PlanBillingTab() {
 
   const planLabel =
     ent.plan === "enterprise" ? "Enterprise" :
-    ent.plan === "growth" ? "Growth" : "Free";
+    ent.plan === "growth" ? "Growth" : "Starter";
 
   const seatPct = ent.seatLimit ? Math.min(100, Math.round((seatCount / ent.seatLimit) * 100)) : 0;
 
@@ -111,10 +111,10 @@ export function PlanBillingTab() {
           {/* Plan-specific messaging */}
           {ent.plan === "free" && (
             <div className="rounded-md border bg-muted/30 p-4 space-y-3">
-              <p className="text-sm font-medium text-foreground">Free plan — up to 3 seats</p>
+              <p className="text-sm font-medium text-foreground">Starter — ৳799 / user / month (free up to 3 seats)</p>
               <p className="text-sm text-muted-foreground">
                 Includes core CRM features: leads, proposals, projects, invoices, and payments.
-                Upgrade to Growth for advanced modules like expense tracking, approvals, audit logs, and unlimited seats.
+                Move to Growth (৳1,799 / user / month) for advanced modules like expense tracking, approvals, audit logs, and unlimited seats.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" onClick={handleStartTrial} disabled={startingTrial || trialAlreadyUsed}>
@@ -127,20 +127,20 @@ export function PlanBillingTab() {
                 </Button>
                 <Button size="sm" variant="outline" asChild>
                   <a href="mailto:hello@coreflow.app?subject=Enterprise%20Inquiry">
-                    Contact Sales <ArrowUpRight className="ml-1 h-3 w-3" />
+                    Talk to Sales <ArrowUpRight className="ml-1 h-3 w-3" />
                   </a>
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">No credit card required. One trial per workspace.</p>
+              <p className="text-xs text-muted-foreground">No payment details required during trial. One trial per workspace.</p>
             </div>
           )}
 
           {ent.plan === "growth" && !ent.trialExpired && (
             <div className="rounded-md border bg-muted/30 p-4 space-y-2">
-              <p className="text-sm font-medium text-foreground">Growth — $4.99 / seat / month</p>
+              <p className="text-sm font-medium text-foreground">Growth — ৳1,799 / user / month</p>
               <p className="text-sm text-muted-foreground">
                 All features unlocked. Unlimited seats. Priority support.
-                {ent.isTrialing && ` Your trial ends in ${ent.trialDaysLeft} day${ent.trialDaysLeft !== 1 ? "s" : ""}. No card required during trial.`}
+                {ent.isTrialing && ` Your trial ends in ${ent.trialDaysLeft} day${ent.trialDaysLeft !== 1 ? "s" : ""}. No payment details required during trial.`}
               </p>
               {!ent.isTrialing && (
                 <p className="text-sm text-muted-foreground flex items-center gap-1">
@@ -154,11 +154,11 @@ export function PlanBillingTab() {
             <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 space-y-2">
               <p className="text-sm font-medium text-foreground">Growth trial has ended</p>
               <p className="text-sm text-muted-foreground">
-                Subscribe to keep Growth features active and avoid losing access to advanced modules.
+                Contact us to activate Growth (৳1,799 / user / month) and keep advanced modules available to your team.
               </p>
               <Button size="sm" variant="default" asChild>
-                <a href="mailto:hello@coreflow.app?subject=Subscribe%20to%20Growth">
-                  Subscribe Now <ArrowUpRight className="ml-1 h-3 w-3" />
+                <a href="mailto:hello@coreflow.app?subject=Activate%20Growth%20Plan">
+                  Contact Us to Activate <ArrowUpRight className="ml-1 h-3 w-3" />
                 </a>
               </Button>
             </div>
@@ -168,7 +168,7 @@ export function PlanBillingTab() {
             <div className="rounded-md border bg-muted/30 p-4 space-y-2">
               <p className="text-sm font-medium text-foreground">Enterprise</p>
               <p className="text-sm text-muted-foreground">
-                Custom plan with unlimited seats and dedicated support. Contact your account manager for plan changes.
+                Custom plan for larger Bangladeshi organisations. Contact your account manager for any plan changes or commercial discussions.
               </p>
             </div>
           )}
@@ -183,7 +183,7 @@ export function PlanBillingTab() {
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <div className="flex items-start gap-2">
             <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-            <p><strong className="text-foreground">Per seat, per workspace.</strong> Each team member in this workspace counts as one seat.</p>
+            <p><strong className="text-foreground">Per user, per workspace.</strong> Each team member in this workspace counts as one seat, billed in BDT.</p>
           </div>
           <div className="flex items-start gap-2">
             <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
@@ -191,11 +191,11 @@ export function PlanBillingTab() {
           </div>
           <div className="flex items-start gap-2">
             <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-            <p><strong className="text-foreground">Growth trial.</strong> 14 days, no card required. Full access to all features during the trial.</p>
+            <p><strong className="text-foreground">Growth trial.</strong> 14 days, no payment details required. Full access to all features during the trial.</p>
           </div>
           <div className="flex items-start gap-2">
             <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-            <p><strong className="text-foreground">No self-serve billing yet.</strong> To subscribe after trial or discuss Enterprise, contact us and we'll set it up.</p>
+            <p><strong className="text-foreground">Manual billing.</strong> Activations and Enterprise plans are handled directly with our team — contact us and we'll set it up.</p>
           </div>
         </CardContent>
       </Card>

@@ -10,10 +10,10 @@ import {
 
 const PLANS = [
   {
-    name: "Free",
-    price: "$0",
-    period: "forever",
-    description: "For freelancers and solo operators getting started.",
+    name: "Starter",
+    price: "৳799",
+    period: "user / month",
+    description: "For small Bangladeshi teams running their first structured operations.",
     cta: "Start Free",
     ctaVariant: "outline" as const,
     ctaLink: "/login",
@@ -22,22 +22,22 @@ const PLANS = [
       "Up to 3 seats per workspace",
       "Leads, proposals & projects",
       "Client portal",
-      "Invoicing & payments",
+      "Invoicing & payments (Mushak 6.3 ready)",
       "CSV exports",
     ],
   },
   {
     name: "Growth",
-    price: "$4.99",
-    period: "per seat / month",
-    description: "For growing teams that need full operational control.",
+    price: "৳1,799",
+    period: "user / month",
+    description: "For growing Bangladeshi agencies and service firms that need full operational control.",
     cta: "Start 14-Day Free Trial",
     ctaVariant: "default" as const,
     ctaLink: "/login",
     highlight: true,
     badge: "Most Popular",
     features: [
-      "Everything in Free",
+      "Everything in Starter",
       "Unlimited seats",
       "Approval workflows",
       "Expense & vendor tracking",
@@ -45,23 +45,22 @@ const PLANS = [
       "Budget vs actual reporting",
       "Priority support",
     ],
-    trialNote: "No credit card required",
+    trialNote: "No payment details required during trial",
   },
   {
     name: "Enterprise",
     price: "Custom",
-    period: "tailored to your org",
-    description: "For larger teams needing custom onboarding and support.",
-    cta: "Book a Demo",
+    period: "talk to us",
+    description: "For larger Bangladeshi organisations needing custom setup and a direct commercial conversation.",
+    cta: "Contact Us",
     ctaVariant: "outline" as const,
     ctaLink: "mailto:hello@coreflow.app?subject=Enterprise%20inquiry",
     highlight: false,
     features: [
       "Everything in Growth",
-      "Dedicated onboarding",
-      "Custom integrations",
-      "SLA & uptime guarantees",
-      "Volume discounts",
+      "Built for larger teams",
+      "Custom workspace setup",
+      "Direct commercial discussion",
       "Audit & compliance support",
     ],
   },
@@ -82,7 +81,7 @@ const BENEFITS = [
   { icon: Globe, title: "Client Portal", description: "Give clients a branded portal to view proposals, invoices, onboarding tasks, and updates." },
   { icon: BarChart3, title: "Financial clarity", description: "Track expenses, subscriptions, budgets, and revenue — all in one place." },
   { icon: ShieldCheck, title: "Secure by default", description: "Row-level security, workspace isolation, and audit logging built in from day one." },
-  { icon: Receipt, title: "Full invoicing", description: "Line-item invoicing, tax configuration, PDF exports, and payment tracking." },
+  { icon: Receipt, title: "Built for Bangladesh", description: "Mushak 6.3-ready invoicing, BIN fields, BDT-native amounts, and bKash/Nagad payment recording." },
 ];
 
 export default function Landing() {
@@ -100,21 +99,21 @@ export default function Landing() {
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web",
         description:
-          "Operational backbone for agencies and service firms. Manage leads, proposals, projects, invoicing, payments, and renewals with a client portal.",
+          "Bangladesh-first operations platform for agencies and service firms. Manage leads, proposals, projects, invoicing, payments, and renewals with a client portal.",
         offers: [
           {
             "@type": "Offer",
-            price: "0",
+            price: "799",
             priceCurrency: "BDT",
-            name: "Free",
-            description: "Up to 3 seats per workspace",
+            name: "Starter",
+            description: "Per user per month, up to 3 seats per workspace",
           },
           {
             "@type": "Offer",
-            price: "4.99",
+            price: "1799",
             priceCurrency: "BDT",
             name: "Growth",
-            description: "Per seat per month, unlimited seats",
+            description: "Per user per month, unlimited seats",
           },
         ],
       });
@@ -153,13 +152,13 @@ export default function Landing() {
       <main>
       {/* Hero */}
       <section className="mx-auto max-w-4xl px-4 py-20 text-center">
-        <Badge variant="secondary" className="mb-4">Built for agencies & service firms</Badge>
+        <Badge variant="secondary" className="mb-4">Built in Bangladesh, for Bangladeshi service businesses</Badge>
         <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
           Run your client business<br />
           <span className="text-primary">from lead to renewal</span>
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground">
-          CoreFlow is the operational backbone for service businesses. Manage leads, proposals, projects, invoicing, payments, and renewals — with a client portal your customers will actually use.
+          CoreFlow is the operations platform for Bangladeshi agencies, service firms, and distributor–supplier teams. Manage leads, proposals, projects, Mushak 6.3-ready invoicing, payments, and renewals — with a client portal your customers will actually use.
         </p>
         <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <Button size="lg" asChild>
@@ -169,7 +168,7 @@ export default function Landing() {
             <a href="#pricing">View Pricing</a>
           </Button>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">Free forever up to 3 seats · No credit card required · 14-day Growth trial included</p>
+        <p className="mt-3 text-xs text-muted-foreground">Free Starter tier up to 3 seats · 14-day Growth trial included</p>
       </section>
 
       {/* Workflow spine */}
@@ -220,7 +219,7 @@ export default function Landing() {
         <div className="mx-auto max-w-5xl px-4">
           <h2 className="mb-2 text-center text-2xl font-semibold text-foreground">Simple, transparent pricing</h2>
           <p className="mb-10 text-center text-sm text-muted-foreground">
-            Billed per seat, per workspace. Same person in multiple workspaces is billed separately.
+            Billed per user, per workspace, in BDT. Same person in multiple workspaces is billed separately.
           </p>
           <div className="grid gap-6 md:grid-cols-3">
             {PLANS.map((plan) => (
@@ -275,7 +274,7 @@ export default function Landing() {
       <section className="mx-auto max-w-3xl px-4 py-20 text-center">
         <h2 className="text-2xl font-semibold text-foreground">Ready to streamline your operations?</h2>
         <p className="mt-3 text-muted-foreground">
-          Start with the free plan — upgrade to Growth when you're ready. No commitments, no credit card.
+          Start with the free Starter tier — move to Growth when your team is ready.
         </p>
         <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <Button size="lg" asChild>
