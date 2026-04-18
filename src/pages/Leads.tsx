@@ -17,6 +17,7 @@ import { useWorkspaceCompanies, useWorkspaceContacts } from "@/hooks/use-workspa
 import { LeadFormDialog } from "@/components/leads/LeadFormDialog";
 import { ProposalFormDialog } from "@/components/proposals/ProposalFormDialog";
 import type { ProposalFormPrefill } from "@/components/proposals/ProposalFormDialog";
+import { ConvertLeadCompanyDialog } from "@/components/leads/ConvertLeadCompanyDialog";
 import { MeetingFormDialog } from "@/components/meetings/MeetingFormDialog";
 import { LeadKanbanBoard } from "@/components/leads/LeadKanbanBoard";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +45,7 @@ export default function Leads() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [proposalPrefill, setProposalPrefill] = useState<ProposalFormPrefill | null>(null);
+  const [resolveCompanyForLead, setResolveCompanyForLead] = useState<Lead | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "kanban">("table");
   const [meetingContext, setMeetingContext] = useState<{ lead_id?: string; company_id?: string; contact_id?: string } | null>(null);
   const queryClient = useQueryClient();
@@ -139,6 +141,23 @@ export default function Leads() {
     }
   };
 
+  /**
+   * Start lead → proposal conversion. If the lead has no company, open the
+   * inline resolver first; otherwise jump straight into the proposal dialog.
+   */
+  const startConvert = (lead: Lead) => {
+    if (lead.company_id) {
+      setProposalPrefill({
+        title: lead.title,
+        company_id: lead.company_id,
+        notes: lead.notes || undefined,
+        lead_id: lead.id,
+      });
+    } else {
+      setResolveCompanyForLead(lead);
+    }
+  };
+
   const renderLeadRow = (lead: Lead) => {
     const isArchived = !!lead.deleted_at;
     return (
@@ -190,20 +209,16 @@ export default function Leads() {
                   >
                     <Calendar className="h-3.5 w-3.5 mr-1" /> Meet
                   </Button>
-                  {isAdmin && lead.status !== "converted" && lead.status !== "unqualified" && lead.company_id && (
+                  {isAdmin && lead.status !== "converted" && lead.status !== "unqualified" && (
                     <Button
                       variant="ghost"
                       size="sm"
                       className="text-primary"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setProposalPrefill({
-                          title: lead.title,
-                          company_id: lead.company_id!,
-                          notes: lead.notes || undefined,
-                          lead_id: lead.id,
-                        });
+                        startConvert(lead);
                       }}
+                      title={lead.company_id ? "Convert to proposal" : "Convert to proposal (will ask for a company)"}
                     >
                       <FileText className="h-3.5 w-3.5 mr-1" /> Convert
                     </Button>
@@ -368,11 +383,7 @@ export default function Leads() {
           onEdit={(lead) => { setEditingLead(lead); setDialogOpen(true); }}
           onArchive={handleArchive}
           onRestore={handleRestore}
-          onConvert={(lead) => {
-            if (lead.company_id) {
-              setProposalPrefill({ title: lead.title, company_id: lead.company_id, notes: lead.notes || undefined, lead_id: lead.id });
-            }
-          }}
+          onConvert={startConvert}
           onMeeting={(lead) => setMeetingContext({ lead_id: lead.id, company_id: lead.company_id || undefined, contact_id: lead.contact_id || undefined })}
         />
       ) : viewMode === "kanban" ? (
@@ -384,11 +395,7 @@ export default function Leads() {
           userId={user?.id}
           onEdit={(lead) => { setEditingLead(lead); setDialogOpen(true); }}
           onArchive={handleArchive}
-          onConvert={(lead) => {
-            if (lead.company_id) {
-              setProposalPrefill({ title: lead.title, company_id: lead.company_id, notes: lead.notes || undefined, lead_id: lead.id });
-            }
-          }}
+          onConvert={startConvert}
           onMeeting={(lead) => setMeetingContext({ lead_id: lead.id, company_id: lead.company_id || undefined, contact_id: lead.contact_id || undefined })}
         />
       ) : (
@@ -454,6 +461,24 @@ export default function Leads() {
         onOpenChange={(open) => { if (!open) setMeetingContext(null); }}
         onSaved={() => setMeetingContext(null)}
         defaultContext={meetingContext || undefined}
+      />
+
+      <ConvertLeadCompanyDialog
+        open={!!resolveCompanyForLead}
+        onOpenChange={(open) => { if (!open) setResolveCompanyForLead(null); }}
+        lead={resolveCompanyForLead}
+        companies={companies}
+        onResolved={(companyId) => {
+          if (resolveCompanyForLead) {
+            setProposalPrefill({
+              title: resolveCompanyForLead.title,
+              company_id: companyId,
+              notes: resolveCompanyForLead.notes || undefined,
+              lead_id: resolveCompanyForLead.id,
+            });
+            setResolveCompanyForLead(null);
+          }
+        }}
       />
     </div>
   );
