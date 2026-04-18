@@ -51,6 +51,22 @@ export function WorkspaceSettingsTab() {
   const [savingBranding, setSavingBranding] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
+  // Document identity (formal PDFs) state
+  const [docRegisteredName, setDocRegisteredName] = useState("");
+  const [docTradeName, setDocTradeName] = useState("");
+  const [docAddress, setDocAddress] = useState("");
+  const [docPhone, setDocPhone] = useState("");
+  const [docEmail, setDocEmail] = useState("");
+  const [docBin, setDocBin] = useState("");
+  const [docLogoPath, setDocLogoPath] = useState("");
+  const [docBankAccountName, setDocBankAccountName] = useState("");
+  const [docBankAccountNumber, setDocBankAccountNumber] = useState("");
+  const [docBankName, setDocBankName] = useState("");
+  const [docBankBranch, setDocBankBranch] = useState("");
+  const [docPaymentInstructions, setDocPaymentInstructions] = useState("");
+  const [savingDocIdentity, setSavingDocIdentity] = useState(false);
+  const [uploadingDocLogo, setUploadingDocLogo] = useState(false);
+
   const ws = currentWorkspace as any;
   const alreadyClaimed = !!ws?.offboarding_export_used_at;
 
@@ -75,6 +91,19 @@ export function WorkspaceSettingsTab() {
       setPortalAccentColor(ws.portal_accent_color || "");
       setPortalSupportEmail(ws.portal_support_email || "");
       setPortalLogoPath(ws.portal_logo_storage_path || "");
+      // Document identity fields
+      setDocRegisteredName(ws.doc_registered_name || "");
+      setDocTradeName(ws.doc_trade_name || "");
+      setDocAddress(ws.doc_address || "");
+      setDocPhone(ws.doc_phone || "");
+      setDocEmail(ws.doc_email || "");
+      setDocBin(ws.doc_bin || "");
+      setDocLogoPath(ws.doc_logo_storage_path || "");
+      setDocBankAccountName(ws.doc_bank_account_name || "");
+      setDocBankAccountNumber(ws.doc_bank_account_number || "");
+      setDocBankName(ws.doc_bank_name || "");
+      setDocBankBranch(ws.doc_bank_branch || "");
+      setDocPaymentInstructions(ws.doc_payment_instructions || "");
     }
   }, [currentWorkspace]);
 
