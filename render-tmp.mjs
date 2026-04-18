@@ -10,12 +10,10 @@ await build({
   conditions: ['node','require','default'],
   logLevel: 'silent',
 });
-// Patch: jspdf CJS exposes both `.default` and `.jsPDF`. esbuild sometimes
-// hits the non-constructor `.default`. Force the named export.
 let src = fs.readFileSync('/tmp/pdf-engine.cjs','utf8');
 src = src.replace(/import_jspdf\.default/g, 'import_jspdf.jsPDF');
+src = src.replace(/import_jspdf_autotable\.default/g, 'import_jspdf_autotable.autoTable');
 fs.writeFileSync('/tmp/pdf-engine.cjs', src);
-
 const mod = await import('/tmp/pdf-engine.cjs?t=' + Date.now());
 const { generateDocumentPdf } = mod;
 function save(doc, name) {
