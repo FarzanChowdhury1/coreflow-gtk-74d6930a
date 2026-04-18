@@ -152,6 +152,18 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
       return;
     }
 
+    // Socials per-entry validation
+    const sErrs: Record<number, string> = {};
+    socials.forEach((s, i) => {
+      const msg = validateSocialEntry(s);
+      if (msg) sErrs[i] = msg;
+    });
+    if (Object.keys(sErrs).length > 0) {
+      setSocialErrors(sErrs);
+      return;
+    }
+    setSocialErrors({});
+
     if (!currentWorkspace) return;
     setLoading(true);
 
@@ -164,6 +176,7 @@ export function ContactFormDialog({ open, onOpenChange, contact, companies }: Pr
       phone: primary || null,
       alt_phone: alternate || null,
       phones: cleanedPhones,
+      socials: cleanSocialsForSave(socials),
       designation: result.data.designation || null,
       company_id: result.data.company_id || null,
       notes: result.data.notes || null,
