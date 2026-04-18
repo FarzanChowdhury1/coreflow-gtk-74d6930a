@@ -459,9 +459,151 @@ export function WorkspaceSettingsTab() {
         </CardContent>
       </Card>
 
+      {/* Document Identity (formal PDFs) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            Document Identity
+          </CardTitle>
+          <CardDescription>
+            Issuer details used on formal proposal and invoice PDFs. Leave any field blank to omit it from the document — nothing is fabricated.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="max-w-2xl space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Registered / Legal Name</label>
+                <Input
+                  value={docRegisteredName}
+                  onChange={(e) => setDocRegisteredName(e.target.value)}
+                  placeholder="DARVIZ Labs Ltd."
+                />
+                <p className="text-xs text-muted-foreground">Primary issuer line on PDFs. Falls back to workspace name when blank.</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Trade / Display Name</label>
+                <Input
+                  value={docTradeName}
+                  onChange={(e) => setDocTradeName(e.target.value)}
+                  placeholder="DARVIZ"
+                />
+                <p className="text-xs text-muted-foreground">Optional secondary line.</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Business Address</label>
+              <Textarea
+                value={docAddress}
+                onChange={(e) => setDocAddress(e.target.value)}
+                placeholder="House 12, Road 4, Banani, Dhaka 1213, Bangladesh"
+                rows={2}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Phone</label>
+                <Input
+                  value={docPhone}
+                  onChange={(e) => setDocPhone(e.target.value)}
+                  placeholder="+880 1XXX-XXXXXX"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Document Email</label>
+                <Input
+                  type="email"
+                  value={docEmail}
+                  onChange={(e) => setDocEmail(e.target.value)}
+                  placeholder="billing@yourcompany.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">BIN (Business ID)</label>
+                <Input
+                  value={docBin}
+                  onChange={(e) => setDocBin(e.target.value)}
+                  placeholder="13-digit BIN"
+                  maxLength={20}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Document Logo</label>
+              <div className="flex items-center gap-3">
+                <Input
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  onChange={handleDocLogoUpload}
+                  disabled={uploadingDocLogo}
+                  className="max-w-[260px]"
+                />
+                {uploadingDocLogo && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              </div>
+              {docLogoPath && (
+                <p className="text-xs text-muted-foreground">
+                  Logo set: <span className="font-mono">{docLogoPath.split("/").pop()}</span>
+                  <button
+                    type="button"
+                    onClick={() => setDocLogoPath("")}
+                    className="ml-2 text-destructive hover:underline"
+                  >
+                    Remove
+                  </button>
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">PNG or JPG, max 2 MB. Rendered top-left on formal PDFs.</p>
+            </div>
+
+            <div className="border-t pt-6 space-y-4">
+              <div>
+                <h4 className="text-sm font-semibold">Remit / Bank Details</h4>
+                <p className="text-xs text-muted-foreground mt-1">Optional. Shown on invoice PDFs when populated, omitted entirely when blank.</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Account Name</label>
+                  <Input value={docBankAccountName} onChange={(e) => setDocBankAccountName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Account Number</label>
+                  <Input value={docBankAccountNumber} onChange={(e) => setDocBankAccountNumber(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Bank Name</label>
+                  <Input value={docBankName} onChange={(e) => setDocBankName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Branch</label>
+                  <Input value={docBankBranch} onChange={(e) => setDocBankBranch(e.target.value)} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Payment Instructions</label>
+                <Textarea
+                  value={docPaymentInstructions}
+                  onChange={(e) => setDocPaymentInstructions(e.target.value)}
+                  placeholder="Wire transfer reference: invoice number. Confirm to billing@…"
+                  rows={2}
+                />
+              </div>
+            </div>
+
+            <Button onClick={handleSaveDocIdentity} disabled={savingDocIdentity}>
+              {savingDocIdentity && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Document Identity
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="border-destructive/30">
         <CardHeader>
+
           <CardTitle className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
             Danger Zone
