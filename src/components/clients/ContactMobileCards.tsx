@@ -69,6 +69,25 @@ export function ContactMobileCards({ contacts, isAdmin, getCompanyName, onEdit, 
               <p>Company: {getCompanyName(contact.company_id)}</p>
             </div>
 
+            {socials.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-3">
+                {socials.map((s, i) => {
+                  const href = socialToHref(s);
+                  const chip = (
+                    <span className="inline-flex items-center gap-1 rounded-md border bg-muted/40 px-2 py-0.5 text-[10px] text-foreground">
+                      {platformLabel(s.platform)}
+                      {href && <ExternalLink className="h-2.5 w-2.5 text-muted-foreground" />}
+                    </span>
+                  );
+                  return href ? (
+                    <a key={i} href={href} target="_blank" rel="noopener noreferrer" className="hover:opacity-80">{chip}</a>
+                  ) : (
+                    <span key={i}>{chip}</span>
+                  );
+                })}
+              </div>
+            )}
+
             {isAdmin && (
               <div className="flex gap-1">
                 {isArchived ? (
