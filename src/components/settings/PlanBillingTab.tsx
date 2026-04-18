@@ -183,7 +183,7 @@ export function PlanBillingTab() {
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <div className="flex items-start gap-2">
             <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-            <p><strong className="text-foreground">Per seat, per workspace.</strong> Each team member in this workspace counts as one seat.</p>
+            <p><strong className="text-foreground">Per user, per workspace.</strong> Each team member in this workspace counts as one seat, billed in BDT.</p>
           </div>
           <div className="flex items-start gap-2">
             <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
@@ -191,11 +191,11 @@ export function PlanBillingTab() {
           </div>
           <div className="flex items-start gap-2">
             <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-            <p><strong className="text-foreground">Growth trial.</strong> 14 days, no card required. Full access to all features during the trial.</p>
+            <p><strong className="text-foreground">Growth trial.</strong> 14 days, no payment details required. Full access to all features during the trial.</p>
           </div>
           <div className="flex items-start gap-2">
             <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-            <p><strong className="text-foreground">No self-serve billing yet.</strong> To subscribe after trial or discuss Enterprise, contact us and we'll set it up.</p>
+            <p><strong className="text-foreground">Manual billing.</strong> Activations and Enterprise plans are handled directly with our team — contact us and we'll set it up.</p>
           </div>
         </CardContent>
       </Card>
