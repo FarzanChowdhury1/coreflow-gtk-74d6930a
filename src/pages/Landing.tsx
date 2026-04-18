@@ -44,7 +44,7 @@ const PLANS = [
       "Expense & vendor tracking",
       "Subscriptions & renewals",
       "Budget vs actual reporting",
-      "Priority support",
+      "Audit log & profitability reports",
     ],
     trialNote: "No payment details required during trial",
   },

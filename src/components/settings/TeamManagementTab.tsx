@@ -577,7 +577,7 @@ export function TeamManagementTab() {
                   <div>
                     <p className="text-sm font-medium text-foreground">Seat limit reached</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Your {ent.plan === "free" ? "Free" : "current"} plan supports up to {ent.seatLimit} seat{ent.seatLimit !== 1 ? "s" : ""}. You currently have {ent.seatCount} member{ent.seatCount !== 1 ? "s" : ""}.
+                      Your {ent.plan === "starter" ? "Starter" : "current"} plan supports up to {ent.seatLimit} seat{ent.seatLimit !== 1 ? "s" : ""}. You currently have {ent.seatCount} member{ent.seatCount !== 1 ? "s" : ""}. Upgrade to Growth for unlimited seats.
                     </p>
                     <a
                       href="mailto:hello@coreflow.app?subject=Upgrade%20Inquiry"
