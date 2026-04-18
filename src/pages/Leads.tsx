@@ -468,16 +468,27 @@ export default function Leads() {
         onOpenChange={(open) => { if (!open) setResolveCompanyForLead(null); }}
         lead={resolveCompanyForLead}
         companies={companies}
-        onResolved={(companyId) => {
-          if (resolveCompanyForLead) {
-            setProposalPrefill({
-              title: resolveCompanyForLead.title,
-              company_id: companyId,
-              notes: resolveCompanyForLead.notes || undefined,
-              lead_id: resolveCompanyForLead.id,
-            });
-            setResolveCompanyForLead(null);
+        onResolved={async (companyId) => {
+          const sourceLead = resolveCompanyForLead;
+          if (!sourceLead) return;
+          // Persist resolved company back to the source lead so the lead and the
+          // resulting proposal stay internally consistent. Preserves owner/status/history.
+          const { error } = await supabase
+            .from("leads")
+            .update({ company_id: companyId })
+            .eq("id", sourceLead.id);
+          if (error) {
+            toast.error(`Could not link company to lead: ${error.message}`);
+            return;
           }
+          queryClient.invalidateQueries({ queryKey: ["leads"] });
+          setProposalPrefill({
+            title: sourceLead.title,
+            company_id: companyId,
+            notes: sourceLead.notes || undefined,
+            lead_id: sourceLead.id,
+          });
+          setResolveCompanyForLead(null);
         }}
       />
     </div>
