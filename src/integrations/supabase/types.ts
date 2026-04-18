@@ -3318,6 +3318,7 @@ export type Database = {
         Returns: Json
       }
       get_dashboard_metrics: { Args: { _workspace_id: string }; Returns: Json }
+      get_finance_analytics: { Args: { _workspace_id: string }; Returns: Json }
       get_onboarding_counts: { Args: { _workspace_id: string }; Returns: Json }
       global_search: {
         Args: { _limit?: number; _term: string; _workspace_id: string }

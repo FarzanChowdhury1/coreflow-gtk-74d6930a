@@ -2,6 +2,7 @@ import { LayoutDashboard, Users, FileText, FolderKanban, Receipt, AlertTriangle,
 
 import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 import { DashboardBreakdowns } from "@/components/dashboard/DashboardBreakdowns";
+import { FinanceAnalytics } from "@/components/dashboard/FinanceAnalytics";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -121,6 +122,16 @@ export default function Dashboard() {
       {/* Pipeline breakdowns + Current Month Financial Snapshot */}
       {currentWorkspace?.id && (
         <DashboardBreakdowns workspaceId={currentWorkspace.id} currency={currency} />
+      )}
+
+      {currentWorkspace?.id && currentRole === "admin" && (
+        <div className="mt-8">
+          <FinanceAnalytics
+            workspaceId={currentWorkspace.id}
+            currency={currency}
+            isAdmin={currentRole === "admin"}
+          />
+        </div>
       )}
 
       {/* Onboarding checklist for new admins */}
