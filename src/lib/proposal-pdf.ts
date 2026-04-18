@@ -1,6 +1,6 @@
 /**
  * Proposal-specific PDF export logic.
- * Gathers data from Supabase and delegates to the shared PDF generator.
+ * Gathers data from Supabase and delegates to the shared formal A4 engine.
  */
 import { supabase } from "@/integrations/supabase/client";
 import { generateDocumentPdf, downloadPdf } from "./pdf-export";
@@ -15,15 +15,14 @@ export interface ProposalPdfOptions {
 }
 
 export async function exportProposalPdf(opts: ProposalPdfOptions) {
-  // Fetch proposal with company
+  // Fetch proposal with company (incl. address & BIN where present)
   const { data: proposal, error: pErr } = await supabase
     .from("proposals")
-    .select("*, companies(legal_name, bin)")
+    .select("*, companies(legal_name, bin, address)")
     .eq("id", opts.proposalId)
     .single();
   if (pErr || !proposal) throw new Error(pErr?.message || "Proposal not found");
 
-  // Fetch version
   const { data: version, error: vErr } = await supabase
     .from("proposal_versions")
     .select("*")
@@ -31,7 +30,6 @@ export async function exportProposalPdf(opts: ProposalPdfOptions) {
     .single();
   if (vErr || !version) throw new Error(vErr?.message || "Version not found");
 
-  // Fetch line items
   const { data: lineItems = [] } = await supabase
     .from("proposal_line_items")
     .select("*")
@@ -68,6 +66,7 @@ export async function exportProposalPdf(opts: ProposalPdfOptions) {
     workspaceName: opts.workspaceName,
     currency,
     documentType: "Proposal",
+    documentLabel: "QUOTATION",
     documentTitle: proposal.title,
     documentRef: `v${version.version_number}`,
     status: version.status,
@@ -75,13 +74,16 @@ export async function exportProposalPdf(opts: ProposalPdfOptions) {
     validUntil: version.valid_until
       ? format(new Date(version.valid_until), "dd MMM yyyy")
       : undefined,
+    dueDateLabel: "VALID UNTIL",
     clientCompanyName: company?.legal_name || "—",
-    clientCompanyBin: company?.bin,
+    clientCompanyBin: company?.bin || undefined,
+    clientCompanyAddress: company?.address || undefined,
     lineItems: pdfLineItems,
     subtotal,
     taxes,
     grandTotal,
     notes: version.notes || proposal.notes || undefined,
+    termsLabel: "Notes & Terms",
   });
 
   const safeName = proposal.title.replace(/[^a-zA-Z0-9-_ ]/g, "").trim();
