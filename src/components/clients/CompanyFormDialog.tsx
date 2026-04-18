@@ -11,7 +11,8 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { companySchema, type CompanyFormData } from "@/lib/validations";
+import { companySchema } from "@/lib/validations";
+import { PhoneInputIntl } from "@/components/ui/phone-input-intl";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Company = Tables<"companies">;
@@ -152,16 +153,12 @@ export function CompanyFormDialog({ open, onOpenChange, company }: Props) {
                 13-character Business ID Number (optional)
               </p>
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Phone</label>
-              <input
-                type="tel"
-                value={form.phone}
-                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="e.g. +88028901234"
-              />
-            </div>
+            <PhoneInputIntl
+              label="Phone"
+              value={form.phone}
+              onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
+              error={errors.phone}
+            />
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">Address</label>

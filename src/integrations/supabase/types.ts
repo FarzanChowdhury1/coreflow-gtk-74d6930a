@@ -667,6 +667,7 @@ export type Database = {
           lifecycle_status: Database["public"]["Enums"]["contact_lifecycle_status"]
           notes: string | null
           phone: string | null
+          phones: Json
           updated_at: string
           workspace_id: string
         }
@@ -682,6 +683,7 @@ export type Database = {
           lifecycle_status?: Database["public"]["Enums"]["contact_lifecycle_status"]
           notes?: string | null
           phone?: string | null
+          phones?: Json
           updated_at?: string
           workspace_id: string
         }
@@ -697,6 +699,7 @@ export type Database = {
           lifecycle_status?: Database["public"]["Enums"]["contact_lifecycle_status"]
           notes?: string | null
           phone?: string | null
+          phones?: Json
           updated_at?: string
           workspace_id?: string
         }
