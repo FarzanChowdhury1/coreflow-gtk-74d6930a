@@ -34,7 +34,9 @@ interface FinanceAnalyticsData {
     dso_days: number | null;
     dpo_days: number | null;
     ccc_days: number | null;
-    dpo_basis?: "due_date" | "expense_date_fallback" | "insufficient_data";
+    dpo_basis?: "due_date" | "expense_date_fallback" | "mixed" | "insufficient_data";
+    dpo_due_sample_count?: number;
+    dpo_fallback_sample_count?: number;
     can_compute_dso?: boolean;
     can_compute_dpo?: boolean;
     can_compute_ccc?: boolean;
@@ -45,7 +47,6 @@ interface FinanceAnalyticsData {
     cash_in_30d: number;
     cash_out_30d: number;
     net_cash_30d: number;
-    sufficient_data: boolean;
   };
 }
 
