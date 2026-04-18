@@ -1,4 +1,4 @@
-import { Settings, Building2, UserCircle, Crown, Rocket, Bell, Shield } from "lucide-react";
+import { Settings, Building2, UserCircle, Crown, Rocket, Bell, Shield, KeyRound } from "lucide-react";
 import { DataErasureTab } from "@/components/settings/DataErasureTab";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,6 +7,7 @@ import { ProfileSettingsTab } from "@/components/settings/ProfileSettingsTab";
 import { PlanBillingTab } from "@/components/settings/PlanBillingTab";
 import { ActivationTab } from "@/components/settings/ActivationTab";
 import { NotificationPreferencesTab } from "@/components/settings/NotificationPreferencesTab";
+import { ModuleAccessTab } from "@/components/settings/ModuleAccessTab";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 export default function SettingsPage() {
@@ -55,6 +56,12 @@ export default function SettingsPage() {
             </TabsTrigger>
           )}
           {isAdmin && (
+            <TabsTrigger value="module-access" className="gap-2">
+              <KeyRound className="h-4 w-4" />
+              Module Access
+            </TabsTrigger>
+          )}
+          {isAdmin && (
             <TabsTrigger value="data-erasure" className="gap-2">
               <Shield className="h-4 w-4" />
               Data Erasure
@@ -85,6 +92,12 @@ export default function SettingsPage() {
         {isAdmin && (
           <TabsContent value="activation">
             <ActivationTab />
+          </TabsContent>
+        )}
+
+        {isAdmin && (
+          <TabsContent value="module-access">
+            <ModuleAccessTab />
           </TabsContent>
         )}
 

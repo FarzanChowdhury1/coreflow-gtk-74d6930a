@@ -54,9 +54,9 @@ const navItems: NavItem[] = [
   { label: "Invoices", icon: Receipt, path: "/invoices", section: "Revenue", adminOnly: true },
   { label: "Payments", icon: CreditCard, path: "/payments", section: "Revenue", adminOnly: true },
   { label: "Renewals", icon: RefreshCw, path: "/renewals", section: "Revenue", adminOnly: true },
-  { label: "Vendors", icon: Store, path: "/vendors", section: "Spend", adminOnly: true },
+  { label: "Vendors", icon: Store, path: "/vendors", section: "Spend" },
   { label: "Expenses", icon: Wallet, path: "/expenses", section: "Spend", adminOnly: true },
-  { label: "Subscriptions", icon: CreditCard, path: "/subscriptions", section: "Spend", adminOnly: true },
+  { label: "Subscriptions", icon: CreditCard, path: "/subscriptions", section: "Spend" },
   { label: "Budget vs Actual", icon: PieChart, path: "/budget", section: "Spend", adminOnly: true },
   { label: "Profitability", icon: BarChart3, path: "/profitability", section: "Revenue", adminOnly: true },
   { label: "Reports", icon: BarChart3, path: "/reports", section: "Revenue", adminOnly: true },
@@ -83,9 +83,13 @@ export function AppSidebar({ mobileOpen, onClose }: Props) {
   const { isPlatformAdmin } = usePlatformAdmin();
   const [showWorkspacePicker, setShowWorkspacePicker] = useState(false);
 
-  const filteredItems = navItems.filter(
-    (item) => !item.adminOnly || currentRole === "admin"
-  );
+  const filteredItems = navItems.filter((item) => {
+    // Show vendors/subscriptions to admins and members with explicit grants
+    // (link will resolve to access-denied surface if no grant — handled by ModuleAccessGuard).
+    // Keep them visible to all members; the page itself shows clear "request access" UX.
+    if (item.path === "/vendors" || item.path === "/subscriptions") return true;
+    return !item.adminOnly || currentRole === "admin";
+  });
 
   const sections = filteredItems.reduce<Record<string, NavItem[]>>((acc, item) => {
     const section = item.section || "Other";
