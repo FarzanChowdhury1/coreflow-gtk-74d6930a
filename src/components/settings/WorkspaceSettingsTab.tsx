@@ -187,7 +187,61 @@ export function WorkspaceSettingsTab() {
     toast.success("Logo uploaded — click Save Branding to apply");
   };
 
+  const handleSaveDocIdentity = async () => {
+    if (!currentWorkspace) return;
+    setSavingDocIdentity(true);
+    const { error } = await supabase
+      .from("workspaces")
+      .update({
+        doc_registered_name: docRegisteredName.trim() || null,
+        doc_trade_name: docTradeName.trim() || null,
+        doc_address: docAddress.trim() || null,
+        doc_phone: docPhone.trim() || null,
+        doc_email: docEmail.trim() || null,
+        doc_bin: docBin.trim() || null,
+        doc_logo_storage_path: docLogoPath || null,
+        doc_bank_account_name: docBankAccountName.trim() || null,
+        doc_bank_account_number: docBankAccountNumber.trim() || null,
+        doc_bank_name: docBankName.trim() || null,
+        doc_bank_branch: docBankBranch.trim() || null,
+        doc_payment_instructions: docPaymentInstructions.trim() || null,
+      } as any)
+      .eq("id", currentWorkspace.id);
+    setSavingDocIdentity(false);
+    if (error) {
+      toast.error("Failed to save document identity");
+    } else {
+      toast.success("Document identity saved");
+      refreshWorkspaces();
+    }
+  };
 
+  const handleDocLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentWorkspace) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Logo must be under 2MB");
+      return;
+    }
+    setUploadingDocLogo(true);
+    const ext = file.name.split(".").pop() || "png";
+    const storagePath = `${currentWorkspace.id}/doc-logo.${ext}`;
+    const { error: uploadErr } = await supabase.storage
+      .from("workspace-files")
+      .upload(storagePath, file, { upsert: true });
+    if (uploadErr) {
+      toast.error("Failed to upload document logo");
+      setUploadingDocLogo(false);
+      return;
+    }
+    setDocLogoPath(storagePath);
+    setUploadingDocLogo(false);
+    toast.success("Logo uploaded — click Save Document Identity to apply");
+  };
   const handleDeactivate = async () => {
     if (!currentWorkspace) return;
     setDeactivating(true);
