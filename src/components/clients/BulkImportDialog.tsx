@@ -304,16 +304,23 @@ export function BulkImportDialog({ open, onOpenChange, companies, contacts }: Pr
           companyId = match?.id ?? null;
         }
 
+        const primary = row.data.phone?.trim() || "";
+        const alternate = row.data.alt_phone?.trim() || "";
+        const phonesArr: { label: string; number: string }[] = [];
+        if (primary) phonesArr.push({ label: "primary", number: primary });
+        if (alternate) phonesArr.push({ label: "alternate", number: alternate });
+
         const { error } = await supabase.from("contacts").insert({
           workspace_id: currentWorkspace.id,
           full_name: row.data.full_name.trim(),
           email: row.data.email?.trim() || null,
-          phone: row.data.phone?.trim() || null,
-          alt_phone: row.data.alt_phone?.trim() || null,
+          phone: primary || null,
+          alt_phone: alternate || null,
+          phones: phonesArr,
           designation: row.data.designation?.trim() || null,
           company_id: companyId,
           notes: row.data.notes?.trim() || null,
-        });
+        } as any);
         if (error) {
           dbErrors++;
           errorDetails.push(`Row ${row.rowNum}: ${error.message}`);

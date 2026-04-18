@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pencil, Archive, RotateCcw } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
+import { normalizePhones, labelDisplay, formatPhoneDisplay } from "@/lib/phone";
 
 type Contact = Tables<"contacts">;
 
@@ -19,6 +20,12 @@ export function ContactMobileCards({ contacts, isAdmin, getCompanyName, onEdit, 
     <div className="space-y-3">
       {contacts.map((contact) => {
         const isArchived = !!contact.deleted_at;
+        // Prefer structured phones[]; fall back to legacy phone/alt_phone if empty
+        let phones = normalizePhones((contact as any).phones);
+        if (phones.length === 0) {
+          if (contact.phone) phones.push({ label: "primary", number: contact.phone });
+          if ((contact as any).alt_phone) phones.push({ label: "alternate", number: (contact as any).alt_phone });
+        }
         return (
           <div
             key={contact.id}
@@ -42,8 +49,21 @@ export function ContactMobileCards({ contacts, isAdmin, getCompanyName, onEdit, 
             </div>
 
             <div className="space-y-1 text-sm text-muted-foreground mb-3">
-              {contact.email && <p>{contact.email}</p>}
-              {contact.phone && <p className="font-mono text-xs">{contact.phone}</p>}
+              {contact.email && <p className="break-all">{contact.email}</p>}
+              {phones.length > 0 && (
+                <div className="space-y-0.5">
+                  {phones.map((p, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="text-[10px] uppercase tracking-wide text-muted-foreground/70 w-14 shrink-0">
+                        {labelDisplay(p.label)}
+                      </span>
+                      <span className="font-mono text-xs text-foreground">
+                        {formatPhoneDisplay(p.number) || p.number}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
               <p>Company: {getCompanyName(contact.company_id)}</p>
             </div>
 
