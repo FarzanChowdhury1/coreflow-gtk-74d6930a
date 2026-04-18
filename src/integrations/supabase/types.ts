@@ -573,6 +573,7 @@ export type Database = {
           notes: string | null
           owner_id: string | null
           phone: string | null
+          socials: Json
           updated_at: string
           workspace_id: string
         }
@@ -586,6 +587,7 @@ export type Database = {
           notes?: string | null
           owner_id?: string | null
           phone?: string | null
+          socials?: Json
           updated_at?: string
           workspace_id: string
         }
@@ -599,6 +601,7 @@ export type Database = {
           notes?: string | null
           owner_id?: string | null
           phone?: string | null
+          socials?: Json
           updated_at?: string
           workspace_id?: string
         }
@@ -668,6 +671,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           phones: Json
+          socials: Json
           updated_at: string
           workspace_id: string
         }
@@ -684,6 +688,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           phones?: Json
+          socials?: Json
           updated_at?: string
           workspace_id: string
         }
@@ -700,6 +705,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           phones?: Json
+          socials?: Json
           updated_at?: string
           workspace_id?: string
         }
