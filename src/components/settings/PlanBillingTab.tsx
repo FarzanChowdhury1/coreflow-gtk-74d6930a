@@ -111,10 +111,10 @@ export function PlanBillingTab() {
           {/* Plan-specific messaging */}
           {ent.plan === "free" && (
             <div className="rounded-md border bg-muted/30 p-4 space-y-3">
-              <p className="text-sm font-medium text-foreground">Free plan — up to 3 seats</p>
+              <p className="text-sm font-medium text-foreground">Starter — ৳799 / user / month (free up to 3 seats)</p>
               <p className="text-sm text-muted-foreground">
                 Includes core CRM features: leads, proposals, projects, invoices, and payments.
-                Upgrade to Growth for advanced modules like expense tracking, approvals, audit logs, and unlimited seats.
+                Move to Growth (৳1,799 / user / month) for advanced modules like expense tracking, approvals, audit logs, and unlimited seats.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" onClick={handleStartTrial} disabled={startingTrial || trialAlreadyUsed}>
@@ -127,20 +127,20 @@ export function PlanBillingTab() {
                 </Button>
                 <Button size="sm" variant="outline" asChild>
                   <a href="mailto:hello@coreflow.app?subject=Enterprise%20Inquiry">
-                    Contact Sales <ArrowUpRight className="ml-1 h-3 w-3" />
+                    Talk to Sales <ArrowUpRight className="ml-1 h-3 w-3" />
                   </a>
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">No credit card required. One trial per workspace.</p>
+              <p className="text-xs text-muted-foreground">No payment details required during trial. One trial per workspace.</p>
             </div>
           )}
 
           {ent.plan === "growth" && !ent.trialExpired && (
             <div className="rounded-md border bg-muted/30 p-4 space-y-2">
-              <p className="text-sm font-medium text-foreground">Growth — $4.99 / seat / month</p>
+              <p className="text-sm font-medium text-foreground">Growth — ৳1,799 / user / month</p>
               <p className="text-sm text-muted-foreground">
                 All features unlocked. Unlimited seats. Priority support.
-                {ent.isTrialing && ` Your trial ends in ${ent.trialDaysLeft} day${ent.trialDaysLeft !== 1 ? "s" : ""}. No card required during trial.`}
+                {ent.isTrialing && ` Your trial ends in ${ent.trialDaysLeft} day${ent.trialDaysLeft !== 1 ? "s" : ""}. No payment details required during trial.`}
               </p>
               {!ent.isTrialing && (
                 <p className="text-sm text-muted-foreground flex items-center gap-1">
@@ -154,11 +154,11 @@ export function PlanBillingTab() {
             <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 space-y-2">
               <p className="text-sm font-medium text-foreground">Growth trial has ended</p>
               <p className="text-sm text-muted-foreground">
-                Subscribe to keep Growth features active and avoid losing access to advanced modules.
+                Contact us to activate Growth (৳1,799 / user / month) and keep advanced modules available to your team.
               </p>
               <Button size="sm" variant="default" asChild>
-                <a href="mailto:hello@coreflow.app?subject=Subscribe%20to%20Growth">
-                  Subscribe Now <ArrowUpRight className="ml-1 h-3 w-3" />
+                <a href="mailto:hello@coreflow.app?subject=Activate%20Growth%20Plan">
+                  Contact Us to Activate <ArrowUpRight className="ml-1 h-3 w-3" />
                 </a>
               </Button>
             </div>
@@ -168,7 +168,7 @@ export function PlanBillingTab() {
             <div className="rounded-md border bg-muted/30 p-4 space-y-2">
               <p className="text-sm font-medium text-foreground">Enterprise</p>
               <p className="text-sm text-muted-foreground">
-                Custom plan with unlimited seats and dedicated support. Contact your account manager for plan changes.
+                Custom plan for larger Bangladeshi organisations. Contact your account manager for any plan changes or commercial discussions.
               </p>
             </div>
           )}
