@@ -1,8 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Archive, RotateCcw } from "lucide-react";
+import { Pencil, Archive, RotateCcw, ExternalLink } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { normalizePhones, labelDisplay, formatPhoneDisplay } from "@/lib/phone";
+import { normalizeSocials, platformLabel, socialToHref } from "@/lib/socials";
 
 type Contact = Tables<"contacts">;
 
@@ -26,6 +27,7 @@ export function ContactMobileCards({ contacts, isAdmin, getCompanyName, onEdit, 
           if (contact.phone) phones.push({ label: "primary", number: contact.phone });
           if ((contact as any).alt_phone) phones.push({ label: "alternate", number: (contact as any).alt_phone });
         }
+        const socials = normalizeSocials((contact as any).socials);
         return (
           <div
             key={contact.id}

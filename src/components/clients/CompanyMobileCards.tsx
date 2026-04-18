@@ -1,8 +1,9 @@
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Archive, RotateCcw, Shield, Calendar, Link2, ClipboardList } from "lucide-react";
+import { Pencil, Archive, RotateCcw, Shield, Calendar, Link2, ClipboardList, ExternalLink } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
+import { normalizeSocials, platformLabel, socialToHref } from "@/lib/socials";
 
 type Company = Tables<"companies">;
 
@@ -35,6 +36,7 @@ export function CompanyMobileCards({
     <div className="space-y-3">
       {companies.map((c) => {
         const isArchived = !!c.deleted_at;
+        const socials = normalizeSocials((c as any).socials);
         return (
           <div key={c.id} className={`rounded-lg border bg-card p-4 space-y-2 ${isArchived ? "opacity-60" : ""}`}>
             <div className="flex items-start justify-between gap-2">
@@ -45,6 +47,26 @@ export function CompanyMobileCards({
               {isArchived && <Badge variant="outline" className="text-[10px] shrink-0">Archived</Badge>}
             </div>
             {c.address && <p className="text-xs text-muted-foreground truncate">{c.address}</p>}
+            {socials.length > 0 && (
+              <div className="flex flex-wrap gap-1 pt-1">
+                {socials.map((s, i) => {
+                  const href = socialToHref(s);
+                  const content = (
+                    <span className="inline-flex items-center gap-1 rounded-md border bg-muted/40 px-2 py-0.5 text-[10px] text-foreground">
+                      {platformLabel(s.platform)}
+                      {href && <ExternalLink className="h-2.5 w-2.5 text-muted-foreground" />}
+                    </span>
+                  );
+                  return href ? (
+                    <a key={i} href={href} target="_blank" rel="noopener noreferrer" className="hover:opacity-80">
+                      {content}
+                    </a>
+                  ) : (
+                    <span key={i}>{content}</span>
+                  );
+                })}
+              </div>
+            )}
             {isAdmin && (
               <div className="flex flex-wrap gap-1 pt-1 border-t">
                 {isArchived ? (
