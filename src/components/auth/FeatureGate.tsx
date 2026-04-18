@@ -49,16 +49,24 @@ export function FeatureGate({ feature, children, label }: FeatureGateProps) {
         <h2 className="text-lg font-semibold text-foreground">{featureLabel}</h2>
         <p className="max-w-md text-sm text-muted-foreground">
           {ent.trialExpired
-            ? "Your Growth trial has ended. Subscribe to Growth to continue using this feature."
-            : "This feature is available on the Growth plan. Upgrade to unlock it."}
+            ? "Your Growth trial has ended. Choose Starter, Growth, or Enterprise to continue. This module is included on Growth and Enterprise."
+            : "This module is included on Growth and Enterprise. Starter (৳799 / user / month) covers the core spine; Growth (৳1,799 / user / month) unlocks all modules."}
         </p>
       </div>
-      <a
-        href="mailto:hello@coreflow.app?subject=Upgrade%20Inquiry"
-        className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-      >
-        Contact Sales <ArrowUpRight className="h-3 w-3" />
-      </a>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <a
+          href="mailto:hello@coreflow.app?subject=Activate%20Growth%20Plan"
+          className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Activate Growth <ArrowUpRight className="h-3 w-3" />
+        </a>
+        <a
+          href="mailto:hello@coreflow.app?subject=Enterprise%20Inquiry"
+          className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          Talk to Sales <ArrowUpRight className="h-3 w-3" />
+        </a>
+      </div>
     </div>
   );
 }
