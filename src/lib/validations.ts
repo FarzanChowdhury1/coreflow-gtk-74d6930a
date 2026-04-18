@@ -38,7 +38,7 @@ export const companySchema = z.object({
   legal_name: z.string().trim().min(1, "Legal name is required").max(255),
   bin: binSchema,
   address: z.string().max(500).optional().or(z.literal("")),
-  phone: z.string().max(50).optional().or(z.literal("")),
+  phone: internationalPhoneSchema,
   notes: z.string().max(2000).optional().or(z.literal("")),
 });
 
