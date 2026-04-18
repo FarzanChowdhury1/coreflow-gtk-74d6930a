@@ -139,7 +139,7 @@ export function CompanyFormDialog({ open, onOpenChange, company }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{company ? "Edit Company" : "Add Company"}</DialogTitle>
           <DialogDescription>
@@ -195,8 +195,7 @@ export function CompanyFormDialog({ open, onOpenChange, company }: Props) {
               placeholder="Business address"
             />
           </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Notes</label>
+          <SocialLinksEditor value={socials} onChange={setSocials} errors={socialErrors} />
             <textarea
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
