@@ -2,6 +2,7 @@ import { LayoutDashboard, Users, FileText, FolderKanban, Receipt, AlertTriangle,
 
 import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
 import { DashboardBreakdowns } from "@/components/dashboard/DashboardBreakdowns";
+import { FinanceAnalytics } from "@/components/dashboard/FinanceAnalytics";
 import { PageInfoButton } from "@/components/layout/PageInfoButton";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAuth } from "@/contexts/AuthContext";
