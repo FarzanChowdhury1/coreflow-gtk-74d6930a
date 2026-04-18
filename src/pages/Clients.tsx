@@ -189,14 +189,22 @@ export default function Clients() {
               { key: "deleted_at", label: "Status", format: (v: any) => v ? "Archived" : "Active" },
               { key: "created_at", label: "Created", format: (v: any) => new Date(v).toLocaleDateString() },
             ];
-            const contactData = displayContacts.map((c) => ({
-              ...c,
-              company_name: c.company_id ? companies.find((co) => co.id === c.company_id)?.legal_name ?? "—" : "Independent",
-            }));
+            const contactData = displayContacts.map((c) => {
+              const phones = Array.isArray((c as any).phones) ? (c as any).phones : [];
+              const all = phones.length > 0
+                ? phones.map((p: any) => `${p?.label ?? "other"}:${p?.number ?? ""}`).filter((s: string) => s.endsWith(":") === false).join(" | ")
+                : [c.phone, (c as any).alt_phone].filter(Boolean).join(" | ");
+              return {
+                ...c,
+                company_name: c.company_id ? companies.find((co) => co.id === c.company_id)?.legal_name ?? "—" : "Independent",
+                all_phones: all,
+              };
+            });
             const contactCols = [
               { key: "full_name", label: "Name" },
               { key: "email", label: "Email" },
-              { key: "phone", label: "Phone" },
+              { key: "phone", label: "Phone (Primary)" },
+              { key: "all_phones", label: "All Phones" },
               { key: "designation", label: "Designation" },
               { key: "company_name", label: "Company" },
               { key: "deleted_at", label: "Status", format: (v: any) => v ? "Archived" : "Active" },
@@ -466,7 +474,21 @@ export default function Clients() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{contact.email || "—"}</td>
-                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{contact.phone || "—"}</td>
+                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                          {(() => {
+                            const phones = Array.isArray((contact as any).phones) ? (contact as any).phones : [];
+                            const list = phones.length > 0
+                              ? phones.map((p: any) => p?.number).filter(Boolean)
+                              : [contact.phone, (contact as any).alt_phone].filter(Boolean);
+                            if (list.length === 0) return "—";
+                            if (list.length === 1) return list[0];
+                            return (
+                              <span title={list.join(", ")}>
+                                {list[0]} <span className="text-[10px] text-muted-foreground/70">+{list.length - 1}</span>
+                              </span>
+                            );
+                          })()}
+                        </td>
                         <td className="px-4 py-3 text-muted-foreground">{getCompanyName(contact.company_id)}</td>
                         <td className="px-4 py-3 text-right space-x-1">
                           {isAdmin && (
