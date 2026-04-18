@@ -1466,6 +1466,51 @@ export type Database = {
           },
         ]
       }
+      lender_readiness_verification_runs: {
+        Row: {
+          actual_band: string | null
+          caution: string | null
+          drivers: Json | null
+          expected_band: string
+          flags: Json | null
+          id: string
+          inputs: Json | null
+          pass: boolean | null
+          run_at: string
+          scenario: string
+          score: number | null
+          summary: string | null
+        }
+        Insert: {
+          actual_band?: string | null
+          caution?: string | null
+          drivers?: Json | null
+          expected_band: string
+          flags?: Json | null
+          id?: string
+          inputs?: Json | null
+          pass?: boolean | null
+          run_at?: string
+          scenario: string
+          score?: number | null
+          summary?: string | null
+        }
+        Update: {
+          actual_band?: string | null
+          caution?: string | null
+          drivers?: Json | null
+          expected_band?: string
+          flags?: Json | null
+          id?: string
+          inputs?: Json | null
+          pass?: boolean | null
+          run_at?: string
+          scenario?: string
+          score?: number | null
+          summary?: string | null
+        }
+        Relationships: []
+      }
       meeting_actions: {
         Row: {
           action_type: string
