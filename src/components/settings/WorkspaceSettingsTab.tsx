@@ -15,7 +15,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Loader2, AlertTriangle, Download, Palette } from "lucide-react";
+import { Loader2, AlertTriangle, Download, Palette, FileText } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { useEntitlement } from "@/hooks/use-entitlement";
 import { useNavigate } from "react-router-dom";
 
