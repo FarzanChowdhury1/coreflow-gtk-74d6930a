@@ -1148,6 +1148,139 @@ export type Database = {
           },
         ]
       }
+      finance_snapshots: {
+        Row: {
+          band: string | null
+          budget_status: string | null
+          burden_vs_inflow_pct: number | null
+          cash_proxy: number | null
+          collection_rate: number | null
+          created_at: string
+          data_quality: string | null
+          id: string
+          overdue_amount: number | null
+          payload: Json
+          recurring_monthly_burden: number | null
+          runway_months: number | null
+          score: number | null
+          snapshot_date: string
+          source: string
+          summary: string | null
+          vendor_concentration_pct: number | null
+          workspace_id: string
+        }
+        Insert: {
+          band?: string | null
+          budget_status?: string | null
+          burden_vs_inflow_pct?: number | null
+          cash_proxy?: number | null
+          collection_rate?: number | null
+          created_at?: string
+          data_quality?: string | null
+          id?: string
+          overdue_amount?: number | null
+          payload: Json
+          recurring_monthly_burden?: number | null
+          runway_months?: number | null
+          score?: number | null
+          snapshot_date?: string
+          source: string
+          summary?: string | null
+          vendor_concentration_pct?: number | null
+          workspace_id: string
+        }
+        Update: {
+          band?: string | null
+          budget_status?: string | null
+          burden_vs_inflow_pct?: number | null
+          cash_proxy?: number | null
+          collection_rate?: number | null
+          created_at?: string
+          data_quality?: string | null
+          id?: string
+          overdue_amount?: number | null
+          payload?: Json
+          recurring_monthly_burden?: number | null
+          runway_months?: number | null
+          score?: number | null
+          snapshot_date?: string
+          source?: string
+          summary?: string | null
+          vendor_concentration_pct?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_snapshots_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_watchlist_items: {
+        Row: {
+          created_at: string
+          details: Json
+          dismissed_at: string | null
+          dismissed_by: string | null
+          id: string
+          is_dismissed: boolean
+          recommended_action: string
+          severity: string
+          source: string
+          title: string
+          trigger_key: string
+          updated_at: string
+          what_changed: string
+          why_it_matters: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          id?: string
+          is_dismissed?: boolean
+          recommended_action: string
+          severity: string
+          source: string
+          title: string
+          trigger_key: string
+          updated_at?: string
+          what_changed: string
+          why_it_matters: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          id?: string
+          is_dismissed?: boolean
+          recommended_action?: string
+          severity?: string
+          source?: string
+          title?: string
+          trigger_key?: string
+          updated_at?: string
+          what_changed?: string
+          why_it_matters?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_watchlist_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_line_items: {
         Row: {
           amount: number
@@ -3286,6 +3419,20 @@ export type Database = {
         Args: { _actor_id?: string; _renewal_id: string }
         Returns: Json
       }
+      _upsert_finance_watchlist_item: {
+        Args: {
+          _action: string
+          _changed: string
+          _details: Json
+          _key: string
+          _sev: string
+          _source: string
+          _title: string
+          _why: string
+          _workspace_id: string
+        }
+        Returns: undefined
+      }
       accept_invite_by_token: { Args: { _token: string }; Returns: Json }
       accept_workspace_invite: { Args: { _invite_id: string }; Returns: Json }
       activate_paid_plan: {
@@ -3352,6 +3499,10 @@ export type Database = {
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
+      }
+      dismiss_finance_watchlist_item: {
+        Args: { _item_id: string }
+        Returns: undefined
       }
       dismiss_system_alert: { Args: { _alert_id: string }; Returns: Json }
       enqueue_email: {
@@ -3542,6 +3693,10 @@ export type Database = {
           read_ct: number
         }[]
       }
+      refresh_finance_watchlist: {
+        Args: { _workspace_id: string }
+        Returns: Json
+      }
       resolve_invite_by_token: { Args: { _token: string }; Returns: Json }
       retention_days_notification: {
         Args: { _severity: string }
@@ -3582,6 +3737,7 @@ export type Database = {
       sweep_lead_followups: { Args: never; Returns: Json }
       sweep_overdue_invoices: { Args: never; Returns: Json }
       sweep_renewal_reminders: { Args: never; Returns: Json }
+      take_finance_snapshot: { Args: { _workspace_id: string }; Returns: Json }
       upgrade_to_growth: { Args: { _workspace_id: string }; Returns: Json }
       validate_portal_token: { Args: { _token: string }; Returns: Json }
       void_invoice: {
