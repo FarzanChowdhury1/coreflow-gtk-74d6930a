@@ -27,6 +27,7 @@ import {
   Mail,
   BarChart3,
   Database,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -55,6 +56,7 @@ const navItems: NavItem[] = [
   { label: "Invoices", icon: Receipt, path: "/invoices", section: "Revenue", adminOnly: true },
   { label: "Payments", icon: CreditCard, path: "/payments", section: "Revenue", adminOnly: true },
   { label: "Renewals", icon: RefreshCw, path: "/renewals", section: "Revenue", adminOnly: true },
+  { label: "Collections", icon: AlertTriangle, path: "/collections", section: "Revenue", adminOnly: true },
   { label: "Vendors", icon: Store, path: "/vendors", section: "Spend" },
   { label: "Expenses", icon: Wallet, path: "/expenses", section: "Spend", adminOnly: true },
   { label: "Subscriptions", icon: CreditCard, path: "/subscriptions", section: "Spend" },

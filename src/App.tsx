@@ -32,6 +32,7 @@ const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
 const ClientUpdates = lazy(() => import("@/pages/ClientUpdates"));
 const PortalEntry = lazy(() => import("@/pages/portal/PortalEntry"));
 const Renewals = lazy(() => import("@/pages/Renewals"));
+const Collections = lazy(() => import("@/pages/Collections"));
 const DigestInspector = lazy(() => import("@/pages/DigestInspector"));
 const OpsHealth = lazy(() => import("@/pages/OpsHealth"));
 const InviteAccept = lazy(() => import("@/pages/InviteAccept"));
@@ -116,6 +117,7 @@ const App = () => (
                 <Route path="/invoices" element={<AdminGuard><Invoices /></AdminGuard>} />
                 <Route path="/payments" element={<AdminGuard><Payments /></AdminGuard>} />
                 <Route path="/renewals" element={<AdminGuard><Renewals /></AdminGuard>} />
+                <Route path="/collections" element={<AdminGuard><Collections /></AdminGuard>} />
                 <Route path="/vendors" element={<ModuleAccessGuard module="vendor_management"><FeatureGate feature="vendorManagement" label="Vendor Management"><Vendors /></FeatureGate></ModuleAccessGuard>} />
                 <Route path="/expenses" element={<AdminGuard><FeatureGate feature="expenseTracking" label="Expense Tracking"><Expenses /></FeatureGate></AdminGuard>} />
                 <Route path="/subscriptions" element={<ModuleAccessGuard module="subscription_management"><FeatureGate feature="subscriptionTracking" label="Subscription Tracking"><Subscriptions /></FeatureGate></ModuleAccessGuard>} />

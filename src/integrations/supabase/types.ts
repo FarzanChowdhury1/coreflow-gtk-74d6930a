@@ -562,6 +562,72 @@ export type Database = {
           },
         ]
       }
+      collections_cases: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          invoice_id: string
+          last_note: string | null
+          next_action_at: string | null
+          owner_id: string | null
+          priority: Database["public"]["Enums"]["collections_case_priority"]
+          recovered_amount: number
+          status: Database["public"]["Enums"]["collections_case_status"]
+          updated_at: string
+          updated_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_id: string
+          last_note?: string | null
+          next_action_at?: string | null
+          owner_id?: string | null
+          priority?: Database["public"]["Enums"]["collections_case_priority"]
+          recovered_amount?: number
+          status?: Database["public"]["Enums"]["collections_case_status"]
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_id?: string
+          last_note?: string | null
+          next_action_at?: string | null
+          owner_id?: string | null
+          priority?: Database["public"]["Enums"]["collections_case_priority"]
+          recovered_amount?: number
+          status?: Database["public"]["Enums"]["collections_case_status"]
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collections_cases_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collections_cases_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
@@ -3287,6 +3353,7 @@ export type Database = {
           grace_ends_at: string | null
           grace_reminders_sent: number
           id: string
+          is_synthetic: boolean
           last_grace_reminder_at: string | null
           name: string
           next_renewal_at: string | null
@@ -3325,6 +3392,7 @@ export type Database = {
           grace_ends_at?: string | null
           grace_reminders_sent?: number
           id?: string
+          is_synthetic?: boolean
           last_grace_reminder_at?: string | null
           name: string
           next_renewal_at?: string | null
@@ -3363,6 +3431,7 @@ export type Database = {
           grace_ends_at?: string | null
           grace_reminders_sent?: number
           id?: string
+          is_synthetic?: boolean
           last_grace_reminder_at?: string | null
           name?: string
           next_renewal_at?: string | null
@@ -3553,6 +3622,10 @@ export type Database = {
         Args: { _window_days?: number; _workspace_id: string }
         Returns: Json
       }
+      get_collections_overview: {
+        Args: { _workspace_id: string }
+        Returns: Json
+      }
       get_company_financial_health: {
         Args: { _company_id: string }
         Returns: Json
@@ -3740,6 +3813,40 @@ export type Database = {
       sweep_renewal_reminders: { Args: never; Returns: Json }
       take_finance_snapshot: { Args: { _workspace_id: string }; Returns: Json }
       upgrade_to_growth: { Args: { _workspace_id: string }; Returns: Json }
+      upsert_collections_case: {
+        Args: {
+          _invoice_id: string
+          _last_note: string
+          _next_action_at: string
+          _owner_id: string
+          _priority: string
+          _recovered_amount: number
+          _status: string
+          _workspace_id: string
+        }
+        Returns: {
+          closed_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          invoice_id: string
+          last_note: string | null
+          next_action_at: string | null
+          owner_id: string | null
+          priority: Database["public"]["Enums"]["collections_case_priority"]
+          recovered_amount: number
+          status: Database["public"]["Enums"]["collections_case_status"]
+          updated_at: string
+          updated_by: string | null
+          workspace_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "collections_cases"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       validate_portal_token: { Args: { _token: string }; Returns: Json }
       void_invoice: {
         Args: { _invoice_id: string; _workspace_id: string }
@@ -3775,6 +3882,15 @@ export type Database = {
         | "submitted"
         | "approved"
         | "revision_requested"
+      collections_case_priority: "low" | "medium" | "high"
+      collections_case_status:
+        | "new"
+        | "contacted"
+        | "promised"
+        | "partial"
+        | "escalated"
+        | "recovered"
+        | "closed"
       contact_lifecycle_status:
         | "active"
         | "inactive"
@@ -3967,6 +4083,16 @@ export const Constants = {
         "submitted",
         "approved",
         "revision_requested",
+      ],
+      collections_case_priority: ["low", "medium", "high"],
+      collections_case_status: [
+        "new",
+        "contacted",
+        "promised",
+        "partial",
+        "escalated",
+        "recovered",
+        "closed",
       ],
       contact_lifecycle_status: [
         "active",
