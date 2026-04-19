@@ -3734,6 +3734,7 @@ export type Database = {
         Args: { _task_a: string; _task_b: string }
         Returns: undefined
       }
+      sweep_finance_watchlist_all: { Args: never; Returns: Json }
       sweep_lead_followups: { Args: never; Returns: Json }
       sweep_overdue_invoices: { Args: never; Returns: Json }
       sweep_renewal_reminders: { Args: never; Returns: Json }
