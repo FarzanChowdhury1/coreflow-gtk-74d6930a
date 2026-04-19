@@ -16,8 +16,12 @@ interface Scenario {
   runway_months: number | null;
   assumptions: string;
 }
+type Band = "healthy_buffer" | "moderate" | "tight" | "critical" | "insufficient_data";
+type DataQuality = "good" | "moderate" | "low" | "insufficient_data";
+
 interface RunwayData {
-  data_quality: "insufficient_data" | "low" | "moderate" | "good";
+  band: Band;
+  data_quality: DataQuality;
   cash_proxy: number;
   cash_proxy_basis: string;
   cash_proxy_note: string;
@@ -46,11 +50,26 @@ interface Props {
   isAdmin: boolean;
 }
 
-const QUALITY_TONE: Record<string, string> = {
+const QUALITY_TONE: Record<DataQuality, string> = {
   good: "bg-success/15 text-success border-success/30",
   moderate: "bg-primary/15 text-primary border-primary/30",
   low: "bg-warning/15 text-warning border-warning/30",
   insufficient_data: "bg-muted text-muted-foreground border-border",
+};
+
+const BAND_META: Record<Band, { label: string; tone: string }> = {
+  healthy_buffer: { label: "Healthy buffer", tone: "bg-success/15 text-success border-success/30" },
+  moderate: { label: "Moderate", tone: "bg-primary/15 text-primary border-primary/30" },
+  tight: { label: "Tight", tone: "bg-warning/15 text-warning border-warning/30" },
+  critical: { label: "Critical", tone: "bg-destructive/15 text-destructive border-destructive/30" },
+  insufficient_data: { label: "Insufficient data", tone: "bg-muted text-muted-foreground border-border" },
+};
+
+const DQ_LABEL: Record<DataQuality, string> = {
+  good: "good data",
+  moderate: "moderate data",
+  low: "low data",
+  insufficient_data: "no data",
 };
 
 const TREND_META: Record<string, { label: string; tone: string; Icon: typeof TrendingUp }> = {
@@ -115,7 +134,8 @@ export function RunwayForecast({ workspaceId, currency, isAdmin }: Props) {
     );
   }
 
-  const isEmpty = data.data_quality === "insufficient_data";
+  const isEmpty = data.band === "insufficient_data";
+  const bandMeta = BAND_META[data.band] || BAND_META.insufficient_data;
   const qTone = QUALITY_TONE[data.data_quality] || QUALITY_TONE.insufficient_data;
   const trend = TREND_META[data.trend] || TREND_META.stable;
   const TrendIcon = trend.Icon;
@@ -126,8 +146,11 @@ export function RunwayForecast({ workspaceId, currency, isAdmin }: Props) {
         <CardTitle className="flex flex-wrap items-center gap-2 text-sm font-medium">
           <Gauge className="h-4 w-4 text-primary" />
           Runway & Cash Forecast
-          <Badge variant="outline" className={`${qTone} text-xs font-medium`}>
-            {data.data_quality === "insufficient_data" ? "Insufficient data" : `${data.data_quality} data`}
+          <Badge variant="outline" className={`${bandMeta.tone} text-xs font-medium`}>
+            {bandMeta.label}
+          </Badge>
+          <Badge variant="outline" className={`${qTone} text-[10px] font-medium`}>
+            {DQ_LABEL[data.data_quality]}
           </Badge>
           <span className="ml-auto text-[10px] text-muted-foreground font-normal">Admin only</span>
         </CardTitle>

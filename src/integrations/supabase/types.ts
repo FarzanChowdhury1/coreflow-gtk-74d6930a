@@ -2423,6 +2423,54 @@ export type Database = {
           },
         ]
       }
+      runway_forecast_verification_runs: {
+        Row: {
+          actual_band: string | null
+          actual_data_quality: string | null
+          drivers: Json | null
+          expected_band: string
+          expected_data_quality: string | null
+          flags: Json | null
+          id: string
+          inputs: Json | null
+          pass: boolean | null
+          run_at: string
+          runway_months: number | null
+          scenario: string
+          summary: string | null
+        }
+        Insert: {
+          actual_band?: string | null
+          actual_data_quality?: string | null
+          drivers?: Json | null
+          expected_band: string
+          expected_data_quality?: string | null
+          flags?: Json | null
+          id?: string
+          inputs?: Json | null
+          pass?: boolean | null
+          run_at?: string
+          runway_months?: number | null
+          scenario: string
+          summary?: string | null
+        }
+        Update: {
+          actual_band?: string | null
+          actual_data_quality?: string | null
+          drivers?: Json | null
+          expected_band?: string
+          expected_data_quality?: string | null
+          flags?: Json | null
+          id?: string
+          inputs?: Json | null
+          pass?: boolean | null
+          run_at?: string
+          runway_months?: number | null
+          scenario?: string
+          summary?: string | null
+        }
+        Relationships: []
+      }
       short_links: {
         Row: {
           click_count: number
@@ -3501,6 +3549,11 @@ export type Database = {
       }
       retention_days_ops_log: { Args: { _log_type: string }; Returns: number }
       revoke_workspace_invite: { Args: { _invite_id: string }; Returns: Json }
+      run_runway_verification_as: {
+        Args: { _admin_user_id: string }
+        Returns: Json
+      }
+      run_runway_verification_v2: { Args: never; Returns: Json }
       schedule_downgrade: {
         Args: { _target: string; _workspace_id: string }
         Returns: Json
