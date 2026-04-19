@@ -3287,6 +3287,7 @@ export type Database = {
           grace_ends_at: string | null
           grace_reminders_sent: number
           id: string
+          is_synthetic: boolean
           last_grace_reminder_at: string | null
           name: string
           next_renewal_at: string | null
@@ -3325,6 +3326,7 @@ export type Database = {
           grace_ends_at?: string | null
           grace_reminders_sent?: number
           id?: string
+          is_synthetic?: boolean
           last_grace_reminder_at?: string | null
           name: string
           next_renewal_at?: string | null
@@ -3363,6 +3365,7 @@ export type Database = {
           grace_ends_at?: string | null
           grace_reminders_sent?: number
           id?: string
+          is_synthetic?: boolean
           last_grace_reminder_at?: string | null
           name?: string
           next_renewal_at?: string | null
