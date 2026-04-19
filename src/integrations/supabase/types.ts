@@ -3549,6 +3549,7 @@ export type Database = {
       }
       retention_days_ops_log: { Args: { _log_type: string }; Returns: number }
       revoke_workspace_invite: { Args: { _invite_id: string }; Returns: Json }
+      run_runway_verification_v2: { Args: never; Returns: Json }
       schedule_downgrade: {
         Args: { _target: string; _workspace_id: string }
         Returns: Json
