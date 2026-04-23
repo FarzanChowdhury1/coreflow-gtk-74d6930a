@@ -23,7 +23,9 @@ interface Driver {
   value: number;
   impact: "positive" | "warning" | "negative" | "neutral";
 }
-interface BurdenData {
+
+// Normalized UI shape (decoupled from raw RPC keys to absorb future drift safely)
+interface BurdenView {
   window_days: number;
   subscription: {
     monthly_burn: number;
@@ -46,7 +48,6 @@ interface BurdenData {
   summary: string;
   drivers: Driver[];
   flags: string[];
-  error?: string;
 }
 
 interface Props {
@@ -71,14 +72,105 @@ const IMPACT_TONE: Record<string, string> = {
 
 function fmt(n: number, currency: string) {
   try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(n);
+    return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(n || 0);
   } catch {
-    return `${currency} ${Math.round(n).toLocaleString()}`;
+    return `${currency} ${Math.round(n || 0).toLocaleString()}`;
   }
 }
 
 function pct(n: number) {
-  return `${(n * 100).toFixed(1)}%`;
+  return `${((n || 0) * 100).toFixed(1)}%`;
+}
+
+function num(v: unknown, fallback = 0): number {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function arr<T>(v: unknown): T[] {
+  return Array.isArray(v) ? (v as T[]) : [];
+}
+
+/**
+ * Normalize raw RPC payload into UI view-model.
+ * RPC currently returns a flat shape (recurring_monthly_burden, subscription_count, ...).
+ * Old UI assumed nested {subscription:{...}, vendor:{...}, band, flags, drivers}.
+ * This adapter is the single point of contract translation — keeps UI safe from future drift.
+ */
+function normalize(raw: any): BurdenView {
+  const r = raw && typeof raw === "object" ? raw : {};
+
+  // Quality → band mapping (RPC emits data_quality, UI uses band).
+  const dq = r.band || r.data_quality;
+  const band: BurdenView["band"] =
+    dq === "low" || dq === "moderate" || dq === "heavy" || dq === "insufficient_data"
+      ? dq
+      : dq === "good"
+      ? "low"
+      : "insufficient_data";
+
+  const bandLabel =
+    r.band_label ||
+    (band === "low"
+      ? "Low burden"
+      : band === "moderate"
+      ? "Moderate burden"
+      : band === "heavy"
+      ? "Heavy burden"
+      : "Insufficient data");
+
+  const subTop = arr<any>(r.top_subscriptions ?? r.subscription?.top).map((s) => ({
+    name: String(s?.name ?? s?.subscription_name ?? "—"),
+    vendor_name: String(s?.vendor_name ?? "—"),
+    monthly_amount: num(s?.monthly_amount ?? s?.amount),
+    currency: String(s?.currency ?? ""),
+    category: s?.category ?? null,
+  }));
+
+  const venTop = arr<any>(r.top_vendors ?? r.vendor?.top).map((v) => ({
+    vendor_name: String(v?.vendor_name ?? "—"),
+    category: v?.category ?? null,
+    spend_amount: num(v?.spend_amount ?? v?.amount),
+    expense_count: num(v?.expense_count ?? v?.count),
+  }));
+
+  return {
+    window_days: num(r.window_days, 90),
+    subscription: {
+      monthly_burn: num(r.subscription?.monthly_burn ?? r.recurring_monthly_burden),
+      active_count: num(r.subscription?.active_count ?? r.subscription_count),
+      top: subTop,
+      top1_share: num(
+        r.subscription?.top1_share ?? (r.subscription_top1_share_pct != null ? r.subscription_top1_share_pct / 100 : 0),
+      ),
+      top3_share: num(
+        r.subscription?.top3_share ?? (r.subscription_top3_share_pct != null ? r.subscription_top3_share_pct / 100 : 0),
+      ),
+      vs_inflow_pct:
+        r.subscription?.vs_inflow_pct != null
+          ? num(r.subscription.vs_inflow_pct)
+          : r.burden_vs_inflow_pct != null
+          ? num(r.burden_vs_inflow_pct) / 100
+          : null,
+    },
+    vendor: {
+      spend_total: num(r.vendor?.spend_total ?? r.vendor_spend_window),
+      vendor_count: num(r.vendor?.vendor_count ?? venTop.length),
+      top: venTop,
+      top1_share: num(
+        r.vendor?.top1_share ?? (r.vendor_concentration_pct != null ? r.vendor_concentration_pct / 100 : 0),
+      ),
+      top3_share: num(
+        r.vendor?.top3_share ?? (r.vendor_top3_share_pct != null ? r.vendor_top3_share_pct / 100 : 0),
+      ),
+    },
+    cash_in_window: num(r.cash_in_window ?? r.avg_monthly_inflow * 3),
+    band,
+    band_label: bandLabel,
+    summary: String(r.summary ?? "No burden summary available."),
+    drivers: arr<Driver>(r.drivers),
+    flags: arr<string>(r.flags),
+  };
 }
 
 export function BurdenAnalytics({ workspaceId, currency, isAdmin }: Props) {
@@ -92,14 +184,17 @@ export function BurdenAnalytics({ workspaceId, currency, isAdmin }: Props) {
         _window_days: 90,
       });
       if (error) throw error;
-      return data as unknown as BurdenData;
+      if (data && typeof data === "object" && (data as any).error) {
+        throw new Error(String((data as any).error));
+      }
+      return normalize(data);
     },
   });
 
   if (!isAdmin) return null;
   if (isLoading) return <Skeleton className="h-64" />;
 
-  if (isError || !data || data.error) {
+  if (isError || !data) {
     return (
       <Card>
         <CardHeader className="pb-3">
@@ -131,7 +226,6 @@ export function BurdenAnalytics({ workspaceId, currency, isAdmin }: Props) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
-        {/* Summary */}
         <p className="text-sm text-foreground/90 leading-relaxed">{data.summary}</p>
 
         {isEmpty ? (
@@ -143,9 +237,7 @@ export function BurdenAnalytics({ workspaceId, currency, isAdmin }: Props) {
           </div>
         ) : (
           <>
-            {/* Two-column: Subscriptions + Vendors */}
             <div className="grid gap-4 md:grid-cols-2">
-              {/* SUBSCRIPTIONS */}
               <div className="rounded-md border bg-card p-3 min-w-0">
                 <div className="flex items-center gap-2 mb-2">
                   <Boxes className="h-4 w-4 text-primary/80" />
@@ -191,7 +283,6 @@ export function BurdenAnalytics({ workspaceId, currency, isAdmin }: Props) {
                 )}
               </div>
 
-              {/* VENDORS */}
               <div className="rounded-md border bg-card p-3 min-w-0">
                 <div className="flex items-center gap-2 mb-2">
                   <Store className="h-4 w-4 text-primary/80" />
@@ -233,24 +324,22 @@ export function BurdenAnalytics({ workspaceId, currency, isAdmin }: Props) {
               </div>
             </div>
 
-            {/* Drivers */}
-            {data.drivers && data.drivers.length > 0 && (
+            {data.drivers.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {data.drivers.map((d, i) => (
                   <div key={i} className="rounded-md border bg-muted/20 px-2.5 py-2 min-w-0">
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground truncate" title={d.label}>{d.label}</p>
                     <p className={`text-sm font-semibold tabular-nums ${IMPACT_TONE[d.impact] || "text-foreground"}`}>
-                      {d.label.toLowerCase().includes("share")
-                        ? `${d.value.toFixed(1)}%`
-                        : fmt(d.value, currency)}
+                      {String(d.label).toLowerCase().includes("share")
+                        ? `${num(d.value).toFixed(1)}%`
+                        : fmt(num(d.value), currency)}
                     </p>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Risk flags */}
-            {data.flags && data.flags.length > 0 && (
+            {data.flags.length > 0 && (
               <div className="space-y-1.5">
                 {data.flags.map((f, i) => (
                   <div key={i} className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-foreground/90">

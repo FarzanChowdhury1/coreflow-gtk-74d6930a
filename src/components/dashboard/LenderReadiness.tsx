@@ -8,10 +8,10 @@ import { ShieldCheck, AlertTriangle, Info, TrendingUp, TrendingDown } from "luci
 interface Driver {
   label: string;
   impact: "positive" | "warning" | "negative" | "neutral";
-  value?: number;
+  value?: number | null;
 }
 
-interface LenderReadinessData {
+interface LenderReadinessView {
   band: "ready" | "borderline" | "not_ready" | "insufficient_data";
   score: number;
   caution: "safe_to_expand" | "expand_carefully" | "wait_and_stabilize";
@@ -38,6 +38,44 @@ const CAUTION_META: Record<string, { label: string; tone: string }> = {
   wait_and_stabilize: { label: "Wait and stabilize", tone: "text-destructive" },
 };
 
+function num(v: unknown, fallback = 0): number {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+function arr<T>(v: unknown): T[] {
+  return Array.isArray(v) ? (v as T[]) : [];
+}
+
+/**
+ * Normalize raw RPC payload. Live RPC may omit `caution` and `flags` — derive safe defaults.
+ */
+function normalize(raw: any): LenderReadinessView {
+  const r = raw && typeof raw === "object" ? raw : {};
+  const score = num(r.score);
+  const band: LenderReadinessView["band"] =
+    r.band === "ready" || r.band === "borderline" || r.band === "not_ready" || r.band === "insufficient_data"
+      ? r.band
+      : "insufficient_data";
+
+  const caution: LenderReadinessView["caution"] =
+    r.caution === "safe_to_expand" || r.caution === "expand_carefully" || r.caution === "wait_and_stabilize"
+      ? r.caution
+      : score >= 70
+      ? "safe_to_expand"
+      : score >= 40
+      ? "expand_carefully"
+      : "wait_and_stabilize";
+
+  return {
+    band,
+    score,
+    caution,
+    summary: String(r.summary ?? "No lender-readiness summary available."),
+    drivers: arr<Driver>(r.drivers),
+    flags: arr<string>(r.flags),
+  };
+}
+
 export function LenderReadiness({ workspaceId, isAdmin }: Props) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["lender-readiness", workspaceId],
@@ -48,7 +86,10 @@ export function LenderReadiness({ workspaceId, isAdmin }: Props) {
         _workspace_id: workspaceId,
       });
       if (error) throw error;
-      return data as unknown as LenderReadinessData;
+      if (data && typeof data === "object" && (data as any).error) {
+        throw new Error(String((data as any).error));
+      }
+      return normalize(data);
     },
   });
 
@@ -120,13 +161,14 @@ export function LenderReadiness({ workspaceId, isAdmin }: Props) {
                     d.impact === "positive" ? TrendingUp :
                     d.impact === "negative" ? TrendingDown :
                     d.impact === "warning" ? AlertTriangle : Info;
+                  const label = String(d.label ?? "");
                   return (
                     <div key={idx} className="flex items-center gap-2 text-xs">
                       <Icon className={`h-3.5 w-3.5 ${tone}`} />
-                      <span className="text-foreground">{d.label}</span>
+                      <span className="text-foreground">{label}</span>
                       {d.value !== undefined && d.value !== null && (
                         <span className="text-muted-foreground tabular-nums">
-                          ({d.value}{(d.label.toLowerCase().includes("rate") || d.label.toLowerCase().includes("trending") || d.label.toLowerCase().includes("budget") || d.label.toLowerCase().includes("exposure") || d.label.toLowerCase().includes("revenue")) ? "%" : ""})
+                          ({num(d.value)}{(label.toLowerCase().includes("rate") || label.toLowerCase().includes("trending") || label.toLowerCase().includes("budget") || label.toLowerCase().includes("exposure") || label.toLowerCase().includes("revenue")) ? "%" : ""})
                         </span>
                       )}
                     </div>

@@ -19,7 +19,7 @@ interface Scenario {
 type Band = "healthy_buffer" | "moderate" | "tight" | "critical" | "insufficient_data";
 type DataQuality = "good" | "moderate" | "low" | "insufficient_data";
 
-interface RunwayData {
+interface RunwayView {
   band: Band;
   data_quality: DataQuality;
   cash_proxy: number;
@@ -41,7 +41,6 @@ interface RunwayData {
   drivers: Driver[];
   flags: string[];
   summary: string;
-  error?: string;
 }
 
 interface Props {
@@ -80,10 +79,78 @@ const TREND_META: Record<string, { label: string; tone: string; Icon: typeof Tre
 
 function fmt(n: number, currency: string) {
   try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(n);
+    return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(n || 0);
   } catch {
-    return `${currency} ${Math.round(n).toLocaleString()}`;
+    return `${currency} ${Math.round(n || 0).toLocaleString()}`;
   }
+}
+
+function num(v: unknown, fallback = 0): number {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+function arr<T>(v: unknown): T[] {
+  return Array.isArray(v) ? (v as T[]) : [];
+}
+function nullableNum(v: unknown): number | null {
+  if (v === null || v === undefined) return null;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+const EMPTY_SCENARIO: Scenario = { monthly_burn: 0, monthly_net: 0, runway_months: null, assumptions: "" };
+
+function normScenario(s: any): Scenario {
+  if (!s || typeof s !== "object") return { ...EMPTY_SCENARIO };
+  return {
+    monthly_burn: num(s.monthly_burn),
+    monthly_net: num(s.monthly_net),
+    runway_months: nullableNum(s.runway_months),
+    assumptions: String(s.assumptions ?? ""),
+  };
+}
+
+function normalize(raw: any): RunwayView {
+  const r = raw && typeof raw === "object" ? raw : {};
+  const band: Band =
+    r.band === "healthy_buffer" || r.band === "moderate" || r.band === "tight" || r.band === "critical" || r.band === "insufficient_data"
+      ? r.band
+      : "insufficient_data";
+  const dq: DataQuality =
+    r.data_quality === "good" || r.data_quality === "moderate" || r.data_quality === "low" || r.data_quality === "insufficient_data"
+      ? r.data_quality
+      : "insufficient_data";
+  const trend = r.trend === "improving" || r.trend === "deteriorating" ? r.trend : "stable";
+  const tr = r.trailing && typeof r.trailing === "object" ? r.trailing : {};
+  const sc = r.scenarios && typeof r.scenarios === "object" ? r.scenarios : {};
+
+  return {
+    band,
+    data_quality: dq,
+    cash_proxy: num(r.cash_proxy),
+    cash_proxy_basis: String(r.cash_proxy_basis ?? "trailing_90d_net_cash"),
+    cash_proxy_note: String(r.cash_proxy_note ?? ""),
+    trailing: {
+      in_30: num(tr.in_30), in_90: num(tr.in_90), in_180: num(tr.in_180),
+      out_30: num(tr.out_30), out_90: num(tr.out_90), out_180: num(tr.out_180),
+      net_30: num(tr.net_30), net_90: num(tr.net_90), net_180: num(tr.net_180),
+    },
+    avg_monthly_inflow: num(r.avg_monthly_inflow),
+    avg_monthly_outflow: num(r.avg_monthly_outflow),
+    recurring_monthly_burden: num(r.recurring_monthly_burden),
+    adjusted_monthly_burn: num(r.adjusted_monthly_burn),
+    runway_months: nullableNum(r.runway_months),
+    trend,
+    trend_pct: nullableNum(r.trend_pct),
+    scenarios: {
+      base: normScenario(sc.base),
+      best: normScenario(sc.best),
+      worst: normScenario(sc.worst),
+    },
+    drivers: arr<Driver>(r.drivers),
+    flags: arr<string>(r.flags),
+    summary: String(r.summary ?? ""),
+  };
 }
 
 function runwayLabel(m: number | null): string {
@@ -109,14 +176,17 @@ export function RunwayForecast({ workspaceId, currency, isAdmin }: Props) {
         _workspace_id: workspaceId,
       });
       if (error) throw error;
-      return data as unknown as RunwayData;
+      if (data && typeof data === "object" && (data as any).error) {
+        throw new Error(String((data as any).error));
+      }
+      return normalize(data);
     },
   });
 
   if (!isAdmin) return null;
   if (isLoading) return <Skeleton className="h-72" />;
 
-  if (isError || !data || data.error) {
+  if (isError || !data) {
     return (
       <Card>
         <CardHeader className="pb-3">
@@ -159,7 +229,6 @@ export function RunwayForecast({ workspaceId, currency, isAdmin }: Props) {
         </p>
       </CardHeader>
       <CardContent className="space-y-5">
-        {/* Summary */}
         <p className="text-sm text-foreground/90 leading-relaxed">{data.summary}</p>
 
         {isEmpty ? (
@@ -171,7 +240,6 @@ export function RunwayForecast({ workspaceId, currency, isAdmin }: Props) {
           </div>
         ) : (
           <>
-            {/* Headline metrics */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="rounded-md border bg-muted/20 p-3 min-w-0">
                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Runway (base)</p>
@@ -196,7 +264,6 @@ export function RunwayForecast({ workspaceId, currency, isAdmin }: Props) {
               </div>
             </div>
 
-            {/* Trailing windows (actuals) */}
             <div className="rounded-md border bg-card p-3">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">Actuals — trailing windows</p>
               <div className="grid grid-cols-3 gap-3 text-xs">
@@ -216,7 +283,6 @@ export function RunwayForecast({ workspaceId, currency, isAdmin }: Props) {
               </div>
             </div>
 
-            {/* Scenarios (forecast assumptions) */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Forecast scenarios</p>
@@ -248,8 +314,7 @@ export function RunwayForecast({ workspaceId, currency, isAdmin }: Props) {
               </div>
             </div>
 
-            {/* Drivers */}
-            {data.drivers && data.drivers.length > 0 && (
+            {data.drivers.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {data.drivers.map((d, i) => {
                   const tone =
@@ -259,15 +324,14 @@ export function RunwayForecast({ workspaceId, currency, isAdmin }: Props) {
                   return (
                     <div key={i} className="rounded-md border bg-muted/20 px-2.5 py-2 min-w-0">
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground truncate" title={d.label}>{d.label}</p>
-                      <p className={`text-sm font-semibold tabular-nums truncate ${tone}`}>{fmt(d.value, currency)}</p>
+                      <p className={`text-sm font-semibold tabular-nums truncate ${tone}`}>{fmt(num(d.value), currency)}</p>
                     </div>
                   );
                 })}
               </div>
             )}
 
-            {/* Risk flags */}
-            {data.flags && data.flags.length > 0 && (
+            {data.flags.length > 0 && (
               <div className="space-y-1.5">
                 {data.flags.map((f, i) => (
                   <div key={i} className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-foreground/90">
