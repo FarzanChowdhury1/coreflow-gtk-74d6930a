@@ -3813,75 +3813,19 @@ export type Database = {
       sweep_renewal_reminders: { Args: never; Returns: Json }
       take_finance_snapshot: { Args: { _workspace_id: string }; Returns: Json }
       upgrade_to_growth: { Args: { _workspace_id: string }; Returns: Json }
-      upsert_collections_case:
-        | {
-            Args: {
-              _invoice_id: string
-              _last_note?: string
-              _next_action_at?: string
-              _owner_id?: string
-              _priority?: Database["public"]["Enums"]["collections_case_priority"]
-              _recovered_amount?: number
-              _status?: Database["public"]["Enums"]["collections_case_status"]
-              _workspace_id: string
-            }
-            Returns: {
-              closed_at: string | null
-              created_at: string
-              created_by: string | null
-              id: string
-              invoice_id: string
-              last_note: string | null
-              next_action_at: string | null
-              owner_id: string | null
-              priority: Database["public"]["Enums"]["collections_case_priority"]
-              recovered_amount: number
-              status: Database["public"]["Enums"]["collections_case_status"]
-              updated_at: string
-              updated_by: string | null
-              workspace_id: string
-            }
-            SetofOptions: {
-              from: "*"
-              to: "collections_cases"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-        | {
-            Args: {
-              _invoice_id: string
-              _last_note: string
-              _next_action_at: string
-              _owner_id: string
-              _priority: string
-              _recovered_amount: number
-              _status: string
-              _workspace_id: string
-            }
-            Returns: {
-              closed_at: string | null
-              created_at: string
-              created_by: string | null
-              id: string
-              invoice_id: string
-              last_note: string | null
-              next_action_at: string | null
-              owner_id: string | null
-              priority: Database["public"]["Enums"]["collections_case_priority"]
-              recovered_amount: number
-              status: Database["public"]["Enums"]["collections_case_status"]
-              updated_at: string
-              updated_by: string | null
-              workspace_id: string
-            }
-            SetofOptions: {
-              from: "*"
-              to: "collections_cases"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
+      upsert_collections_case: {
+        Args: {
+          _invoice_id: string
+          _last_note?: string
+          _next_action_at?: string
+          _owner_id?: string
+          _priority?: string
+          _recovered_amount?: number
+          _status?: string
+          _workspace_id: string
+        }
+        Returns: Json
+      }
       validate_portal_token: { Args: { _token: string }; Returns: Json }
       void_invoice: {
         Args: { _invoice_id: string; _workspace_id: string }
