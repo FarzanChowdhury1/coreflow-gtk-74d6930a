@@ -385,19 +385,108 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
         </CardContent>
       </Card>
 
-      {/* Mushak 6.3 Breakdown */}
-      {hasMushak && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Mushak 6.3 Tax Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="text-xs bg-muted rounded p-3 overflow-auto">
-              {JSON.stringify(mushak, null, 2)}
-            </pre>
+      {/* Mushak 6.3 — VAT Challan (Bangladesh) */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle className="text-base">Mushak 6.3 (VAT Challan)</CardTitle>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Bangladesh VAT compliance fields. Required only when issuing a tax challan.
+              </p>
+            </div>
+            {isDraft ? (
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="mushak-enabled"
+                  checked={mushak.enabled}
+                  onCheckedChange={(v) => updateMushak("enabled", v)}
+                />
+                <Label htmlFor="mushak-enabled" className="text-sm">
+                  Applicable
+                </Label>
+              </div>
+            ) : mushakHasContent ? (
+              <Badge variant="outline">Tax invoice</Badge>
+            ) : null}
+          </div>
+        </CardHeader>
+        {(isDraft && mushak.enabled) || (!isDraft && mushakHasContent) ? (
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="mushak-vat-reg">
+                  VAT Registration No (BIN) <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="mushak-vat-reg"
+                  value={mushak.vat_reg_no}
+                  onChange={(e) => updateMushak("vat_reg_no", e.target.value)}
+                  placeholder="13-digit BIN"
+                  maxLength={13}
+                  disabled={!isDraft}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Must be exactly 13 alphanumeric characters.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="mushak-challan">
+                  Challan No <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="mushak-challan"
+                  value={mushak.challan_no}
+                  onChange={(e) => updateMushak("challan_no", e.target.value)}
+                  placeholder="e.g. CH-2025-001"
+                  maxLength={64}
+                  disabled={!isDraft}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="mushak-hs">HS Code</Label>
+                <Input
+                  id="mushak-hs"
+                  value={mushak.hs_code}
+                  onChange={(e) => updateMushak("hs_code", e.target.value)}
+                  placeholder="Optional"
+                  maxLength={32}
+                  disabled={!isDraft}
+                />
+              </div>
+              <div className="space-y-1.5 md:col-span-2">
+                <Label htmlFor="mushak-buyer-address">Buyer address</Label>
+                <Textarea
+                  id="mushak-buyer-address"
+                  value={mushak.buyer_address}
+                  onChange={(e) => updateMushak("buyer_address", e.target.value)}
+                  placeholder="Buyer registered address (optional)"
+                  rows={2}
+                  maxLength={500}
+                  disabled={!isDraft}
+                />
+              </div>
+              <div className="space-y-1.5 md:col-span-2">
+                <Label htmlFor="mushak-notes">Mushak notes</Label>
+                <Textarea
+                  id="mushak-notes"
+                  value={mushak.notes}
+                  onChange={(e) => updateMushak("notes", e.target.value)}
+                  placeholder="Optional remarks for the challan"
+                  rows={2}
+                  maxLength={1000}
+                  disabled={!isDraft}
+                />
+              </div>
+            </div>
+            {isDraft && (
+              <p className="text-xs text-muted-foreground">
+                Click <strong>Save</strong> to persist Mushak data, or <strong>Issue Invoice</strong> to lock it in.
+              </p>
+            )}
           </CardContent>
-        </Card>
-      )}
+        ) : null}
+      </Card>
     </div>
   );
 }
