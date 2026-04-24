@@ -93,7 +93,17 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
   const { currentWorkspace, currentRole } = useWorkspace();
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [saving, setSaving] = useState(false);
+  const [mushak, setMushak] = useState<MushakFields>(() => readMushak(invoice.mushak_6_3));
   const isDraft = invoice.status === "draft";
+
+  // Re-sync mushak state if a different invoice is loaded into the same instance
+  useEffect(() => {
+    setMushak(readMushak(invoice.mushak_6_3));
+  }, [invoice.id, invoice.mushak_6_3]);
+
+  const updateMushak = <K extends keyof MushakFields>(field: K, value: MushakFields[K]) => {
+    setMushak((prev) => ({ ...prev, [field]: value }));
+  };
 
   const fetchLineItems = useCallback(async () => {
     const { data } = await supabase
