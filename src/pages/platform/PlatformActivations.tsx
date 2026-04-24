@@ -21,7 +21,6 @@ interface WorkspaceLite {
   plan: string;
   billing_cycle: string | null;
   trial_ends_at: string | null;
-  plan_status: string | null;
   seat_count: number;
   seat_limit: number;
   billing_owner_email: string | null;
@@ -91,7 +90,6 @@ export default function PlatformActivations() {
         plan: r.plan,
         billing_cycle: r.billing_cycle ?? null,
         trial_ends_at: r.trial_ends_at,
-        plan_status: r.plan_status ?? null,
         seat_count: r.seat_count ?? 0,
         seat_limit: r.seat_limit ?? 0,
         billing_owner_email: r.billing_owner_email ?? null,
@@ -133,8 +131,8 @@ export default function PlatformActivations() {
 
   const handleSelect = (ws: WorkspaceLite) => {
     setSelectedId(ws.id);
-    setPlan(ws.plan === "scale" ? "scale" : "growth");
-    setBillingCycle(ws.billing_cycle === "yearly" ? "yearly" : "monthly");
+    setPlan(ws.plan === "starter" ? "starter" : "growth");
+    setBillingCycle(ws.billing_cycle === "annual" ? "annual" : "monthly");
     setAmount("");
     setPaymentReference("");
     setNotes("");
@@ -257,7 +255,6 @@ export default function PlatformActivations() {
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span>Plan: <strong className="text-foreground">{selected.plan}</strong></span>
                     <span>Cycle: <strong className="text-foreground">{selected.billing_cycle ?? "—"}</strong></span>
-                    <span>Status: <strong className="text-foreground">{selected.plan_status ?? "—"}</strong></span>
                     <span>Seats: <strong className="text-foreground">{selected.seat_count}/{selected.seat_limit}</strong></span>
                     {selected.trial_ends_at && (
                       <span>Trial ends: <strong className="text-foreground">{format(new Date(selected.trial_ends_at), "PP")}</strong></span>
@@ -281,8 +278,8 @@ export default function PlatformActivations() {
                   <Select value={plan} onValueChange={setPlan}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="starter">Starter</SelectItem>
                       <SelectItem value="growth">Growth</SelectItem>
-                      <SelectItem value="scale">Scale</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -292,7 +289,7 @@ export default function PlatformActivations() {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="monthly">Monthly</SelectItem>
-                      <SelectItem value="yearly">Yearly</SelectItem>
+                      <SelectItem value="annual">Annual (11× monthly)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
