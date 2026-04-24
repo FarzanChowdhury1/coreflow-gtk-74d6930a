@@ -279,7 +279,10 @@ export default function PlatformDashboard() {
             <h1 className="text-2xl font-bold text-foreground">Platform Operations</h1>
             <p className="text-sm text-muted-foreground">Internal sales ops & workspace follow-up — CoreFlow only</p>
           </div>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <Link to="/platform/activations">
+              <Button variant="outline" size="sm">Plan Activations</Button>
+            </Link>
             <Link to="/platform/feedback">
               <Button variant="outline" size="sm">Feedback Inbox</Button>
             </Link>
