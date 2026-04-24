@@ -598,7 +598,7 @@ function hasBankContent(b: PdfBankDetails): boolean {
 }
 
 function hasMushakContent(m: PdfMushak63): boolean {
-  return Boolean(m.challan_no || m.vat_reg_no || m.hs_code || m.notes);
+  return Boolean(m.challan_no || m.vat_reg_no || m.hs_code || m.buyer_address || m.notes);
 }
 
 function finalisePages(doc: jsPDF, workspaceName: string) {
