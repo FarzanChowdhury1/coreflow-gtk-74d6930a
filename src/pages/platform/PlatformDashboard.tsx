@@ -256,7 +256,7 @@ export default function PlatformDashboard() {
     });
 
     return rows;
-  }, [workspaces, filterPlan, filterFlag, filterStage, sortBy]);
+  }, [workspaces, filterPlan, filterFlag, filterStage, sortBy, includeDeleted]);
 
   if (loading) {
     return (
