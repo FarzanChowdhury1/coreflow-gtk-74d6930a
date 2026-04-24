@@ -5,11 +5,66 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Download, Plus, Trash2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { exportInvoicePdf } from "@/lib/invoice-pdf";
 import { resolveWorkspaceIssuer } from "@/lib/workspace-issuer";
+
+// Bangladesh BIN: exactly 13 alphanumeric characters
+const BIN_REGEX = /^[0-9A-Za-z]{13}$/;
+
+interface MushakFields {
+  enabled: boolean;
+  vat_reg_no: string;
+  challan_no: string;
+  hs_code: string;
+  buyer_address: string;
+  notes: string;
+}
+
+function readMushak(raw: unknown): MushakFields {
+  const m = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const has = Object.keys(m).length > 0;
+  return {
+    enabled: has,
+    vat_reg_no: typeof m.vat_reg_no === "string" ? m.vat_reg_no : "",
+    challan_no: typeof m.challan_no === "string" ? m.challan_no : "",
+    hs_code: typeof m.hs_code === "string" ? m.hs_code : "",
+    buyer_address: typeof m.buyer_address === "string" ? m.buyer_address : "",
+    notes: typeof m.notes === "string" ? m.notes : "",
+  };
+}
+
+/** Returns null when valid, or an error message describing the first problem. */
+function validateMushak(m: MushakFields): string | null {
+  if (!m.enabled) return null;
+  const vat = m.vat_reg_no.trim();
+  const challan = m.challan_no.trim();
+  if (!vat) return "VAT Registration No (BIN) is required when Mushak 6.3 is enabled";
+  if (!BIN_REGEX.test(vat)) return "VAT Registration No must be exactly 13 alphanumeric characters";
+  if (!challan) return "Challan No is required when Mushak 6.3 is enabled";
+  if (challan.length > 64) return "Challan No must be 64 characters or fewer";
+  if (m.hs_code && m.hs_code.length > 32) return "HS Code must be 32 characters or fewer";
+  if (m.buyer_address && m.buyer_address.length > 500) return "Buyer address must be 500 characters or fewer";
+  if (m.notes && m.notes.length > 1000) return "Notes must be 1000 characters or fewer";
+  return null;
+}
+
+function buildMushakPayload(m: MushakFields): Record<string, string> {
+  if (!m.enabled) return {};
+  const out: Record<string, string> = {
+    vat_reg_no: m.vat_reg_no.trim(),
+    challan_no: m.challan_no.trim(),
+  };
+  if (m.hs_code.trim()) out.hs_code = m.hs_code.trim();
+  if (m.buyer_address.trim()) out.buyer_address = m.buyer_address.trim();
+  if (m.notes.trim()) out.notes = m.notes.trim();
+  return out;
+}
 
 interface Props {
   invoice: Tables<"invoices">;
