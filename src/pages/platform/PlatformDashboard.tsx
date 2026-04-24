@@ -266,8 +266,10 @@ export default function PlatformDashboard() {
     );
   }
 
-  const overdueCount = workspaces.filter(w => w.next_followup_date && new Date(w.next_followup_date) < new Date()).length;
-  const unownedCount = workspaces.filter(w => !w.followup_owner_email).length;
+  const liveWorkspaces = workspaces.filter(w => !w.deleted_at);
+  const deletedCount = workspaces.length - liveWorkspaces.length;
+  const overdueCount = liveWorkspaces.filter(w => w.next_followup_date && new Date(w.next_followup_date) < new Date()).length;
+  const unownedCount = liveWorkspaces.filter(w => !w.followup_owner_email).length;
 
   return (
     <div className="min-h-screen bg-background">
