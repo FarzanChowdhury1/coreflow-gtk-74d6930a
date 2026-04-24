@@ -303,8 +303,13 @@ export default function PlatformDashboard() {
               </CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground">
-                  Free: {summary.free} · Growth: {summary.growth} · Enterprise: {summary.enterprise}
+                  Starter: {summary.starter ?? 0} · Growth: {summary.growth} · Trial: {summary.active_trials}
                 </p>
+                {deletedCount > 0 && (
+                  <p className="text-[11px] text-muted-foreground/70 mt-1">
+                    +{deletedCount} soft-deleted (hidden)
+                  </p>
+                )}
               </CardContent>
             </Card>
 
