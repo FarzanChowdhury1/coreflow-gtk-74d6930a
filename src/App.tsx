@@ -50,6 +50,7 @@ const Reports = lazy(() => import("@/pages/Reports"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const PlatformFeedback = lazy(() => import("@/pages/platform/PlatformFeedback"));
 const PlatformDashboard = lazy(() => import("@/pages/platform/PlatformDashboard"));
+const PlatformActivations = lazy(() => import("@/pages/platform/PlatformActivations"));
 const Landing = lazy(() => import("@/pages/Landing"));
 const Terms = lazy(() => import("@/pages/Terms"));
 const Privacy = lazy(() => import("@/pages/Privacy"));
@@ -89,6 +90,7 @@ const App = () => (
               {/* Platform admin routes (cross-workspace, no workspace context needed) */}
               <Route path="/platform/feedback" element={<Suspense fallback={<PageFallback />}><PlatformAdminGuard><PlatformFeedback /></PlatformAdminGuard></Suspense>} />
               <Route path="/platform/dashboard" element={<Suspense fallback={<PageFallback />}><PlatformAdminGuard><PlatformDashboard /></PlatformAdminGuard></Suspense>} />
+              <Route path="/platform/activations" element={<Suspense fallback={<PageFallback />}><PlatformAdminGuard><PlatformActivations /></PlatformAdminGuard></Suspense>} />
 
               {/* Internal authenticated routes */}
               <Route
