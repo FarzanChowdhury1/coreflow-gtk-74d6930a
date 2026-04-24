@@ -215,7 +215,7 @@ export default function PlatformDashboard() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const filtered = useMemo(() => {
-    let rows = [...workspaces];
+    let rows = includeDeleted ? [...workspaces] : workspaces.filter(w => !w.deleted_at);
 
     if (filterPlan !== "all") {
       if (filterPlan === "trial_active") rows = rows.filter(w => w.trial_ends_at && new Date(w.trial_ends_at) > new Date());
