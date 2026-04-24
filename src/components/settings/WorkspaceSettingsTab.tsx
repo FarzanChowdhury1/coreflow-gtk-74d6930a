@@ -153,6 +153,7 @@ export function WorkspaceSettingsTab() {
       toast.error("Failed to save portal branding");
     } else {
       toast.success("Portal branding saved");
+      refreshWorkspaces();
     }
   };
 
