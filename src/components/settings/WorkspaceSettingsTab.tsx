@@ -124,6 +124,7 @@ export function WorkspaceSettingsTab() {
       toast.error("Failed to update workspace");
     } else {
       toast.success("Workspace settings saved");
+      refreshWorkspaces();
     }
   };
 
@@ -152,6 +153,7 @@ export function WorkspaceSettingsTab() {
       toast.error("Failed to save portal branding");
     } else {
       toast.success("Portal branding saved");
+      refreshWorkspaces();
     }
   };
 
