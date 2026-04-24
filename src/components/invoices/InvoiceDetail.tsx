@@ -5,11 +5,66 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Download, Plus, Trash2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { exportInvoicePdf } from "@/lib/invoice-pdf";
 import { resolveWorkspaceIssuer } from "@/lib/workspace-issuer";
+
+// Bangladesh BIN: exactly 13 alphanumeric characters
+const BIN_REGEX = /^[0-9A-Za-z]{13}$/;
+
+interface MushakFields {
+  enabled: boolean;
+  vat_reg_no: string;
+  challan_no: string;
+  hs_code: string;
+  buyer_address: string;
+  notes: string;
+}
+
+function readMushak(raw: unknown): MushakFields {
+  const m = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const has = Object.keys(m).length > 0;
+  return {
+    enabled: has,
+    vat_reg_no: typeof m.vat_reg_no === "string" ? m.vat_reg_no : "",
+    challan_no: typeof m.challan_no === "string" ? m.challan_no : "",
+    hs_code: typeof m.hs_code === "string" ? m.hs_code : "",
+    buyer_address: typeof m.buyer_address === "string" ? m.buyer_address : "",
+    notes: typeof m.notes === "string" ? m.notes : "",
+  };
+}
+
+/** Returns null when valid, or an error message describing the first problem. */
+function validateMushak(m: MushakFields): string | null {
+  if (!m.enabled) return null;
+  const vat = m.vat_reg_no.trim();
+  const challan = m.challan_no.trim();
+  if (!vat) return "VAT Registration No (BIN) is required when Mushak 6.3 is enabled";
+  if (!BIN_REGEX.test(vat)) return "VAT Registration No must be exactly 13 alphanumeric characters";
+  if (!challan) return "Challan No is required when Mushak 6.3 is enabled";
+  if (challan.length > 64) return "Challan No must be 64 characters or fewer";
+  if (m.hs_code && m.hs_code.length > 32) return "HS Code must be 32 characters or fewer";
+  if (m.buyer_address && m.buyer_address.length > 500) return "Buyer address must be 500 characters or fewer";
+  if (m.notes && m.notes.length > 1000) return "Notes must be 1000 characters or fewer";
+  return null;
+}
+
+function buildMushakPayload(m: MushakFields): Record<string, string> {
+  if (!m.enabled) return {};
+  const out: Record<string, string> = {
+    vat_reg_no: m.vat_reg_no.trim(),
+    challan_no: m.challan_no.trim(),
+  };
+  if (m.hs_code.trim()) out.hs_code = m.hs_code.trim();
+  if (m.buyer_address.trim()) out.buyer_address = m.buyer_address.trim();
+  if (m.notes.trim()) out.notes = m.notes.trim();
+  return out;
+}
 
 interface Props {
   invoice: Tables<"invoices">;
@@ -38,7 +93,17 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
   const { currentWorkspace, currentRole } = useWorkspace();
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [saving, setSaving] = useState(false);
+  const [mushak, setMushak] = useState<MushakFields>(() => readMushak(invoice.mushak_6_3));
   const isDraft = invoice.status === "draft";
+
+  // Re-sync mushak state if a different invoice is loaded into the same instance
+  useEffect(() => {
+    setMushak(readMushak(invoice.mushak_6_3));
+  }, [invoice.id, invoice.mushak_6_3]);
+
+  const updateMushak = <K extends keyof MushakFields>(field: K, value: MushakFields[K]) => {
+    setMushak((prev) => ({ ...prev, [field]: value }));
+  };
 
   const fetchLineItems = useCallback(async () => {
     const { data } = await supabase
@@ -81,6 +146,11 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
 
   const saveLineItems = async () => {
     if (!currentWorkspace) return;
+    const mushakErr = validateMushak(mushak);
+    if (mushakErr) {
+      toast.error(mushakErr);
+      return;
+    }
     setSaving(true);
     try {
       // Delete existing and re-insert
@@ -101,10 +171,15 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
         if (error) throw error;
       }
 
-      // Update invoice totals
+      // Update invoice totals + Mushak metadata
       const { error: updateErr } = await supabase
         .from("invoices")
-        .update({ subtotal, tax_total: taxTotal, grand_total: grandTotal })
+        .update({
+          subtotal,
+          tax_total: taxTotal,
+          grand_total: grandTotal,
+          mushak_6_3: buildMushakPayload(mushak),
+        })
         .eq("id", invoice.id);
       if (updateErr) throw updateErr;
 
@@ -121,6 +196,11 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
     if (!currentWorkspace) return;
     if (lineItems.length === 0) {
       toast.error("Add at least one line item before issuing");
+      return;
+    }
+    const mushakErr = validateMushak(mushak);
+    if (mushakErr) {
+      toast.error(mushakErr);
       return;
     }
     setSaving(true);
@@ -172,9 +252,7 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
     onBack();
   };
 
-  // Mushak 6.3 breakdown display
-  const mushak = invoice.mushak_6_3 as any;
-  const hasMushak = mushak && Object.keys(mushak).length > 0;
+  const mushakHasContent = Object.keys(buildMushakPayload(mushak)).length > 0;
 
   return (
     <div className="space-y-6">
@@ -305,19 +383,108 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
         </CardContent>
       </Card>
 
-      {/* Mushak 6.3 Breakdown */}
-      {hasMushak && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Mushak 6.3 Tax Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="text-xs bg-muted rounded p-3 overflow-auto">
-              {JSON.stringify(mushak, null, 2)}
-            </pre>
+      {/* Mushak 6.3 — VAT Challan (Bangladesh) */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle className="text-base">Mushak 6.3 (VAT Challan)</CardTitle>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Bangladesh VAT compliance fields. Required only when issuing a tax challan.
+              </p>
+            </div>
+            {isDraft ? (
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="mushak-enabled"
+                  checked={mushak.enabled}
+                  onCheckedChange={(v) => updateMushak("enabled", v)}
+                />
+                <Label htmlFor="mushak-enabled" className="text-sm">
+                  Applicable
+                </Label>
+              </div>
+            ) : mushakHasContent ? (
+              <Badge variant="outline">Tax invoice</Badge>
+            ) : null}
+          </div>
+        </CardHeader>
+        {(isDraft && mushak.enabled) || (!isDraft && mushakHasContent) ? (
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="mushak-vat-reg">
+                  VAT Registration No (BIN) <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="mushak-vat-reg"
+                  value={mushak.vat_reg_no}
+                  onChange={(e) => updateMushak("vat_reg_no", e.target.value)}
+                  placeholder="13-digit BIN"
+                  maxLength={13}
+                  disabled={!isDraft}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Must be exactly 13 alphanumeric characters.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="mushak-challan">
+                  Challan No <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="mushak-challan"
+                  value={mushak.challan_no}
+                  onChange={(e) => updateMushak("challan_no", e.target.value)}
+                  placeholder="e.g. CH-2025-001"
+                  maxLength={64}
+                  disabled={!isDraft}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="mushak-hs">HS Code</Label>
+                <Input
+                  id="mushak-hs"
+                  value={mushak.hs_code}
+                  onChange={(e) => updateMushak("hs_code", e.target.value)}
+                  placeholder="Optional"
+                  maxLength={32}
+                  disabled={!isDraft}
+                />
+              </div>
+              <div className="space-y-1.5 md:col-span-2">
+                <Label htmlFor="mushak-buyer-address">Buyer address</Label>
+                <Textarea
+                  id="mushak-buyer-address"
+                  value={mushak.buyer_address}
+                  onChange={(e) => updateMushak("buyer_address", e.target.value)}
+                  placeholder="Buyer registered address (optional)"
+                  rows={2}
+                  maxLength={500}
+                  disabled={!isDraft}
+                />
+              </div>
+              <div className="space-y-1.5 md:col-span-2">
+                <Label htmlFor="mushak-notes">Mushak notes</Label>
+                <Textarea
+                  id="mushak-notes"
+                  value={mushak.notes}
+                  onChange={(e) => updateMushak("notes", e.target.value)}
+                  placeholder="Optional remarks for the challan"
+                  rows={2}
+                  maxLength={1000}
+                  disabled={!isDraft}
+                />
+              </div>
+            </div>
+            {isDraft && (
+              <p className="text-xs text-muted-foreground">
+                Click <strong>Save</strong> to persist Mushak data, or <strong>Issue Invoice</strong> to lock it in.
+              </p>
+            )}
           </CardContent>
-        </Card>
-      )}
+        ) : null}
+      </Card>
     </div>
   );
 }
