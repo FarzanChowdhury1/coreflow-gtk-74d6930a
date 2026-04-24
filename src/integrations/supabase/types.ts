@@ -2022,6 +2022,68 @@ export type Database = {
           },
         ]
       }
+      paid_plan_activations: {
+        Row: {
+          activated_at: string
+          activated_by: string
+          amount: number
+          billing_cycle: string
+          created_at: string
+          currency: string
+          effective_from: string
+          id: string
+          notes: string | null
+          payment_method: Database["public"]["Enums"]["payment_method_manual"]
+          payment_reference: string | null
+          plan: string
+          previous_billing_cycle: string | null
+          previous_plan: string | null
+          workspace_id: string
+        }
+        Insert: {
+          activated_at?: string
+          activated_by: string
+          amount?: number
+          billing_cycle: string
+          created_at?: string
+          currency?: string
+          effective_from?: string
+          id?: string
+          notes?: string | null
+          payment_method: Database["public"]["Enums"]["payment_method_manual"]
+          payment_reference?: string | null
+          plan: string
+          previous_billing_cycle?: string | null
+          previous_plan?: string | null
+          workspace_id: string
+        }
+        Update: {
+          activated_at?: string
+          activated_by?: string
+          amount?: number
+          billing_cycle?: string
+          created_at?: string
+          currency?: string
+          effective_from?: string
+          id?: string
+          notes?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method_manual"]
+          payment_reference?: string | null
+          plan?: string
+          previous_billing_cycle?: string | null
+          previous_plan?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paid_plan_activations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -3508,6 +3570,19 @@ export type Database = {
         Args: { _billing_cycle?: string; _plan: string; _workspace_id: string }
         Returns: Json
       }
+      activate_paid_plan_with_log: {
+        Args: {
+          _amount: number
+          _billing_cycle: string
+          _currency: string
+          _notes: string
+          _payment_method: Database["public"]["Enums"]["payment_method_manual"]
+          _payment_reference: string
+          _plan: string
+          _workspace_id: string
+        }
+        Returns: Json
+      }
       aggregate_daily_digest: { Args: never; Returns: Json }
       aggregate_daily_digest_for_workspace: {
         Args: { _workspace_id: string }
@@ -3913,6 +3988,7 @@ export type Database = {
         | "cheque"
         | "mobile_banking"
         | "other"
+      payment_method_manual: "bank_transfer" | "bkash_manual" | "cash" | "other"
       project_status: "active" | "on_hold" | "completed" | "cancelled"
       proposal_version_status:
         | "draft"
@@ -4121,6 +4197,7 @@ export const Constants = {
         "mobile_banking",
         "other",
       ],
+      payment_method_manual: ["bank_transfer", "bkash_manual", "cash", "other"],
       project_status: ["active", "on_hold", "completed", "cancelled"],
       proposal_version_status: [
         "draft",
