@@ -195,6 +195,7 @@ export default function PlatformDashboard() {
   const [filterFlag, setFilterFlag] = useState("all");
   const [filterStage, setFilterStage] = useState("all");
   const [sortBy, setSortBy] = useState<"created" | "activity" | "seats" | "activation" | "followup">("activity");
+  const [includeDeleted, setIncludeDeleted] = useState(false);
   const [selectedWs, setSelectedWs] = useState<WorkspaceRow | null>(null);
 
   const fetchData = useCallback(async () => {
