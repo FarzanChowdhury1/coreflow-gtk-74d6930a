@@ -50,10 +50,11 @@ interface WorkspaceRow {
 
 interface Summary {
   total: number;
-  free: number;
+  starter?: number;
   growth: number;
-  enterprise: number;
   active_trials: number;
+  in_grace?: number;
+  suspended?: number;
   expired_trials: number;
   over_seat_limit: number;
 }
@@ -194,6 +195,7 @@ export default function PlatformDashboard() {
   const [filterFlag, setFilterFlag] = useState("all");
   const [filterStage, setFilterStage] = useState("all");
   const [sortBy, setSortBy] = useState<"created" | "activity" | "seats" | "activation" | "followup">("activity");
+  const [includeDeleted, setIncludeDeleted] = useState(false);
   const [selectedWs, setSelectedWs] = useState<WorkspaceRow | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -213,7 +215,7 @@ export default function PlatformDashboard() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const filtered = useMemo(() => {
-    let rows = [...workspaces];
+    let rows = includeDeleted ? [...workspaces] : workspaces.filter(w => !w.deleted_at);
 
     if (filterPlan !== "all") {
       if (filterPlan === "trial_active") rows = rows.filter(w => w.trial_ends_at && new Date(w.trial_ends_at) > new Date());
@@ -254,7 +256,7 @@ export default function PlatformDashboard() {
     });
 
     return rows;
-  }, [workspaces, filterPlan, filterFlag, filterStage, sortBy]);
+  }, [workspaces, filterPlan, filterFlag, filterStage, sortBy, includeDeleted]);
 
   if (loading) {
     return (
@@ -264,8 +266,10 @@ export default function PlatformDashboard() {
     );
   }
 
-  const overdueCount = workspaces.filter(w => w.next_followup_date && new Date(w.next_followup_date) < new Date()).length;
-  const unownedCount = workspaces.filter(w => !w.followup_owner_email).length;
+  const liveWorkspaces = workspaces.filter(w => !w.deleted_at);
+  const deletedCount = workspaces.length - liveWorkspaces.length;
+  const overdueCount = liveWorkspaces.filter(w => w.next_followup_date && new Date(w.next_followup_date) < new Date()).length;
+  const unownedCount = liveWorkspaces.filter(w => !w.followup_owner_email).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -299,8 +303,13 @@ export default function PlatformDashboard() {
               </CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground">
-                  Free: {summary.free} · Growth: {summary.growth} · Enterprise: {summary.enterprise}
+                  Starter: {summary.starter ?? 0} · Growth: {summary.growth} · Trial: {summary.active_trials}
                 </p>
+                {deletedCount > 0 && (
+                  <p className="text-[11px] text-muted-foreground/70 mt-1">
+                    +{deletedCount} soft-deleted (hidden)
+                  </p>
+                )}
               </CardContent>
             </Card>
 
@@ -395,6 +404,16 @@ export default function PlatformDashboard() {
               <SelectItem value="activation">Activation</SelectItem>
             </SelectContent>
           </Select>
+
+          <Button
+            variant={includeDeleted ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setIncludeDeleted(v => !v)}
+            className="ml-auto"
+            title="Pre-release disposable workspaces are soft-deleted and hidden by default"
+          >
+            {includeDeleted ? `Hiding none (${deletedCount} soft-deleted shown)` : `Show soft-deleted (${deletedCount})`}
+          </Button>
         </div>
 
         {/* Workspace Table */}
