@@ -3765,10 +3765,24 @@ export type Database = {
         Args: { _object_name: string; _user_id: string }
         Returns: boolean
       }
-      issue_invoice: {
-        Args: { _invoice_id: string; _line_items: Json; _workspace_id: string }
-        Returns: Json
-      }
+      issue_invoice:
+        | {
+            Args: {
+              _invoice_id: string
+              _line_items: Json
+              _workspace_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _invoice_id: string
+              _line_items: Json
+              _mushak_6_3: Json
+              _workspace_id: string
+            }
+            Returns: Json
+          }
       manage_renewal: {
         Args: {
           _action: string

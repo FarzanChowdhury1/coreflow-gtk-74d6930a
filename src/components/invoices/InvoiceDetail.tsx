@@ -215,7 +215,8 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
           amount: l.amount,
           sort_order: i,
         })),
-      });
+        _mushak_6_3: buildMushakPayload(mushak),
+      } as any);
       if (error) throw error;
       const result = data as any;
       if (!result?.success) {
