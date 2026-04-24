@@ -124,6 +124,7 @@ export function WorkspaceSettingsTab() {
       toast.error("Failed to update workspace");
     } else {
       toast.success("Workspace settings saved");
+      refreshWorkspaces();
     }
   };
 
