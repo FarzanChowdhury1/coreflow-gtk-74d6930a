@@ -252,9 +252,7 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
     onBack();
   };
 
-  // Mushak 6.3 breakdown display
-  const mushak = invoice.mushak_6_3 as any;
-  const hasMushak = mushak && Object.keys(mushak).length > 0;
+  const mushakHasContent = Object.keys(buildMushakPayload(mushak)).length > 0;
 
   return (
     <div className="space-y-6">
