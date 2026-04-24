@@ -146,6 +146,11 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
 
   const saveLineItems = async () => {
     if (!currentWorkspace) return;
+    const mushakErr = validateMushak(mushak);
+    if (mushakErr) {
+      toast.error(mushakErr);
+      return;
+    }
     setSaving(true);
     try {
       // Delete existing and re-insert
@@ -166,10 +171,15 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
         if (error) throw error;
       }
 
-      // Update invoice totals
+      // Update invoice totals + Mushak metadata
       const { error: updateErr } = await supabase
         .from("invoices")
-        .update({ subtotal, tax_total: taxTotal, grand_total: grandTotal })
+        .update({
+          subtotal,
+          tax_total: taxTotal,
+          grand_total: grandTotal,
+          mushak_6_3: buildMushakPayload(mushak),
+        })
         .eq("id", invoice.id);
       if (updateErr) throw updateErr;
 
@@ -186,6 +196,11 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
     if (!currentWorkspace) return;
     if (lineItems.length === 0) {
       toast.error("Add at least one line item before issuing");
+      return;
+    }
+    const mushakErr = validateMushak(mushak);
+    if (mushakErr) {
+      toast.error(mushakErr);
       return;
     }
     setSaving(true);
