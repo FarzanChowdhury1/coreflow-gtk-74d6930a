@@ -404,6 +404,16 @@ export default function PlatformDashboard() {
               <SelectItem value="activation">Activation</SelectItem>
             </SelectContent>
           </Select>
+
+          <Button
+            variant={includeDeleted ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setIncludeDeleted(v => !v)}
+            className="ml-auto"
+            title="Pre-release disposable workspaces are soft-deleted and hidden by default"
+          >
+            {includeDeleted ? `Hiding none (${deletedCount} soft-deleted shown)` : `Show soft-deleted (${deletedCount})`}
+          </Button>
         </div>
 
         {/* Workspace Table */}
