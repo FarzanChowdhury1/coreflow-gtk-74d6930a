@@ -50,10 +50,11 @@ interface WorkspaceRow {
 
 interface Summary {
   total: number;
-  free: number;
+  starter?: number;
   growth: number;
-  enterprise: number;
   active_trials: number;
+  in_grace?: number;
+  suspended?: number;
   expired_trials: number;
   over_seat_limit: number;
 }
