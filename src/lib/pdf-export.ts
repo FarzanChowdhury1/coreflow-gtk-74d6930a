@@ -424,19 +424,31 @@ export function generateDocumentPdf(data: PdfDocumentData): jsPDF {
 
   // ─── Mushak 6.3 block (invoices only, when populated) ───────
   if (data.documentType === "Invoice" && data.mushak && hasMushakContent(data.mushak)) {
-    if (y + 28 > pageHeight - FOOTER_HEIGHT - 6) {
+    const m = data.mushak;
+    const buyerAddrLines = m.buyer_address
+      ? doc.splitTextToSize(String(m.buyer_address), contentWidth - 8)
+      : [];
+    const notesLines = m.notes
+      ? doc.splitTextToSize(String(m.notes), contentWidth - 8)
+      : [];
+    // Base 26 (header + 3-col row) + buyer address rows + notes line
+    const blockH =
+      26 +
+      (buyerAddrLines.length > 0 ? 6 + buyerAddrLines.length * 4 : 0) +
+      (notesLines.length > 0 ? 6 : 0);
+
+    if (y + blockH + 2 > pageHeight - FOOTER_HEIGHT - 6) {
       doc.addPage();
       y = MARGIN;
     }
     doc.setFillColor(...COLOR_BAND_BG);
     doc.setDrawColor(...COLOR_RULE);
-    doc.roundedRect(MARGIN, y, contentWidth, 26, 1.5, 1.5, "FD");
+    doc.roundedRect(MARGIN, y, contentWidth, blockH, 1.5, 1.5, "FD");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.setTextColor(...COLOR_MUTED);
     doc.text("MUSHAK 6.3 (VAT CHALLAN)", MARGIN + 4, y + 5);
 
-    const m = data.mushak;
     const cells: Array<[string, string]> = [];
     if (m.challan_no) cells.push(["Challan No", String(m.challan_no)]);
     if (m.vat_reg_no) cells.push(["VAT Reg. No", String(m.vat_reg_no)]);
@@ -455,15 +467,28 @@ export function generateDocumentPdf(data: PdfDocumentData): jsPDF {
       doc.text(c[1], cx, y + 17);
     });
 
-    if (m.notes) {
+    let innerY = y + 23;
+    if (buyerAddrLines.length > 0) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(...COLOR_MUTED);
+      doc.text("Buyer Address", MARGIN + 4, innerY);
+      innerY += 4;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(...COLOR_INK);
+      doc.text(buyerAddrLines, MARGIN + 4, innerY);
+      innerY += buyerAddrLines.length * 4 + 2;
+    }
+
+    if (notesLines.length > 0) {
       doc.setFont("helvetica", "italic");
       doc.setFontSize(8);
       doc.setTextColor(...COLOR_MUTED);
-      const n = doc.splitTextToSize(m.notes, contentWidth - 8);
-      doc.text(n[0], MARGIN + 4, y + 23);
+      doc.text(notesLines[0], MARGIN + 4, innerY + 2);
     }
 
-    y += 30;
+    y += blockH + 4;
   }
 
   // ─── Notes / Terms block ─────────────────────────────────────
