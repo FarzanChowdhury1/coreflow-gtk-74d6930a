@@ -3826,6 +3826,14 @@ export type Database = {
         }
         Returns: Json
       }
+      user_can_see_lead_via_task: {
+        Args: { _lead: string; _user: string }
+        Returns: boolean
+      }
+      user_owns_lead: {
+        Args: { _lead: string; _user: string }
+        Returns: boolean
+      }
       validate_portal_token: { Args: { _token: string }; Returns: Json }
       void_invoice: {
         Args: { _invoice_id: string; _workspace_id: string }
