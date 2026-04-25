@@ -3550,6 +3550,7 @@ export type Database = {
         Args: { _actor_id?: string; _renewal_id: string }
         Returns: Json
       }
+      _seed_regtest_identity: { Args: never; Returns: number }
       _upsert_finance_watchlist_item: {
         Args: {
           _action: string
