@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import type { PortalSessionInfo } from "@/lib/portal-api";
-import { portalGetResource } from "@/lib/portal-api";
+import { portalGetResource, portalAction } from "@/lib/portal-api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { CreditCard } from "lucide-react";
+import { CreditCard, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { format } from "date-fns";
 
 interface Props {
@@ -28,12 +28,17 @@ function formatCurrency(amount: number): string {
 
 export function PortalPayments({ session: _session }: Props) {
   const [payments, setPayments] = useState<any[]>([]);
+  const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchPayments = useCallback(async () => {
     setLoading(true);
-    const { data } = await portalGetResource<any[]>("payments");
+    const [{ data }, subRes] = await Promise.all([
+      portalGetResource<any[]>("payments"),
+      portalAction<any>("list_my_proof_submissions"),
+    ]);
     setPayments(data || []);
+    setSubmissions(((subRes.data as any)?.data) || []);
     setLoading(false);
   }, []);
 
@@ -41,7 +46,7 @@ export function PortalPayments({ session: _session }: Props) {
 
   if (loading) return <p className="text-center py-8 text-muted-foreground">Loading payment history…</p>;
 
-  if (payments.length === 0) {
+  if (payments.length === 0 && submissions.length === 0) {
     return (
       <Card className="mt-4">
         <CardContent className="py-10 text-center">
