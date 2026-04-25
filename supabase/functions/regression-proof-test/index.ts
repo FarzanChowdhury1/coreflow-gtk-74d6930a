@@ -21,18 +21,10 @@ Deno.serve(async (req) => {
   const note = (step: string, ok: boolean, detail: any) => results.push({ step, ok, detail });
 
   try {
-    // diagnostics
-    const { count: cAll } = await sb.from("companies").select("*", { count: "exact", head: true });
-    const { count: wsAll } = await sb.from("workspaces").select("*", { count: "exact", head: true });
-    const { data: ws } = await sb.from("workspaces").select("id, name").eq("id", REGRESSION_WS);
-    note("diagnostics", true, { url, total_companies: cAll, total_workspaces: wsAll, regression_ws: ws });
-    const { data: cos } = await sb.from("companies")
-      .select("id, legal_name, deleted_at, workspace_id")
-      .eq("workspace_id", REGRESSION_WS);
-    note("companies_in_ws", true, cos);
-    const co = (cos || []).find((c: any) => !c.deleted_at);
-    if (!co) throw new Error("no live company");
-    note("company_resolved", true, co.id);
+    // diagnostics: list all workspaces visible to this DB
+    const { data: ws } = await sb.from("workspaces").select("id, name, deleted_at").order("name");
+    note("all_workspaces", true, ws);
+    throw new Error("diagnostic-only run");
 
     const ts = new Date().toISOString().slice(11,19).replace(/:/g,"");
 
