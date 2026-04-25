@@ -2084,6 +2084,75 @@ export type Database = {
           },
         ]
       }
+      payment_proof_submissions: {
+        Row: {
+          created_at: string
+          declared_amount: number
+          declared_method: string
+          declared_reference: string | null
+          file_path: string
+          id: string
+          invoice_id: string
+          mime_type: string | null
+          notes: string | null
+          original_filename: string | null
+          payment_id: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          size_bytes: number | null
+          status: Database["public"]["Enums"]["payment_proof_status"]
+          submitted_by_email: string | null
+          submitted_by_name: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          declared_amount: number
+          declared_method: string
+          declared_reference?: string | null
+          file_path: string
+          id?: string
+          invoice_id: string
+          mime_type?: string | null
+          notes?: string | null
+          original_filename?: string | null
+          payment_id?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          size_bytes?: number | null
+          status?: Database["public"]["Enums"]["payment_proof_status"]
+          submitted_by_email?: string | null
+          submitted_by_name?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          declared_amount?: number
+          declared_method?: string
+          declared_reference?: string | null
+          file_path?: string
+          id?: string
+          invoice_id?: string
+          mime_type?: string | null
+          notes?: string | null
+          original_filename?: string | null
+          payment_id?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          size_bytes?: number | null
+          status?: Database["public"]["Enums"]["payment_proof_status"]
+          submitted_by_email?: string | null
+          submitted_by_name?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -3566,6 +3635,10 @@ export type Database = {
         Returns: undefined
       }
       accept_invite_by_token: { Args: { _token: string }; Returns: Json }
+      accept_payment_proof: {
+        Args: { _paid_at?: string; _submission_id: string }
+        Returns: string
+      }
       accept_workspace_invite: { Args: { _invite_id: string }; Returns: Json }
       activate_paid_plan: {
         Args: { _billing_cycle?: string; _plan: string; _workspace_id: string }
@@ -3856,9 +3929,17 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recompute_invoice_paid: {
+        Args: { _invoice_id: string }
+        Returns: undefined
+      }
       refresh_finance_watchlist: {
         Args: { _workspace_id: string }
         Returns: Json
+      }
+      reject_payment_proof: {
+        Args: { _reason: string; _submission_id: string }
+        Returns: undefined
       }
       resolve_invite_by_token: { Args: { _token: string }; Returns: Json }
       retention_days_notification: {
@@ -4004,6 +4085,7 @@ export type Database = {
         | "mobile_banking"
         | "other"
       payment_method_manual: "bank_transfer" | "bkash_manual" | "cash" | "other"
+      payment_proof_status: "pending" | "accepted" | "rejected"
       project_status: "active" | "on_hold" | "completed" | "cancelled"
       proposal_version_status:
         | "draft"
@@ -4213,6 +4295,7 @@ export const Constants = {
         "other",
       ],
       payment_method_manual: ["bank_transfer", "bkash_manual", "cash", "other"],
+      payment_proof_status: ["pending", "accepted", "rejected"],
       project_status: ["active", "on_hold", "completed", "cancelled"],
       proposal_version_status: [
         "draft",
