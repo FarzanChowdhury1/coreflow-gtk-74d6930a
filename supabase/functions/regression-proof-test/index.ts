@@ -24,7 +24,12 @@ Deno.serve(async (req) => {
     // diagnostics: list all workspaces visible to this DB
     const { data: ws } = await sb.from("workspaces").select("id, name, deleted_at").order("name");
     note("all_workspaces", true, ws);
-    throw new Error("diagnostic-only run");
+    return new Response(JSON.stringify({ ok: true, diagnostic: true, results }, null, 2),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    // unreachable below — kept for the full pipeline run
+    // deno-lint-ignore no-unreachable
+    const co: any = { id: "" };
 
     const ts = new Date().toISOString().slice(11,19).replace(/:/g,"");
 
