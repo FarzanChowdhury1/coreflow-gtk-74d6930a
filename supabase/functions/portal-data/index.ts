@@ -590,6 +590,174 @@ async function handleAction(
       return jsonResponse({ success: true }, 200, hdrs);
     }
 
+    case "get_proof_upload_url": {
+      const invoiceId = body.invoice_id as string;
+      const fileName = (body.file_name as string) || "proof";
+      const mimeType = (body.mime_type as string) || "application/octet-stream";
+      const sizeBytes = Number(body.size_bytes || 0);
+
+      if (!invoiceId) return jsonResponse({ error: "invoice_id required" }, 400, hdrs);
+
+      const ALLOWED = ["image/jpeg","image/png","image/webp","image/heic","application/pdf"];
+      if (!ALLOWED.includes(mimeType)) {
+        return jsonResponse({ error: "Unsupported file type. Use JPG, PNG, WebP, HEIC, or PDF." }, 400, hdrs);
+      }
+      if (sizeBytes > 10 * 1024 * 1024) {
+        return jsonResponse({ error: "File too large (max 10MB)" }, 400, hdrs);
+      }
+
+      // Workspace must not be deleted
+      const { data: ws } = await supabase
+        .from("workspaces").select("id, deleted_at")
+        .eq("id", session.workspace_id).maybeSingle();
+      if (!ws || (ws as any).deleted_at) {
+        return jsonResponse({ error: "Workspace unavailable" }, 403, hdrs);
+      }
+
+      // Invoice must belong to portal scope
+      const { data: inv } = await supabase
+        .from("invoices")
+        .select("id, company_id, workspace_id, deleted_at, status")
+        .eq("id", invoiceId)
+        .eq("company_id", session.company_id)
+        .eq("workspace_id", session.workspace_id)
+        .maybeSingle();
+      if (!inv || (inv as any).deleted_at) {
+        return jsonResponse({ error: "Invoice not found" }, 404, hdrs);
+      }
+      if (["draft","void"].includes((inv as any).status)) {
+        return jsonResponse({ error: "Invoice not eligible for payment proof" }, 400, hdrs);
+      }
+
+      const safeName = fileName.replace(/[^\w.\-]/g, "_").slice(-80);
+      const path = `${session.workspace_id}/${invoiceId}/${crypto.randomUUID()}-${safeName}`;
+
+      const { data: signed, error: signErr } = await supabase.storage
+        .from("payment-proofs")
+        .createSignedUploadUrl(path);
+
+      if (signErr || !signed) {
+        return jsonResponse({ error: "Could not create upload URL" }, 500, hdrs);
+      }
+
+      return jsonResponse({
+        upload_url: signed.signedUrl,
+        token: signed.token,
+        storage_path: path,
+      }, 200, hdrs);
+    }
+
+    case "submit_payment_proof": {
+      const invoiceId = body.invoice_id as string;
+      const storagePath = body.storage_path as string;
+      const declaredAmount = Number(body.declared_amount || 0);
+      const declaredMethod = (body.declared_method as string) || "other";
+      const declaredReference = (body.declared_reference as string) || null;
+      const notes = (body.notes as string) || null;
+      const originalFilename = (body.original_filename as string) || null;
+      const mimeType = (body.mime_type as string) || null;
+      const sizeBytes = Number(body.size_bytes || 0);
+
+      if (!invoiceId || !storagePath) {
+        return jsonResponse({ error: "invoice_id and storage_path required" }, 400, hdrs);
+      }
+      if (!(declaredAmount > 0)) {
+        return jsonResponse({ error: "Amount must be greater than zero" }, 400, hdrs);
+      }
+      const VALID_METHODS = ["bank_transfer","bkash_manual","nagad_manual","cash","cheque","mobile_banking","other"];
+      if (!VALID_METHODS.includes(declaredMethod)) {
+        return jsonResponse({ error: "Invalid method" }, 400, hdrs);
+      }
+
+      // Re-validate invoice
+      const { data: inv } = await supabase
+        .from("invoices")
+        .select("id, company_id, workspace_id, deleted_at, status")
+        .eq("id", invoiceId)
+        .eq("company_id", session.company_id)
+        .eq("workspace_id", session.workspace_id)
+        .maybeSingle();
+      if (!inv || (inv as any).deleted_at || ["draft","void"].includes((inv as any).status)) {
+        return jsonResponse({ error: "Invoice not eligible" }, 400, hdrs);
+      }
+
+      // Storage path must be scoped to this workspace + invoice
+      const expectedPrefix = `${session.workspace_id}/${invoiceId}/`;
+      if (!storagePath.startsWith(expectedPrefix)) {
+        return jsonResponse({ error: "Invalid storage path" }, 400, hdrs);
+      }
+
+      // Ensure object exists
+      const { data: head } = await supabase.storage
+        .from("payment-proofs")
+        .list(`${session.workspace_id}/${invoiceId}`, { limit: 100 });
+      const fileName = storagePath.split("/").pop() || "";
+      if (!head?.some((o) => o.name === fileName)) {
+        return jsonResponse({ error: "Upload not found in storage" }, 400, hdrs);
+      }
+
+      // Rate limit: max 5 pending submissions per invoice per hour
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { count: recent } = await supabase
+        .from("payment_proof_submissions")
+        .select("id", { count: "exact", head: true })
+        .eq("invoice_id", invoiceId)
+        .gte("created_at", oneHourAgo);
+      if ((recent ?? 0) >= 5) {
+        return jsonResponse({ error: "Too many submissions. Try again later." }, 429, hdrs);
+      }
+
+      const { data: row, error: insErr } = await supabase
+        .from("payment_proof_submissions")
+        .insert({
+          workspace_id: session.workspace_id,
+          invoice_id: invoiceId,
+          submitted_by_name: null,
+          submitted_by_email: null,
+          declared_amount: declaredAmount,
+          declared_method: declaredMethod,
+          declared_reference: declaredReference,
+          notes,
+          file_path: storagePath,
+          original_filename: originalFilename,
+          mime_type: mimeType,
+          size_bytes: sizeBytes || null,
+          status: "pending",
+        })
+        .select("id, created_at")
+        .single();
+
+      if (insErr) {
+        return jsonResponse({ error: "Failed to record submission" }, 500, hdrs);
+      }
+
+      return jsonResponse({ success: true, submission_id: (row as any).id }, 200, hdrs);
+    }
+
+    case "list_my_proof_submissions": {
+      const invoiceId = body.invoice_id as string | undefined;
+      let q = supabase
+        .from("payment_proof_submissions")
+        .select("id, invoice_id, declared_amount, declared_method, declared_reference, status, rejection_reason, created_at, reviewed_at")
+        .eq("workspace_id", session.workspace_id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      // Restrict to invoices belonging to this company
+      const { data: invs } = await supabase
+        .from("invoices")
+        .select("id")
+        .eq("company_id", session.company_id)
+        .eq("workspace_id", session.workspace_id)
+        .is("deleted_at", null);
+      const ids = (invs || []).map((i: any) => i.id);
+      if (ids.length === 0) return jsonResponse({ data: [] }, 200, hdrs);
+
+      q = q.in("invoice_id", invoiceId ? [invoiceId] : ids);
+      const { data } = await q;
+      return jsonResponse({ data: data || [] }, 200, hdrs);
+    }
+
     default:
       return jsonResponse({ error: "Unknown action" }, 400, hdrs);
   }

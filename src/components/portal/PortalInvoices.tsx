@@ -1,14 +1,16 @@
 import { useEffect, useState, useCallback } from "react";
 import type { PortalSessionInfo } from "@/lib/portal-api";
-import { portalGetResource } from "@/lib/portal-api";
+import { portalGetResource, portalAction } from "@/lib/portal-api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Receipt, AlertTriangle } from "lucide-react";
+import { Receipt, AlertTriangle, Upload } from "lucide-react";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
+import { PortalSubmitPaymentProof } from "./PortalSubmitPaymentProof";
 
 interface Props {
   session: PortalSessionInfo;
@@ -32,12 +34,18 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function PortalInvoices({ session: _session }: Props) {
   const [invoices, setInvoices] = useState<any[]>([]);
+  const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [proofTarget, setProofTarget] = useState<any | null>(null);
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
-    const { data } = await portalGetResource<any[]>("invoices");
+    const [{ data }, { data: subs }] = await Promise.all([
+      portalGetResource<any[]>("invoices"),
+      portalAction<any[]>("list_my_proof_submissions"),
+    ]);
     setInvoices(data || []);
+    setSubmissions(((subs as any)?.data) || []);
     setLoading(false);
   }, []);
 
@@ -52,7 +60,7 @@ export function PortalInvoices({ session: _session }: Props) {
           <Receipt className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
           <h3 className="text-sm font-medium text-foreground mb-1">No invoices yet</h3>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            Invoices from your service provider will appear here once they are issued. You'll be able to track amounts, due dates, and payment status.
+            Invoices from your service provider will appear here once they are issued.
           </p>
         </CardContent>
       </Card>
@@ -70,9 +78,13 @@ export function PortalInvoices({ session: _session }: Props) {
     .filter((inv) => inv.status !== "paid" && inv.status !== "void")
     .reduce((sum, inv) => sum + (Number(inv.grand_total) - Number(inv.amount_paid)), 0);
 
+  const pendingByInvoice = new Map<string, number>();
+  for (const s of submissions) {
+    if (s.status === "pending") pendingByInvoice.set(s.invoice_id, (pendingByInvoice.get(s.invoice_id) || 0) + 1);
+  }
+
   return (
     <div className="mt-4 space-y-4">
-      {/* Summary bar */}
       <div className="flex flex-wrap items-center gap-3">
         <Badge variant="secondary" className="text-xs">
           {invoices.length} invoice{invoices.length !== 1 ? "s" : ""}
@@ -91,7 +103,7 @@ export function PortalInvoices({ session: _session }: Props) {
       </div>
 
       <div className="rounded-lg border bg-card overflow-x-auto">
-        <Table className="min-w-[650px]">
+        <Table className="min-w-[750px]">
           <TableHeader>
             <TableRow>
               <TableHead>Invoice</TableHead>
@@ -99,14 +111,16 @@ export function PortalInvoices({ session: _session }: Props) {
               <TableHead className="text-right">Total</TableHead>
               <TableHead className="text-right">Paid</TableHead>
               <TableHead className="text-right">Balance</TableHead>
-              <TableHead>Issued</TableHead>
               <TableHead>Due Date</TableHead>
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {invoices.map((inv) => {
               const balance = Number(inv.grand_total) - Number(inv.amount_paid);
               const isOverdue = overdueIds.has(inv.id);
+              const canSubmit = balance > 0 && inv.status !== "void" && inv.status !== "draft";
+              const pending = pendingByInvoice.get(inv.id) || 0;
               return (
                 <TableRow key={inv.id} className={isOverdue ? "bg-destructive/5" : ""}>
                   <TableCell className="font-medium text-foreground">{inv.invoice_number}</TableCell>
@@ -116,26 +130,27 @@ export function PortalInvoices({ session: _session }: Props) {
                         {STATUS_LABELS[inv.status] || inv.status.replace("_", " ")}
                       </Badge>
                       {isOverdue && (
-                        <Badge variant="destructive" className="text-[10px] h-4 px-1.5">
-                          Overdue
-                        </Badge>
+                        <Badge variant="destructive" className="text-[10px] h-4 px-1.5">Overdue</Badge>
+                      )}
+                      {pending > 0 && (
+                        <Badge variant="outline" className="text-[10px] h-4 px-1.5">{pending} pending proof</Badge>
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-right font-mono">
-                    {formatCurrency(Number(inv.grand_total))}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-muted-foreground">
-                    {formatCurrency(Number(inv.amount_paid))}
-                  </TableCell>
+                  <TableCell className="text-right font-mono">{formatCurrency(Number(inv.grand_total))}</TableCell>
+                  <TableCell className="text-right font-mono text-muted-foreground">{formatCurrency(Number(inv.amount_paid))}</TableCell>
                   <TableCell className={`text-right font-mono font-medium ${balance > 0 ? "text-destructive" : "text-emerald-600"}`}>
                     {formatCurrency(balance)}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {inv.issue_date ? format(new Date(inv.issue_date), "dd MMM yyyy") : "—"}
-                  </TableCell>
                   <TableCell className={isOverdue ? "text-destructive font-medium" : "text-muted-foreground"}>
                     {inv.due_date ? format(new Date(inv.due_date), "dd MMM yyyy") : "—"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {canSubmit && (
+                      <Button size="sm" variant="outline" onClick={() => setProofTarget(inv)}>
+                        <Upload className="h-3.5 w-3.5 mr-1" /> Submit Proof
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               );
@@ -143,6 +158,17 @@ export function PortalInvoices({ session: _session }: Props) {
           </TableBody>
         </Table>
       </div>
+
+      {proofTarget && (
+        <PortalSubmitPaymentProof
+          open={!!proofTarget}
+          onOpenChange={(o) => { if (!o) setProofTarget(null); }}
+          invoiceId={proofTarget.id}
+          invoiceNumber={proofTarget.invoice_number}
+          outstandingBalance={Number(proofTarget.grand_total) - Number(proofTarget.amount_paid)}
+          onSubmitted={fetchInvoices}
+        />
+      )}
     </div>
   );
 }

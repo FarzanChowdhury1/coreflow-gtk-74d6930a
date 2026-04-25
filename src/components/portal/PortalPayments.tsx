@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import type { PortalSessionInfo } from "@/lib/portal-api";
-import { portalGetResource } from "@/lib/portal-api";
+import { portalGetResource, portalAction } from "@/lib/portal-api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { CreditCard } from "lucide-react";
+import { CreditCard, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { format } from "date-fns";
 
 interface Props {
@@ -18,6 +18,8 @@ const METHOD_LABELS: Record<string, string> = {
   cash: "Cash",
   cheque: "Cheque",
   mobile_banking: "Mobile Banking",
+  bkash_manual: "bKash",
+  nagad_manual: "Nagad",
   other: "Other",
 };
 
@@ -28,12 +30,17 @@ function formatCurrency(amount: number): string {
 
 export function PortalPayments({ session: _session }: Props) {
   const [payments, setPayments] = useState<any[]>([]);
+  const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchPayments = useCallback(async () => {
     setLoading(true);
-    const { data } = await portalGetResource<any[]>("payments");
+    const [{ data }, subRes] = await Promise.all([
+      portalGetResource<any[]>("payments"),
+      portalAction<any>("list_my_proof_submissions"),
+    ]);
     setPayments(data || []);
+    setSubmissions(((subRes.data as any)?.data) || []);
     setLoading(false);
   }, []);
 
@@ -41,7 +48,7 @@ export function PortalPayments({ session: _session }: Props) {
 
   if (loading) return <p className="text-center py-8 text-muted-foreground">Loading payment history…</p>;
 
-  if (payments.length === 0) {
+  if (payments.length === 0 && submissions.length === 0) {
     return (
       <Card className="mt-4">
         <CardContent className="py-10 text-center">
@@ -100,6 +107,47 @@ export function PortalPayments({ session: _session }: Props) {
           </TableBody>
         </Table>
       </div>
+
+      {submissions.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-foreground mt-4">Submitted payment proofs</h3>
+          <div className="rounded-lg border bg-card overflow-x-auto">
+            <Table className="min-w-[500px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Submitted</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Method</TableHead>
+                  <TableHead>Reference</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {submissions.map((s) => (
+                  <TableRow key={s.id}>
+                    <TableCell className="text-muted-foreground">{format(new Date(s.created_at), "dd MMM yyyy")}</TableCell>
+                    <TableCell className="text-right font-mono">{formatCurrency(Number(s.declared_amount))}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">{METHOD_LABELS[s.declared_method] || s.declared_method}</Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{s.declared_reference || "—"}</TableCell>
+                    <TableCell>
+                      {s.status === "pending" && <Badge variant="outline" className="text-xs gap-1"><Clock className="h-3 w-3" />Pending review</Badge>}
+                      {s.status === "accepted" && <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 text-xs gap-1"><CheckCircle2 className="h-3 w-3" />Accepted</Badge>}
+                      {s.status === "rejected" && (
+                        <div className="flex flex-col gap-0.5">
+                          <Badge variant="destructive" className="text-xs gap-1 w-fit"><XCircle className="h-3 w-3" />Rejected</Badge>
+                          {s.rejection_reason && <span className="text-[11px] text-muted-foreground">{s.rejection_reason}</span>}
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
