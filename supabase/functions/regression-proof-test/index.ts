@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
         notes: (sub.notes ?? "") + `\n[Proof from: ${sub.submitted_by_name}]`,
         proof_url: proofUrl,
       }).select().single();
-      if (payErr || !pay) { fail("phase3.create_payment", payErr?.message); throw 0; }
+      if (payErr || !pay) { fail("phase3.create_payment", payErr?.message ?? "unknown"); throw 0; }
       created.paymentIds.push(pay.id);
       acceptPayment = pay;
 
