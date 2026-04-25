@@ -20,6 +20,8 @@ const METHOD_LABELS: Record<string, string> = {
   cash: "Cash",
   cheque: "Cheque",
   mobile_banking: "Mobile Banking",
+  bkash_manual: "bKash",
+  nagad_manual: "Nagad",
   other: "Other",
 };
 
