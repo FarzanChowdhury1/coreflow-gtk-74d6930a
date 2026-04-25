@@ -4084,6 +4084,8 @@ export type Database = {
         | "cheque"
         | "mobile_banking"
         | "other"
+        | "bkash_manual"
+        | "nagad_manual"
       payment_method_manual: "bank_transfer" | "bkash_manual" | "cash" | "other"
       payment_proof_status: "pending" | "accepted" | "rejected"
       project_status: "active" | "on_hold" | "completed" | "cancelled"
@@ -4293,6 +4295,8 @@ export const Constants = {
         "cheque",
         "mobile_banking",
         "other",
+        "bkash_manual",
+        "nagad_manual",
       ],
       payment_method_manual: ["bank_transfer", "bkash_manual", "cash", "other"],
       payment_proof_status: ["pending", "accepted", "rejected"],
