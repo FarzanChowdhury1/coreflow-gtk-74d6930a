@@ -105,6 +105,47 @@ export function PortalPayments({ session: _session }: Props) {
           </TableBody>
         </Table>
       </div>
+
+      {submissions.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-foreground mt-4">Submitted payment proofs</h3>
+          <div className="rounded-lg border bg-card overflow-x-auto">
+            <Table className="min-w-[500px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Submitted</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Method</TableHead>
+                  <TableHead>Reference</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {submissions.map((s) => (
+                  <TableRow key={s.id}>
+                    <TableCell className="text-muted-foreground">{format(new Date(s.created_at), "dd MMM yyyy")}</TableCell>
+                    <TableCell className="text-right font-mono">{formatCurrency(Number(s.declared_amount))}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">{METHOD_LABELS[s.declared_method] || s.declared_method}</Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{s.declared_reference || "—"}</TableCell>
+                    <TableCell>
+                      {s.status === "pending" && <Badge variant="outline" className="text-xs gap-1"><Clock className="h-3 w-3" />Pending review</Badge>}
+                      {s.status === "accepted" && <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 text-xs gap-1"><CheckCircle2 className="h-3 w-3" />Accepted</Badge>}
+                      {s.status === "rejected" && (
+                        <div className="flex flex-col gap-0.5">
+                          <Badge variant="destructive" className="text-xs gap-1 w-fit"><XCircle className="h-3 w-3" />Rejected</Badge>
+                          {s.rejection_reason && <span className="text-[11px] text-muted-foreground">{s.rejection_reason}</span>}
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
