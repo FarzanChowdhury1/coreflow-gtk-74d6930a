@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
         status: "issued", issue_date: new Date().toISOString().slice(0,10),
         currency: "BDT", subtotal: 2000, tax_total: 0, grand_total: 2000, amount_paid: 0 },
     ]).select("id, invoice_number");
-    if (invErr as any) throw new Error("seed invoices: " + invErr.message);
+    if (invErr) throw new Error("seed invoices: " + (invErr as any)?.message);
     const invA = invs![0].id, invB = invs![1].id;
     note("seed_invoices", true, { invA, invB });
 
@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
         original_filename: "proof-c.png", mime_type: "image/png", size_bytes: 512,
         status: "pending" },
     ]).select("id");
-    if (sErr as any) throw new Error("seed submissions: " + sErr.message);
+    if (sErr) throw new Error("seed submissions: " + (sErr as any)?.message);
     const [sub1, sub2, sub3] = subs!.map((r:any)=>r.id);
     note("seed_submissions", true, { sub1, sub2, sub3 });
 
