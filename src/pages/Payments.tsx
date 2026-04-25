@@ -11,6 +11,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { PaymentFormDialog } from "@/components/payments/PaymentFormDialog";
+import { PaymentProofInbox } from "@/components/payments/PaymentProofInbox";
 import type { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 
@@ -127,6 +128,8 @@ export default function Payments() {
           </Button>
         </div>
       </div>
+
+      <PaymentProofInbox onChanged={fetchData} />
 
       {fetchError && (
         <div className="mb-4 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
