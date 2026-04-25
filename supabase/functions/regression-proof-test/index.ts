@@ -21,13 +21,17 @@ Deno.serve(async (req) => {
   const note = (step: string, ok: boolean, detail: any) => results.push({ step, ok, detail });
 
   try {
-    // resolve company (debug: list all in workspace)
-    const { data: cos, error: coErr } = await sb.from("companies")
+    // diagnostics
+    const { count: cAll } = await sb.from("companies").select("*", { count: "exact", head: true });
+    const { count: wsAll } = await sb.from("workspaces").select("*", { count: "exact", head: true });
+    const { data: ws } = await sb.from("workspaces").select("id, name").eq("id", REGRESSION_WS);
+    note("diagnostics", true, { url, total_companies: cAll, total_workspaces: wsAll, regression_ws: ws });
+    const { data: cos } = await sb.from("companies")
       .select("id, legal_name, deleted_at, workspace_id")
       .eq("workspace_id", REGRESSION_WS);
-    note("companies_query", !coErr, { rows: cos, error: coErr?.message });
+    note("companies_in_ws", true, cos);
     const co = (cos || []).find((c: any) => !c.deleted_at);
-    if (!co) throw new Error("no live company: rows=" + JSON.stringify(cos));
+    if (!co) throw new Error("no live company");
     note("company_resolved", true, co.id);
 
     const ts = new Date().toISOString().slice(11,19).replace(/:/g,"");
