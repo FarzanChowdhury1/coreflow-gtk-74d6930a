@@ -7,10 +7,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const INVOICE_ID = "c7ed6949-10f7-41d9-9b7b-c1e8e0662709"; // SEED-INV-000001
-const WORKSPACE_ID = "3f9c83f5-ae12-4fa8-8fa0-105f0d9e06f6"; // DARVIZ Labs (Pilot)
+const INVOICE_ID = "fc5276a6-6b4f-4f64-9695-a5ff725bfd9c"; // INV-000001 (CoreFlow HQ, live, non-deleted)
+const WORKSPACE_ID = "5a705487-da8d-4628-9d4a-41cc9570df2e"; // CoreFlow HQ
 const ADMIN_USER_ID = "53298133-37ba-4420-b45a-9dbdf0cf4a01";
 const BUCKET = "payment-proofs";
+// Internal-only harness: caller must present the service role key in x-internal-key header.
+// Without this, requests are rejected before doing any work.
 
 type Step = { name: string; ok: boolean; detail?: any; error?: string };
 
@@ -20,6 +22,16 @@ Deno.serve(async (req) => {
   const url = Deno.env.get("SUPABASE_URL")!;
   const svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+  // Internal-only access guard. Caller must present the WORKER_SECRET in x-internal-key.
+  const internalKey = req.headers.get("x-internal-key") ?? "";
+  const expected = Deno.env.get("WORKER_SECRET") ?? "";
+  if (!expected || internalKey !== expected) {
+    return new Response(JSON.stringify({ error: "forbidden" }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const sb = createClient(url, svc);
   const anon = createClient(url, anonKey);
 
