@@ -22,6 +22,15 @@ Deno.serve(async (req) => {
   const url = Deno.env.get("SUPABASE_URL")!;
   const svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+  // Internal-only access guard. Reject everything that does not present the service role key.
+  const internalKey = req.headers.get("x-internal-key") ?? "";
+  if (internalKey !== svc) {
+    return new Response(JSON.stringify({ error: "forbidden" }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const sb = createClient(url, svc);
   const anon = createClient(url, anonKey);
 
