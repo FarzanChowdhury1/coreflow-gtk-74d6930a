@@ -14,6 +14,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      _proof_alert_smoke_log: {
+        Row: {
+          k: string
+          v: string | null
+        }
+        Insert: {
+          k: string
+          v?: string | null
+        }
+        Update: {
+          k?: string
+          v?: string | null
+        }
+        Relationships: []
+      }
       approval_actions: {
         Row: {
           acted_at: string
