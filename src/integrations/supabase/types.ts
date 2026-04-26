@@ -14,24 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      _diag_bell_smoke: {
-        Row: {
-          id: number
-          msg: string | null
-          ts: string | null
-        }
-        Insert: {
-          id?: number
-          msg?: string | null
-          ts?: string | null
-        }
-        Update: {
-          id?: number
-          msg?: string | null
-          ts?: string | null
-        }
-        Relationships: []
-      }
       approval_actions: {
         Row: {
           acted_at: string
