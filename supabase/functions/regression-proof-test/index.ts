@@ -23,13 +23,10 @@ Deno.serve(async (req) => {
   const svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-  // TEMPORARY: guard relaxed for one-shot internal Live notification smoke.
-  // Will be restored to WORKER_SECRET check immediately after smoke completes.
-  // The function only mutates a single hardcoded test invoice and self-cleans.
+  // Internal-only access guard. Caller must present the WORKER_SECRET in x-internal-key.
   const internalKey = req.headers.get("x-internal-key") ?? "";
   const expected = Deno.env.get("WORKER_SECRET") ?? "";
-  const ALLOW_ONESHOT = req.headers.get("x-oneshot-notify-smoke") === "1";
-  if (!ALLOW_ONESHOT && (!expected || internalKey !== expected)) {
+  if (!expected || internalKey !== expected) {
     return new Response(JSON.stringify({ error: "forbidden" }), {
       status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
