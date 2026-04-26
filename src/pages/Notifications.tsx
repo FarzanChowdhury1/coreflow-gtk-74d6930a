@@ -99,11 +99,13 @@ export default function Notifications() {
   const markAllRead = async () => {
     if (!user) return;
     await supabase.from("notifications").update({ is_read: true }).eq("user_id", user.id).eq("is_read", false);
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    // Only flip per-user notifications locally; system alerts remain as-is.
+    setNotifications((prev) => prev.map((n) => (n.source === "system_alert" ? n : { ...n, is_read: true })));
   };
 
   const handleClick = (notification: any) => {
-    if (!notification.is_read) markRead(notification.id);
+    // System alerts are read-only on this page — clicking just navigates.
+    if (!notification.is_read && notification.source !== "system_alert") markRead(notification.id);
     if (notification.link) navigate(notification.link);
   };
 
