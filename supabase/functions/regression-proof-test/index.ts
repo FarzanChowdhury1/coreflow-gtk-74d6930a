@@ -235,12 +235,54 @@ Deno.serve(async (req) => {
       if ((payments?.length ?? 0) !== 1) fail("phase6.payment_row_count_fail", `got ${payments?.length}`);
     }
 
+    // ---------- PHASE 7: payment-proof submission notification (system_alerts) ----------
+    const notify: any = { alerts_seen: [] };
+    {
+      const { data: alerts } = await sb.from("system_alerts")
+        .select("id, entity_id, alert_type, severity, title, body, sweep_key, dismissed_at, created_at")
+        .eq("workspace_id", WORKSPACE_ID)
+        .eq("alert_type", "payment_proof_pending")
+        .in("entity_id", created.submissionIds);
+      notify.alerts_seen = alerts ?? [];
+
+      // Accept-path submission was flipped to 'accepted' in PHASE 3
+      const acceptAlert = (alerts ?? []).find((a) => a.entity_id === acceptSub.id);
+      if (!acceptAlert) {
+        fail("phase7.accept_alert_missing", "no system_alerts row for accept submission");
+      } else {
+        pass("phase7.accept_alert_created", { id: acceptAlert.id, severity: acceptAlert.severity, title: acceptAlert.title, body: acceptAlert.body });
+        if (!acceptAlert.dismissed_at) fail("phase7.accept_alert_not_dismissed", `dismissed_at=null for alert ${acceptAlert.id}`);
+        else pass("phase7.accept_alert_dismissed", { dismissed_at: acceptAlert.dismissed_at });
+        // accept declared 500 vs balance 10000 -> mismatch -> warning
+        if (acceptAlert.severity !== "warning") fail("phase7.accept_severity", `expected warning, got ${acceptAlert.severity}`);
+      }
+
+      const rejectAlert = (alerts ?? []).find((a) => a.entity_id === rejectSub.id);
+      if (!rejectAlert) {
+        fail("phase7.reject_alert_missing", "no system_alerts row for reject submission");
+      } else {
+        pass("phase7.reject_alert_created", { id: rejectAlert.id, severity: rejectAlert.severity });
+        if (!rejectAlert.dismissed_at) fail("phase7.reject_alert_not_dismissed", `dismissed_at=null for alert ${rejectAlert.id}`);
+        else pass("phase7.reject_alert_dismissed", { dismissed_at: rejectAlert.dismissed_at });
+      }
+
+      // Cleanup: hard-delete the test alert rows so admin dashboards stay clean
+      const alertIds = (alerts ?? []).map((a) => a.id);
+      if (alertIds.length) {
+        const { error: delErr } = await sb.from("system_alerts").delete().in("id", alertIds);
+        notify.alerts_cleanup = delErr ? "ERR " + delErr.message : "deleted " + alertIds.length;
+      } else {
+        notify.alerts_cleanup = "nothing to delete";
+      }
+    }
+
     // ---------- DONE: build summary BEFORE cleanup so caller sees the proof ----------
     const blockers = steps.filter((s) => !s.ok);
     const summary = {
       target: { invoice_id: INVOICE_ID, workspace_id: WORKSPACE_ID, admin_user_id: ADMIN_USER_ID },
       original_invoice: originalInvoice,
       created_ids: created,
+      notify,
       steps,
       blockers,
       verdict: blockers.length === 0 ? "GREEN" : "BLOCKED",
