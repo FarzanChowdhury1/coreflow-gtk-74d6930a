@@ -3734,23 +3734,18 @@ export type Database = {
       fetch_prioritized_notifications: {
         Args: { _limit?: number; _user_id: string; _workspace_id?: string }
         Returns: {
-          body: string | null
+          body: string
           category: string
           created_at: string
           id: string
           is_read: boolean
-          link: string | null
+          link: string
           severity: string
+          source: string
           title: string
           user_id: string
           workspace_id: string
         }[]
-        SetofOptions: {
-          from: "*"
-          to: "notifications"
-          isOneToOne: false
-          isSetofReturn: true
-        }
       }
       generate_due_renewal_invoices: { Args: never; Returns: Json }
       generate_portal_token: {

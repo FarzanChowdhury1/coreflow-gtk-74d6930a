@@ -50,7 +50,9 @@ export function AppTopBar({ onMenuClick }: Props) {
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   const handleClick = async (n: any) => {
-    if (!n.is_read) {
+    // Only per-user notifications are mutable from the bell.
+    // System alerts are read-only here — clicking just navigates.
+    if (!n.is_read && n.source !== "system_alert") {
       await supabase.from("notifications").update({ is_read: true }).eq("id", n.id);
       setNotifications((prev) => prev.map((x) => x.id === n.id ? { ...x, is_read: true } : x));
     }
