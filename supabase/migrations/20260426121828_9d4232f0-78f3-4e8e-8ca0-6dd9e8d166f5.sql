@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS public._proof_alert_smoke_log;
