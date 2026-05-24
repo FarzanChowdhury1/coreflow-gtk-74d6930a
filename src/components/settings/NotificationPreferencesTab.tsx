@@ -143,38 +143,6 @@ export function NotificationPreferencesTab() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <CardTitle>Email Notifications</CardTitle>
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium text-muted-foreground">
-              Coming soon
-            </Badge>
-          </div>
-          <CardDescription>
-            Email delivery requires a configured email domain. These preferences will take effect once email sending is active.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {CATEGORIES.map((cat) => {
-            const pref = prefs.find((p) => p.category === cat.value)!;
-            return (
-              <div key={cat.value} className="flex items-center justify-between gap-4 py-2 opacity-70">
-                <div className="space-y-0.5 min-w-0">
-                  <Label className="text-sm font-medium">{cat.label}</Label>
-                  <p className="text-xs text-muted-foreground">{cat.description}</p>
-                </div>
-                <Switch
-                  checked={pref.email_enabled}
-                  onCheckedChange={(v) => togglePref(cat.value, "email_enabled", v)}
-                  disabled={saving === cat.value + "email_enabled"}
-                  aria-label={`Toggle email notifications for ${cat.label}`}
-                />
-              </div>
-            );
-          })}
-        </CardContent>
-      </Card>
     </div>
   );
 }
