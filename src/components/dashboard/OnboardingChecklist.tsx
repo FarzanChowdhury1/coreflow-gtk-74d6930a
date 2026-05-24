@@ -24,6 +24,16 @@ interface ChecklistItem {
 
 const items: ChecklistItem[] = [
   {
+    key: "identity",
+    label: "Complete business identity",
+    description: "Add your registered name, address, BIN, and bank/payment details so invoices and Mushak 6.3 receipts are valid.",
+    icon: Building2,
+    path: "/settings",
+    check: (c) => (c.identity_ready ?? 0) > 0,
+  },
+
+const items: ChecklistItem[] = [
+  {
     key: "company",
     label: "Add your first client company",
     description: "Add a client to your directory — you'll link leads, proposals, invoices, and projects to them.",
