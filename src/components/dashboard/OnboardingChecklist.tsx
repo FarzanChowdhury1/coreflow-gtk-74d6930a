@@ -31,8 +31,6 @@ const items: ChecklistItem[] = [
     path: "/settings",
     check: (c) => (c.identity_ready ?? 0) > 0,
   },
-
-const items: ChecklistItem[] = [
   {
     key: "company",
     label: "Add your first client company",
