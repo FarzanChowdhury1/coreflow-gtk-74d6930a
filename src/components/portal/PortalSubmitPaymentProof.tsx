@@ -90,7 +90,8 @@ export function PortalSubmitPaymentProof({
       onSubmitted?.();
       toast({ title: "Proof submitted", description: "Your service provider will reconcile it shortly." });
     } catch (e: any) {
-      toast({ title: "Submission failed", description: e.message, variant: "destructive" });
+      const msg = typeof e?.message === "string" && e.message.length < 200 ? e.message : "We could not submit your proof. Please check your file and try again.";
+      toast({ title: "Submission failed", description: msg, variant: "destructive" });
     } finally {
       setBusy(false);
     }
