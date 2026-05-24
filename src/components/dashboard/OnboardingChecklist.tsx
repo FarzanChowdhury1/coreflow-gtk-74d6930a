@@ -24,6 +24,14 @@ interface ChecklistItem {
 
 const items: ChecklistItem[] = [
   {
+    key: "identity",
+    label: "Complete business identity",
+    description: "Add your registered name, address, BIN, and bank/payment details so invoices and Mushak 6.3 receipts are valid.",
+    icon: Building2,
+    path: "/settings",
+    check: (c) => (c.identity_ready ?? 0) > 0,
+  },
+  {
     key: "company",
     label: "Add your first client company",
     description: "Add a client to your directory — you'll link leads, proposals, invoices, and projects to them.",
@@ -124,12 +132,24 @@ export function OnboardingChecklist({ userId }: { userId?: string }) {
       // Small delay to yield to LCP-critical queries
       await new Promise((r) => setTimeout(r, 1500));
       // Single RPC replaces 10 separate HEAD count queries
-      const { data, error } = await supabase.rpc("get_onboarding_counts", {
-        _workspace_id: workspaceId,
-      });
+      const [{ data, error }, identityRes] = await Promise.all([
+        supabase.rpc("get_onboarding_counts", { _workspace_id: workspaceId }),
+        supabase
+          .from("workspaces")
+          .select("doc_registered_name, doc_address, doc_bin, doc_bank_account_number, doc_payment_instructions")
+          .eq("id", workspaceId)
+          .maybeSingle(),
+      ]);
       if (error) throw error;
       const counts = data as Record<string, number>;
+      const ws = identityRes.data;
+      const identityReady = !!(
+        ws?.doc_registered_name?.trim() &&
+        ws?.doc_address?.trim() &&
+        (ws?.doc_bank_account_number?.trim() || ws?.doc_payment_instructions?.trim())
+      );
       return {
+        identity_ready: identityReady ? 1 : 0,
         companies: counts.companies ?? 0,
         contacts: counts.contacts ?? 0,
         leads: counts.leads ?? 0,
