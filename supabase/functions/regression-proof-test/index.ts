@@ -7,9 +7,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const INVOICE_ID = "fc5276a6-6b4f-4f64-9695-a5ff725bfd9c"; // INV-000001 (CoreFlow HQ, live, non-deleted)
-const WORKSPACE_ID = "5a705487-da8d-4628-9d4a-41cc9570df2e"; // CoreFlow HQ
-const ADMIN_USER_ID = "53298133-37ba-4420-b45a-9dbdf0cf4a01";
+// Sensitive target identifiers are injected via secrets, not committed to source.
+// Required secrets: REGRESSION_INVOICE_ID, REGRESSION_WORKSPACE_ID, REGRESSION_ADMIN_USER_ID
+const INVOICE_ID = Deno.env.get("REGRESSION_INVOICE_ID") ?? "";
+const WORKSPACE_ID = Deno.env.get("REGRESSION_WORKSPACE_ID") ?? "";
+const ADMIN_USER_ID = Deno.env.get("REGRESSION_ADMIN_USER_ID") ?? "";
 const BUCKET = "payment-proofs";
 // Internal-only harness: caller must present the service role key in x-internal-key header.
 // Without this, requests are rejected before doing any work.
@@ -31,6 +33,18 @@ Deno.serve(async (req) => {
       status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
+  if (!INVOICE_ID || !WORKSPACE_ID || !ADMIN_USER_ID) {
+    return new Response(JSON.stringify({
+      error: "regression target not configured",
+      missing: {
+        REGRESSION_INVOICE_ID: !INVOICE_ID,
+        REGRESSION_WORKSPACE_ID: !WORKSPACE_ID,
+        REGRESSION_ADMIN_USER_ID: !ADMIN_USER_ID,
+      },
+    }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
 
   const sb = createClient(url, svc);
   const anon = createClient(url, anonKey);
