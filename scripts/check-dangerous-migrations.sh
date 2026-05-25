@@ -70,7 +70,6 @@ for f in "$MIG_DIR"/*.sql; do
   # 4. DROP TRIGGER trg_audit_workspaces + tenant DELETE in same file
   if echo "$body" | grep -E -iq "DROP[[:space:]]+TRIGGER[[:space:]]+IF[[:space:]]+EXISTS[[:space:]]+trg_audit_workspaces"; then
     if echo "$body" | grep -E -iq "DELETE[[:space:]]+FROM[[:space:]]+(public\\.)?(workspaces|audit_logs)"; then
-      # Allow if all such DELETEs are bound to a local variable
       del_lines="$(echo "$body" | grep -E -i "DELETE[[:space:]]+FROM[[:space:]]+(public\\.)?(workspaces|audit_logs)")"
       bad="$(echo "$del_lines" | grep -E -v "(_ws|v_ws|v_[a-zA-Z_]+)" || true)"
       if [ -n "$bad" ]; then
@@ -85,6 +84,26 @@ for f in "$MIG_DIR"/*.sql; do
     bad="$(echo "$audit_dels" | grep -E -v "(_ws|v_ws|v_[a-zA-Z_]+|fa-exact-path-|LIKE[[:space:]]+')" || true)"
     if [ -n "$bad" ]; then
       reasons+=("DELETE FROM audit_logs without local-var/test-prefix scoping")
+    fi
+  fi
+
+  # 6. DELETE FROM auth.users — never allowed in committed migrations
+  if echo "$body" | grep -E -iq "DELETE[[:space:]]+FROM[[:space:]]+auth\\.users"; then
+    reasons+=("DELETE FROM auth.users in a committed migration")
+  fi
+
+  # 7. Workspace deletion by non-unique name (e.g. WHERE name = 'lr-verify' / LIKE ...)
+  if echo "$body" | grep -E -iq "FROM[[:space:]]+(public\\.)?workspaces[[:space:]]+WHERE[[:space:]]+name[[:space:]]*(=|LIKE)"; then
+    reasons+=("workspace deletion/selection by non-unique name")
+  fi
+  if echo "$body" | grep -E -iq "(^|[^a-zA-Z_])lr-verify"; then
+    reasons+=("hard-coded test workspace name 'lr-verify' present")
+  fi
+
+  # 8. session_replication_role = 'replica' co-located with tenant DELETE
+  if echo "$body" | grep -E -iq "session_replication_role[[:space:]]*=*[[:space:]]*'replica'"; then
+    if echo "$body" | grep -E -iq "DELETE[[:space:]]+FROM[[:space:]]+(public\\.)?(workspaces|audit_logs|workspace_memberships|invoices|payments|expenses)"; then
+      reasons+=("session_replication_role='replica' around tenant DELETE")
     fi
   fi
 
