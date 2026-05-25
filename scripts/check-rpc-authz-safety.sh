@@ -46,12 +46,11 @@ for idx in "${!FILES[@]}"; do
   fi
 
   # 3) SECURITY DEFINER fn w/ _user_id arg, missing auth.uid() guard.
-  #    Narrow to functions that RETURN TABLE / SETOF (data-returning), not
-  #    boolean RLS helpers like has_workspace_role(_user_id, ...).
+  #    Narrow to functions that actually SELECT user-owned rows.
   if echo "$body" | grep -E -iq "SECURITY[[:space:]]+DEFINER" \
      && echo "$body" | grep -E -iq "_user_id[[:space:]]+uuid" \
-     && echo "$body" | grep -E -iq "RETURNS[[:space:]]+(TABLE|SETOF)" \
-     && echo "$body" | grep -E -iq "(public\.)?(notifications|messages|chats|notification_preferences)"; then
+     && echo "$body" | grep -E -iq "RETURNS[[:space:]]+TABLE" \
+     && echo "$body" | grep -E -iq "FROM[[:space:]]+(public\.)?(notifications|messages|chats|notification_preferences)"; then
     if ! echo "$body" | grep -E -q "_user_id[[:space:]]*=[[:space:]]*auth\.uid\(\)" \
        && ! echo "$body" | grep -E -q "auth\.uid\(\)[[:space:]]*=[[:space:]]*_user_id"; then
       # Skip if the function defined here is later replaced/dropped (dead code).
