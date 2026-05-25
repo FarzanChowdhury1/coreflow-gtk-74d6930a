@@ -20,7 +20,7 @@
 #
 # Exit 0 on clean, 1 on any blocked pattern.
 
-set -uo pipefail
+set -o pipefail
 
 MIG_DIR="supabase/migrations"
 
