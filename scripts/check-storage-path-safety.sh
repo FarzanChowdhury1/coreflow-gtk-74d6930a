@@ -57,6 +57,26 @@ if [ -d supabase/migrations ]; then
   done
 fi
 
+# 3) Block authenticated SELECT/UPDATE storage policies on workspace-files
+#    that authorize using only files.storage_path + workspace membership.
+if [ -d supabase/migrations ]; then
+  for f in supabase/migrations/*.sql; do
+    [ -e "$f" ] || continue
+    while IFS= read -r stmt; do
+      [ -z "$stmt" ] && continue
+      echo "$stmt" | grep -E -iq "ON[[:space:]]+storage\.objects"  || continue
+      echo "$stmt" | grep -E -iq "FOR[[:space:]]+(SELECT|UPDATE)"  || continue
+      echo "$stmt" | grep -E -iq "'workspace-files'"               || continue
+      echo "$stmt" | grep -E -iq "TO[[:space:]]+authenticated"     || continue
+      if echo "$stmt" | grep -E -iq "public\.files" \
+         && echo "$stmt" | grep -E -iq "workspace_memberships"; then
+        BLOCKED+=("$f :: storage.objects SELECT/UPDATE on workspace-files via files.storage_path + workspace_memberships")
+        flagged=$((flagged + 1))
+      fi
+    done < <(awk 'BEGIN{IGNORECASE=1; RS=";"} /CREATE[[:space:]]+POLICY/{print $0";"}' "$f")
+  done
+fi
+
 echo "check-storage-path-safety: flagged=$flagged"
 if [ ${#BLOCKED[@]} -gt 0 ]; then
   echo ""

@@ -74,6 +74,20 @@ interface PortalSession {
   contact_id: string;
 }
 
+// Accept only http(s) URLs. Returns canonical form or null for unsafe/invalid.
+function normalizeHttpUrl(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  try {
+    const u = new URL(trimmed);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
 // --------------- Handler ---------------
 
 Deno.serve(async (req) => {
@@ -538,12 +552,26 @@ async function handleAction(
         return jsonResponse({ error: "Task cannot be submitted in its current state" }, 400, hdrs);
       }
 
+      // Sanitize response_link: must be http(s) or empty. Reject unsafe schemes.
+      const rawLink = (body.response_link as string | undefined) ?? "";
+      let safeLink: string | null = null;
+      if (typeof rawLink === "string" && rawLink.trim().length > 0) {
+        safeLink = normalizeHttpUrl(rawLink);
+        if (!safeLink) {
+          return jsonResponse(
+            { error: "Link must be a full http(s):// URL" },
+            400,
+            hdrs,
+          );
+        }
+      }
+
       const { error: updateErr } = await supabase
         .from("client_tasks")
         .update({
           status: "submitted",
           response_text: (body.response_text as string) || null,
-          response_link: (body.response_link as string) || null,
+          response_link: safeLink,
           response_notes: (body.response_notes as string) || null,
           submitted_at: new Date().toISOString(),
           revision_note: null,

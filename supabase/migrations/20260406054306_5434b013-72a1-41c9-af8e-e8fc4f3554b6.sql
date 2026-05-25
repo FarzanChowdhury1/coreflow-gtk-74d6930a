@@ -154,10 +154,9 @@ INSERT INTO public.workspace_followups (workspace_id, stage)
 SELECT id, 'new'::workspace_commercial_stage FROM public.workspaces
 ON CONFLICT (workspace_id) DO NOTHING;
 
--- 7. Insert platform admin for nazrafnc@gmail.com (idempotent)
-INSERT INTO public.platform_admins (user_id)
-SELECT id FROM auth.users WHERE email = 'nazrafnc@gmail.com'
-ON CONFLICT (user_id) DO NOTHING;
+-- 7. Neutralized: hard-coded platform-admin seed removed.
+--    Platform admin grants must go through an authenticated admin workflow.
+DO $$ BEGIN RAISE NOTICE 'No-op: hard-coded platform-admin seed neutralized.'; END $$;
 
 -- 8. Remove notifications from realtime (idempotent)
 DO $$

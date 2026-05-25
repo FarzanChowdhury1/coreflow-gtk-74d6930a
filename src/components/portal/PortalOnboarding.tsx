@@ -13,6 +13,7 @@ import {
   ChevronDown, ChevronUp, ExternalLink, LinkIcon, FileText,
 } from "lucide-react";
 import { format } from "date-fns";
+import { safeHttpUrl } from "@/lib/safe-url";
 
 interface Props {
   session: PortalSessionInfo;
@@ -220,16 +221,25 @@ function SubmissionContent({ task }: { task: OnboardingTask }) {
           <p className="text-sm text-foreground whitespace-pre-wrap">{task.response_text}</p>
         </div>
       )}
-      {hasLink && (
-        <div>
-          <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
-            <LinkIcon className="h-3 w-3" /> Attached Link
-          </p>
-          <a href={task.response_link!} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline inline-flex items-center gap-1 break-all">
-            <ExternalLink className="h-3 w-3 shrink-0" /> {task.response_link}
-          </a>
-        </div>
-      )}
+      {hasLink && (() => {
+        const safeLink = safeHttpUrl(task.response_link);
+        return (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+              <LinkIcon className="h-3 w-3" /> Attached Link
+            </p>
+            {safeLink ? (
+              <a href={safeLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline inline-flex items-center gap-1 break-all">
+                <ExternalLink className="h-3 w-3 shrink-0" /> {safeLink}
+              </a>
+            ) : (
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                Submitted link is not a safe https:// URL.
+              </p>
+            )}
+          </div>
+        );
+      })()}
       {hasNotes && (
         <div>
           <p className="text-xs font-medium text-muted-foreground mb-1">Additional Notes</p>
@@ -338,11 +348,14 @@ function TaskCard({
               <ExternalLink className="h-3.5 w-3.5" /> Link (optional)
             </label>
             <Input
+              type="url"
+              inputMode="url"
               value={formLink}
               onChange={(e) => onFormLinkChange(e.target.value)}
-              placeholder="Google Drive, Dropbox, or any URL…"
+              placeholder="https://drive.google.com/…"
               className="mt-1"
             />
+            <p className="text-xs text-muted-foreground mt-1">Use a full link starting with https://</p>
           </div>
 
           <div>

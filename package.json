@@ -14,7 +14,9 @@
     "check:migrations:safety": "bash scripts/check-dangerous-migrations.sh",
     "check:storage:safety": "bash scripts/check-storage-path-safety.sh",
     "check:worker-rpcs:safety": "bash scripts/check-public-worker-rpcs.sh",
-    "check:security:safety": "bash scripts/check-dangerous-migrations.sh && bash scripts/check-storage-path-safety.sh && bash scripts/check-public-worker-rpcs.sh"
+    "check:rpc-authz:safety": "bash scripts/check-rpc-authz-safety.sh",
+    "check:xss:safety": "bash scripts/check-xss-url-safety.sh",
+    "check:security:safety": "bash scripts/check-dangerous-migrations.sh && bash scripts/check-storage-path-safety.sh && bash scripts/check-public-worker-rpcs.sh && bash scripts/check-rpc-authz-safety.sh && bash scripts/check-xss-url-safety.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
