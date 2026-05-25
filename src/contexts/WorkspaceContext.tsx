@@ -154,9 +154,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         const workspaceIds = membershipData.map((m) => m.workspace_id);
         const { data: workspaceData } = await supabase
           .from("workspaces")
-          .select("*")
+          .select(WORKSPACE_MEMBER_COLUMNS)
           .in("id", workspaceIds)
           .is("deleted_at", null);
+
 
         if (cancelled) return;
 
