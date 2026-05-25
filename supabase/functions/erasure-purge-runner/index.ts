@@ -21,30 +21,52 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   });
 }
 
-function normalizeStoragePath(value: string | null | undefined): string | null {
+type NormalizedPath = { bucket: "workspace-files"; objectName: string };
+
+function normalizeStoragePath(value: string | null | undefined): NormalizedPath | null {
   if (!value) return null;
 
   const trimmed = value.trim();
   if (!trimmed) return null;
+
+  let objectName: string | null = null;
 
   if (/^https?:\/\//i.test(trimmed)) {
     try {
       const url = new URL(trimmed);
       const match = url.pathname.match(/\/storage\/v1\/object\/(?:sign\/)?(?:public\/)?workspace-files\/(.+)$/);
       if (match?.[1]) {
-        return decodeURIComponent(match[1]);
+        objectName = decodeURIComponent(match[1]);
       }
     } catch {
       return null;
     }
+  } else if (trimmed.startsWith("workspace-files/")) {
+    objectName = trimmed.slice("workspace-files/".length);
+  } else {
+    objectName = trimmed;
+  }
+
+  if (!objectName) return null;
+
+  // Reject traversal / absolute / empty / no-slash names.
+  if (
+    objectName.startsWith("/") ||
+    objectName.includes("..") ||
+    objectName.includes("%2e%2e") ||
+    objectName.includes("%2E%2E") ||
+    !objectName.includes("/")
+  ) {
     return null;
   }
 
-  if (trimmed.startsWith("workspace-files/")) {
-    return trimmed.slice("workspace-files/".length);
-  }
+  return { bucket: "workspace-files", objectName };
+}
 
-  return trimmed;
+// SECURITY: only allow deletion of objects whose path begins with the
+// workspace UUID prefix. Service-role bypasses RLS, so callers MUST gate here.
+function isPathOwnedByWorkspace(p: NormalizedPath, workspaceId: string): boolean {
+  return p.objectName.startsWith(`${workspaceId}/`);
 }
 
 function appendNote(existing: string | null, addition: string) {
@@ -175,22 +197,38 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: false, error: "Workspace must be deactivated before final purge" }, 409);
   }
 
-  const storagePaths = Array.from(
-    new Set(
-      [
-        ...(fileRows ?? []).map((row) => normalizeStoragePath(row.storage_path)),
-        normalizeStoragePath(workspace.portal_logo_storage_path),
-        ...((paymentRows ?? []).map((row) => normalizeStoragePath(row.proof_url))),
-      ].filter((value): value is string => Boolean(value)),
-    ),
-  );
+  const rawCandidates: NormalizedPath[] = [
+    ...(fileRows ?? []).map((row) => normalizeStoragePath(row.storage_path)),
+    normalizeStoragePath(workspace.portal_logo_storage_path),
+    ...((paymentRows ?? []).map((row) => normalizeStoragePath(row.proof_url))),
+  ].filter((value): value is NormalizedPath => value !== null);
+
+  // SECURITY: dedupe AND enforce that every object lives under this workspace's
+  // UUID prefix. Service role bypasses RLS, so this is the only safety net.
+  const seen = new Set<string>();
+  const storagePaths: NormalizedPath[] = [];
+  const skippedUnsafePaths: string[] = [];
+  for (const candidate of rawCandidates) {
+    const key = `${candidate.bucket}/${candidate.objectName}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (!isPathOwnedByWorkspace(candidate, workspaceId)) {
+      skippedUnsafePaths.push(key);
+      continue;
+    }
+    storagePaths.push(candidate);
+  }
 
   await admin
     .from("data_erasure_requests")
     .update({
       status: "purging_storage",
       updated_at: new Date().toISOString(),
-      notes: appendNote(erasureRequest.notes, `storage_cleanup_started:${storagePaths.length}`),
+      notes: appendNote(
+        erasureRequest.notes,
+        `storage_cleanup_started:${storagePaths.length}` +
+          (skippedUnsafePaths.length ? `;skipped_unsafe:${skippedUnsafePaths.length}` : ""),
+      ),
     })
     .eq("id", requestId)
     .eq("workspace_id", workspaceId);
@@ -198,15 +236,17 @@ Deno.serve(async (req) => {
   await insertAuditLog(admin, workspaceId, requestId, "erasure_storage_cleanup_started", userId, {
     stage: "purging_storage",
     storage_reference_count: storagePaths.length,
+    skipped_unsafe_count: skippedUnsafePaths.length,
+    skipped_unsafe_paths: skippedUnsafePaths,
   });
 
   const failedPaths: string[] = [];
   let storageDeleted = 0;
 
-  for (const storagePath of storagePaths) {
-    const { error } = await admin.storage.from("workspace-files").remove([storagePath]);
+  for (const candidate of storagePaths) {
+    const { error } = await admin.storage.from(candidate.bucket).remove([candidate.objectName]);
     if (error) {
-      failedPaths.push(storagePath);
+      failedPaths.push(candidate.objectName);
       continue;
     }
     storageDeleted += 1;

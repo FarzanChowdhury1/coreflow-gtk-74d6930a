@@ -11,7 +11,10 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check:migrations:safety": "bash scripts/check-dangerous-migrations.sh"
+    "check:migrations:safety": "bash scripts/check-dangerous-migrations.sh",
+    "check:storage:safety": "bash scripts/check-storage-path-safety.sh",
+    "check:worker-rpcs:safety": "bash scripts/check-public-worker-rpcs.sh",
+    "check:security:safety": "bash scripts/check-dangerous-migrations.sh && bash scripts/check-storage-path-safety.sh && bash scripts/check-public-worker-rpcs.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
