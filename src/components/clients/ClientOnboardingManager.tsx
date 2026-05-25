@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { safeHttpUrl } from "@/lib/safe-url";
 
 interface Props {
   companyId: string;
