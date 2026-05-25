@@ -107,6 +107,23 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
+  // SECURITY: portal sessions are stateless; verify the parent workspace is
+  // still active on every request so deactivation immediately revokes access.
+  try {
+    const { data: ws } = await supabase
+      .from("workspaces")
+      .select("id, deleted_at")
+      .eq("id", sess.workspace_id)
+      .maybeSingle();
+    if (!ws || (ws as { deleted_at: string | null }).deleted_at) {
+      return jsonResponse({ error: "This client portal is no longer available." }, 403, hdrs);
+    }
+  } catch (_err) {
+    return jsonResponse({ error: "Internal error" }, 500, hdrs);
+  }
+
+
+
   try {
     const body = await req.json();
 

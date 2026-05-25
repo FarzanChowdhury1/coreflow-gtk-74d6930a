@@ -21,30 +21,52 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   });
 }
 
-function normalizeStoragePath(value: string | null | undefined): string | null {
+type NormalizedPath = { bucket: "workspace-files"; objectName: string };
+
+function normalizeStoragePath(value: string | null | undefined): NormalizedPath | null {
   if (!value) return null;
 
   const trimmed = value.trim();
   if (!trimmed) return null;
+
+  let objectName: string | null = null;
 
   if (/^https?:\/\//i.test(trimmed)) {
     try {
       const url = new URL(trimmed);
       const match = url.pathname.match(/\/storage\/v1\/object\/(?:sign\/)?(?:public\/)?workspace-files\/(.+)$/);
       if (match?.[1]) {
-        return decodeURIComponent(match[1]);
+        objectName = decodeURIComponent(match[1]);
       }
     } catch {
       return null;
     }
+  } else if (trimmed.startsWith("workspace-files/")) {
+    objectName = trimmed.slice("workspace-files/".length);
+  } else {
+    objectName = trimmed;
+  }
+
+  if (!objectName) return null;
+
+  // Reject traversal / absolute / empty / no-slash names.
+  if (
+    objectName.startsWith("/") ||
+    objectName.includes("..") ||
+    objectName.includes("%2e%2e") ||
+    objectName.includes("%2E%2E") ||
+    !objectName.includes("/")
+  ) {
     return null;
   }
 
-  if (trimmed.startsWith("workspace-files/")) {
-    return trimmed.slice("workspace-files/".length);
-  }
+  return { bucket: "workspace-files", objectName };
+}
 
-  return trimmed;
+// SECURITY: only allow deletion of objects whose path begins with the
+// workspace UUID prefix. Service-role bypasses RLS, so callers MUST gate here.
+function isPathOwnedByWorkspace(p: NormalizedPath, workspaceId: string): boolean {
+  return p.objectName.startsWith(`${workspaceId}/`);
 }
 
 function appendNote(existing: string | null, addition: string) {
