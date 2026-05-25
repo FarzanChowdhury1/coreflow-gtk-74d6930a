@@ -57,6 +57,30 @@ if [ -d supabase/migrations ]; then
   done
 fi
 
+# 3) Block authenticated SELECT/UPDATE storage policies on workspace-files
+#    that authorize using only files.storage_path + workspace membership.
+#    These bypass the file-gateway owner-type checks. DROP POLICY lines are
+#    safe; only active CREATE POLICY blocks are flagged.
+if [ -d supabase/migrations ]; then
+  for f in supabase/migrations/*.sql; do
+    [ -e "$f" ] || continue
+    # Extract each CREATE POLICY ... ; statement and inspect it.
+    awk 'BEGIN{IGNORECASE=1; RS=";"} /CREATE[[:space:]]+POLICY/{print $0";"}' "$f" \
+      | while IFS= read -r stmt; do
+          [ -z "$stmt" ] && continue
+          if ! echo "$stmt" | grep -E -iq "ON[[:space:]]+storage\.objects"; then continue; fi
+          if ! echo "$stmt" | grep -E -iq "(FOR[[:space:]]+(SELECT|UPDATE))"; then continue; fi
+          if ! echo "$stmt" | grep -E -iq "'workspace-files'"; then continue; fi
+          if ! echo "$stmt" | grep -E -iq "TO[[:space:]]+authenticated"; then continue; fi
+          if echo "$stmt" | grep -E -iq "public\.files" \
+             && echo "$stmt" | grep -E -iq "workspace_memberships"; then
+            BLOCKED+=("$f :: storage.objects SELECT/UPDATE on workspace-files via files.storage_path + workspace_memberships")
+            flagged=$((flagged + 1))
+          fi
+        done
+  done
+fi
+
 echo "check-storage-path-safety: flagged=$flagged"
 if [ ${#BLOCKED[@]} -gt 0 ]; then
   echo ""
@@ -66,7 +90,3 @@ if [ ${#BLOCKED[@]} -gt 0 ]; then
 fi
 echo "OK — storage path handling looks bound to workspace prefixes."
 exit 0
-
-# Re-run with extra check appended below — implemented inline:
-# 3) Block authenticated SELECT/UPDATE policies on workspace-files that
-#    rely solely on files.storage_path + workspace_memberships.
