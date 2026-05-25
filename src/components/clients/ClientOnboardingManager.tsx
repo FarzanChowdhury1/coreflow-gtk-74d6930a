@@ -427,14 +427,23 @@ export function ClientOnboardingManager({ companyId, companyName, open, onOpenCh
                     <p className="text-sm text-foreground whitespace-pre-wrap">{reviewTask.response_text}</p>
                   </div>
                 )}
-                {reviewTask.response_link && (
-                  <div className="rounded-md border bg-muted/50 p-3">
-                    <p className="text-xs font-medium text-muted-foreground mb-1">Attached Link</p>
-                    <a href={reviewTask.response_link} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline flex items-center gap-1 break-all">
-                      <ExternalLink className="h-3.5 w-3.5 shrink-0" /> {reviewTask.response_link}
-                    </a>
-                  </div>
-                )}
+                {reviewTask.response_link && (() => {
+                  const safeLink = safeHttpUrl(reviewTask.response_link);
+                  return (
+                    <div className="rounded-md border bg-muted/50 p-3">
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Attached Link</p>
+                      {safeLink ? (
+                        <a href={safeLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline flex items-center gap-1 break-all">
+                          <ExternalLink className="h-3.5 w-3.5 shrink-0" /> {safeLink}
+                        </a>
+                      ) : (
+                        <p className="text-sm text-amber-700 dark:text-amber-300">
+                          Submitted link is not safe to open. Ask the client to resend it as a full https:// URL.
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
                 {reviewTask.response_notes && (
                   <div className="rounded-md border bg-muted/50 p-3">
                     <p className="text-xs font-medium text-muted-foreground mb-1">Additional Notes</p>
