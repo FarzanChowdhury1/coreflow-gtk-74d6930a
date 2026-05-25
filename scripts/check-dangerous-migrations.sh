@@ -115,10 +115,18 @@ for f in "$MIG_DIR"/*.sql; do
     fi
   fi
 
-  # 9. Mass UPDATE workspaces SET deleted_at with hard-coded UUID literal(s)
-  if echo "$body" | grep -E -iq "UPDATE[[:space:]]+(public\\.)?workspaces[[:space:]]+SET[[:space:]]+deleted_at"; then
-    if echo "$body" | grep -E -q "'$UUID_RE'"; then
-      reasons+=("UPDATE workspaces SET deleted_at with hard-coded workspace UUID(s)")
+  # 9. Hard-coded UUID literal on the same SQL statement as
+  #    UPDATE workspaces SET deleted_at. Allow self-scaffolded fixtures that
+  #    use a local PL/pgSQL variable (_ws / v_ws / v_<name>) as the target.
+  upd_stmts="$(awk 'BEGIN{IGNORECASE=1} /UPDATE[[:space:]]+(public\.)?workspaces[[:space:]]+SET[[:space:]]+deleted_at/{cap=1;buf=""} cap{buf=buf"\n"$0; if(/;/){print buf; cap=0; buf=""}}' "$f" | sed -E 's://.*$::; s/--.*$//')"
+  if [ -n "$upd_stmts" ]; then
+    bad="$(echo "$upd_stmts" | grep -E "'$UUID_RE'" || true)"
+    if [ -n "$bad" ]; then
+      # Allow if matched statements all use a local var (id=_ws etc.)
+      safe="$(echo "$upd_stmts" | grep -E -v "(_ws|v_ws|v_[a-zA-Z_]+)" | grep -E "'$UUID_RE'" || true)"
+      if [ -n "$safe" ]; then
+        reasons+=("UPDATE workspaces SET deleted_at with hard-coded workspace UUID(s)")
+      fi
     fi
   fi
 

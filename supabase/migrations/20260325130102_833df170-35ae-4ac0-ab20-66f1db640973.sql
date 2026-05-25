@@ -1,1 +1,6 @@
-UPDATE workspaces SET deleted_at = now() WHERE id = '3f9c83f5-ae12-4fa8-8fa0-105f0d9e06f6';
+-- SECURITY FIX: neutralized hard-coded workspace soft-delete by UUID literal.
+-- Replay must be non-destructive.
+DO $$
+BEGIN
+  RAISE NOTICE 'No-op: hard-coded pilot-workspace soft-delete neutralized.';
+END $$;
