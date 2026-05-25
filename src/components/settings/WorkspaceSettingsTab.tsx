@@ -86,26 +86,35 @@ export function WorkspaceSettingsTab() {
         currency: currentWorkspace.currency,
         timezone: currentWorkspace.timezone,
       });
-      // Load branding fields from workspace (cast to access new columns)
+      // Load non-sensitive branding fields from workspace context
       const ws = currentWorkspace as any;
       setPortalAccentColor(ws.portal_accent_color || "");
       setPortalSupportEmail(ws.portal_support_email || "");
       setPortalLogoPath(ws.portal_logo_storage_path || "");
-      // Document identity fields
-      setDocRegisteredName(ws.doc_registered_name || "");
-      setDocTradeName(ws.doc_trade_name || "");
-      setDocAddress(ws.doc_address || "");
-      setDocPhone(ws.doc_phone || "");
-      setDocEmail(ws.doc_email || "");
-      setDocBin(ws.doc_bin || "");
-      setDocLogoPath(ws.doc_logo_storage_path || "");
-      setDocBankAccountName(ws.doc_bank_account_name || "");
-      setDocBankAccountNumber(ws.doc_bank_account_number || "");
-      setDocBankName(ws.doc_bank_name || "");
-      setDocBankBranch(ws.doc_bank_branch || "");
-      setDocPaymentInstructions(ws.doc_payment_instructions || "");
+
+      // SECURITY: sensitive doc_* (banking / BIN / address) are admin-only
+      // and not exposed on the workspace context row. Fetch via RPC.
+      (async () => {
+        const { data } = await supabase
+          .rpc("get_workspace_doc_identity" as any, { _workspace_id: currentWorkspace.id });
+        const ident: any = Array.isArray(data) ? data[0] : data;
+        if (!ident) return;
+        setDocRegisteredName(ident.doc_registered_name || "");
+        setDocTradeName(ident.doc_trade_name || "");
+        setDocAddress(ident.doc_address || "");
+        setDocPhone(ident.doc_phone || "");
+        setDocEmail(ident.doc_email || "");
+        setDocBin(ident.doc_bin || "");
+        setDocLogoPath(ident.doc_logo_storage_path || "");
+        setDocBankAccountName(ident.doc_bank_account_name || "");
+        setDocBankAccountNumber(ident.doc_bank_account_number || "");
+        setDocBankName(ident.doc_bank_name || "");
+        setDocBankBranch(ident.doc_bank_branch || "");
+        setDocPaymentInstructions(ident.doc_payment_instructions || "");
+      })();
     }
   }, [currentWorkspace]);
+
 
   const onSubmit = async (values: WorkspaceFormValues) => {
     if (!currentWorkspace) return;

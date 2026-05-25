@@ -203,12 +203,15 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
       toast.error(mushakErr);
       return;
     }
-    // Preflight: BD Mushak 6.3 requires the workspace's own seller identity
+    // Preflight: BD Mushak 6.3 requires the workspace's own seller identity.
+    // Read via admin-only RPC (sensitive doc_* fields are not on the client workspace row).
     if (mushak.enabled) {
-      const ws: any = currentWorkspace;
-      const regName = (ws.doc_registered_name || "").trim();
-      const address = (ws.doc_address || "").trim();
-      const bin = (ws.doc_bin || "").trim();
+      const { data: identRows } = await supabase
+        .rpc("get_workspace_doc_identity" as any, { _workspace_id: currentWorkspace.id });
+      const ident: any = Array.isArray(identRows) ? identRows[0] : identRows;
+      const regName = (ident?.doc_registered_name || "").trim();
+      const address = (ident?.doc_address || "").trim();
+      const bin = (ident?.doc_bin || "").trim();
       if (!regName || !address || !BIN_REGEX.test(bin)) {
         toast.error(
           "Workspace seller identity (registered name, address, 13-char BIN) is required for Mushak 6.3. Set it in Settings → Workspace → Document Identity."
@@ -216,6 +219,7 @@ export function InvoiceDetail({ invoice, onBack, onUpdated }: Props) {
         return;
       }
     }
+
     setSaving(true);
     try {
       const { data, error } = await supabase.rpc("issue_invoice", {

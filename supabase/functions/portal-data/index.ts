@@ -753,7 +753,10 @@ async function handleAction(
       const ids = (invs || []).map((i: any) => i.id);
       if (ids.length === 0) return jsonResponse({ data: [] }, 200, hdrs);
 
-      q = q.in("invoice_id", invoiceId ? [invoiceId] : ids);
+      // SECURITY: never trust client-supplied invoiceId. Only narrow to it
+      // when it is part of this session's company-scoped invoice set.
+      const finalIds = invoiceId && ids.includes(invoiceId) ? [invoiceId] : ids;
+      q = q.in("invoice_id", finalIds);
       const { data } = await q;
       return jsonResponse({ data: data || [] }, 200, hdrs);
     }

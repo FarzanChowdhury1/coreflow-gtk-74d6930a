@@ -3787,6 +3787,23 @@ export type Database = {
       get_lender_readiness: { Args: { _workspace_id: string }; Returns: Json }
       get_onboarding_counts: { Args: { _workspace_id: string }; Returns: Json }
       get_runway_forecast: { Args: { _workspace_id: string }; Returns: Json }
+      get_workspace_doc_identity: {
+        Args: { _workspace_id: string }
+        Returns: {
+          doc_address: string
+          doc_bank_account_name: string
+          doc_bank_account_number: string
+          doc_bank_branch: string
+          doc_bank_name: string
+          doc_bin: string
+          doc_email: string
+          doc_logo_storage_path: string
+          doc_payment_instructions: string
+          doc_phone: string
+          doc_registered_name: string
+          doc_trade_name: string
+        }[]
+      }
       global_search: {
         Args: { _limit?: number; _term: string; _workspace_id: string }
         Returns: Json
@@ -4012,6 +4029,10 @@ export type Database = {
       workspace_billing_state: {
         Args: { _workspace_id: string }
         Returns: string
+      }
+      workspace_doc_identity_ready: {
+        Args: { _workspace_id: string }
+        Returns: boolean
       }
       workspace_effective_seat_count: {
         Args: { _workspace_id: string }

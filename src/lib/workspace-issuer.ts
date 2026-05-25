@@ -1,20 +1,21 @@
 /**
  * Helpers for assembling the workspace document-issuer identity used by
- * formal PDFs (proposals/invoices). Reads from public.workspaces.doc_*
- * columns and resolves the optional logo from the workspace-files bucket
- * into a data URL that jsPDF can embed.
+ * formal PDFs (proposals/invoices). The sensitive issuer fields (banking,
+ * BIN, registered address, contact info) are stored on `public.workspaces`
+ * but are admin-only via column-level GRANTs. They are read here via the
+ * SECURITY DEFINER `get_workspace_doc_identity(workspace_id)` RPC, which
+ * itself enforces `has_workspace_role(..., 'admin')`.
  *
- * All fields are optional — missing values are simply omitted by the
- * PDF engine. We never fabricate issuer data.
+ * Non-admin callers simply get an issuer with only the workspace display
+ * name — we never fabricate issuer data.
  */
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
 import type { PdfBankDetails } from "./pdf-export";
 
-type Workspace = Tables<"workspaces"> & {
-  // The doc_* columns may not yet exist in the generated types. Cast access.
-  [key: string]: any;
-};
+interface WorkspaceLike {
+  id?: string | null;
+  name?: string | null;
+}
 
 export interface ResolvedIssuerIdentity {
   workspaceName: string;
@@ -58,33 +59,41 @@ async function loadLogoDataUrl(storagePath: string): Promise<string | undefined>
 }
 
 export async function resolveWorkspaceIssuer(
-  workspace: Workspace | null | undefined
+  workspace: WorkspaceLike | null | undefined
 ): Promise<ResolvedIssuerIdentity> {
   const fallbackName = workspace?.name || "CoreFlow";
-  if (!workspace) {
+  if (!workspace?.id) {
     return { workspaceName: fallbackName };
   }
 
-  const logoPath = nonEmpty(workspace.doc_logo_storage_path);
+  // Admin-only RPC. Returns 0 rows for non-admins -> degrade gracefully.
+  const { data, error } = await supabase
+    .rpc("get_workspace_doc_identity" as any, { _workspace_id: workspace.id });
+  if (error || !data || (Array.isArray(data) && data.length === 0)) {
+    return { workspaceName: fallbackName };
+  }
+  const ident: any = Array.isArray(data) ? data[0] : data;
+
+  const logoPath = nonEmpty(ident.doc_logo_storage_path);
   const issuerLogoDataUrl = logoPath ? await loadLogoDataUrl(logoPath) : undefined;
 
   const bank: PdfBankDetails = {
-    account_name: nonEmpty(workspace.doc_bank_account_name),
-    account_number: nonEmpty(workspace.doc_bank_account_number),
-    bank_name: nonEmpty(workspace.doc_bank_name),
-    branch: nonEmpty(workspace.doc_bank_branch),
-    instructions: nonEmpty(workspace.doc_payment_instructions),
+    account_name: nonEmpty(ident.doc_bank_account_name),
+    account_number: nonEmpty(ident.doc_bank_account_number),
+    bank_name: nonEmpty(ident.doc_bank_name),
+    branch: nonEmpty(ident.doc_bank_branch),
+    instructions: nonEmpty(ident.doc_payment_instructions),
   };
   const hasBank = Object.values(bank).some(Boolean);
 
   return {
     workspaceName: fallbackName,
-    issuerRegisteredName: nonEmpty(workspace.doc_registered_name),
-    issuerTradeName: nonEmpty(workspace.doc_trade_name),
-    workspaceAddress: nonEmpty(workspace.doc_address),
-    workspacePhone: nonEmpty(workspace.doc_phone),
-    workspaceEmail: nonEmpty(workspace.doc_email) || nonEmpty(workspace.portal_support_email),
-    workspaceBin: nonEmpty(workspace.doc_bin),
+    issuerRegisteredName: nonEmpty(ident.doc_registered_name),
+    issuerTradeName: nonEmpty(ident.doc_trade_name),
+    workspaceAddress: nonEmpty(ident.doc_address),
+    workspacePhone: nonEmpty(ident.doc_phone),
+    workspaceEmail: nonEmpty(ident.doc_email),
+    workspaceBin: nonEmpty(ident.doc_bin),
     issuerLogoDataUrl,
     bank: hasBank ? bank : undefined,
   };

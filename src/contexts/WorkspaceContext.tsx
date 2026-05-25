@@ -3,8 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
 
-type Workspace = Tables<"workspaces">;
+// Workspace as exposed to non-admin members. The sensitive doc_* / banking
+// columns are admin-only (read via the get_workspace_doc_identity RPC) and
+// are intentionally optional/absent on this client-side type.
+type Workspace = Partial<Tables<"workspaces">> & Pick<Tables<"workspaces">, "id" | "name">;
 type Membership = Tables<"workspace_memberships">;
+
 
 interface WorkspaceContextType {
   workspaces: Workspace[];
@@ -45,8 +49,15 @@ let cachedForUserId: string | null = null;
 let cacheTimestamp = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+// SECURITY: explicit non-sensitive column list. The doc_* (banking / BIN /
+// business identity) columns on workspaces are admin-only and are NEVER
+// selected here — admins fetch them via the get_workspace_doc_identity RPC.
+const WORKSPACE_MEMBER_COLUMNS =
+  "id,name,timezone,currency,created_at,updated_at,deleted_at,plan,trial_ends_at,trial_started_at,grace_ends_at,renewal_grace_ends_at,seat_limit,billing_owner_id,billing_cycle,next_renewal_at,pending_downgrade_to,grace_reminders_sent,last_grace_reminder_at,offboarding_export_used_at,offboarding_export_claimed_by,portal_accent_color,portal_logo_storage_path,portal_support_email,is_synthetic";
+
 // In-flight promise dedup — prevents duplicate concurrent fetches
 let inflightPromise: Promise<void> | null = null;
+
 
 // Pending resolvers for awaitable refreshWorkspaces calls
 let pendingRefreshResolvers: Array<() => void> = [];
@@ -147,9 +158,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         const workspaceIds = membershipData.map((m) => m.workspace_id);
         const { data: workspaceData } = await supabase
           .from("workspaces")
-          .select("*")
+          .select(WORKSPACE_MEMBER_COLUMNS)
           .in("id", workspaceIds)
           .is("deleted_at", null);
+
 
         if (cancelled) return;
 
