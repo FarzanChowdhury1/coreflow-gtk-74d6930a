@@ -13,6 +13,7 @@ import {
   ChevronDown, ChevronUp, ExternalLink, LinkIcon, FileText,
 } from "lucide-react";
 import { format } from "date-fns";
+import { safeHttpUrl } from "@/lib/safe-url";
 
 interface Props {
   session: PortalSessionInfo;
