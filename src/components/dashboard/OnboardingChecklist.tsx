@@ -131,23 +131,17 @@ export function OnboardingChecklist({ userId }: { userId?: string }) {
       if (!workspaceId) return {};
       // Small delay to yield to LCP-critical queries
       await new Promise((r) => setTimeout(r, 1500));
-      // Single RPC replaces 10 separate HEAD count queries
+      // Single RPC replaces 10 separate HEAD count queries.
+      // Identity readiness via admin-only SECURITY DEFINER RPC (sensitive
+      // doc_* fields are not directly selectable from `workspaces`).
       const [{ data, error }, identityRes] = await Promise.all([
         supabase.rpc("get_onboarding_counts", { _workspace_id: workspaceId }),
-        supabase
-          .from("workspaces")
-          .select("doc_registered_name, doc_address, doc_bin, doc_bank_account_number, doc_payment_instructions")
-          .eq("id", workspaceId)
-          .maybeSingle(),
+        supabase.rpc("workspace_doc_identity_ready" as any, { _workspace_id: workspaceId }),
       ]);
       if (error) throw error;
       const counts = data as Record<string, number>;
-      const ws = identityRes.data;
-      const identityReady = !!(
-        ws?.doc_registered_name?.trim() &&
-        ws?.doc_address?.trim() &&
-        (ws?.doc_bank_account_number?.trim() || ws?.doc_payment_instructions?.trim())
-      );
+      const identityReady = identityRes.data === true;
+
       return {
         identity_ready: identityReady ? 1 : 0,
         companies: counts.companies ?? 0,
