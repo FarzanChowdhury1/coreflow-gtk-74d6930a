@@ -197,22 +197,38 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: false, error: "Workspace must be deactivated before final purge" }, 409);
   }
 
-  const storagePaths = Array.from(
-    new Set(
-      [
-        ...(fileRows ?? []).map((row) => normalizeStoragePath(row.storage_path)),
-        normalizeStoragePath(workspace.portal_logo_storage_path),
-        ...((paymentRows ?? []).map((row) => normalizeStoragePath(row.proof_url))),
-      ].filter((value): value is string => Boolean(value)),
-    ),
-  );
+  const rawCandidates: NormalizedPath[] = [
+    ...(fileRows ?? []).map((row) => normalizeStoragePath(row.storage_path)),
+    normalizeStoragePath(workspace.portal_logo_storage_path),
+    ...((paymentRows ?? []).map((row) => normalizeStoragePath(row.proof_url))),
+  ].filter((value): value is NormalizedPath => value !== null);
+
+  // SECURITY: dedupe AND enforce that every object lives under this workspace's
+  // UUID prefix. Service role bypasses RLS, so this is the only safety net.
+  const seen = new Set<string>();
+  const storagePaths: NormalizedPath[] = [];
+  const skippedUnsafePaths: string[] = [];
+  for (const candidate of rawCandidates) {
+    const key = `${candidate.bucket}/${candidate.objectName}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (!isPathOwnedByWorkspace(candidate, workspaceId)) {
+      skippedUnsafePaths.push(key);
+      continue;
+    }
+    storagePaths.push(candidate);
+  }
 
   await admin
     .from("data_erasure_requests")
     .update({
       status: "purging_storage",
       updated_at: new Date().toISOString(),
-      notes: appendNote(erasureRequest.notes, `storage_cleanup_started:${storagePaths.length}`),
+      notes: appendNote(
+        erasureRequest.notes,
+        `storage_cleanup_started:${storagePaths.length}` +
+          (skippedUnsafePaths.length ? `;skipped_unsafe:${skippedUnsafePaths.length}` : ""),
+      ),
     })
     .eq("id", requestId)
     .eq("workspace_id", workspaceId);
@@ -220,15 +236,17 @@ Deno.serve(async (req) => {
   await insertAuditLog(admin, workspaceId, requestId, "erasure_storage_cleanup_started", userId, {
     stage: "purging_storage",
     storage_reference_count: storagePaths.length,
+    skipped_unsafe_count: skippedUnsafePaths.length,
+    skipped_unsafe_paths: skippedUnsafePaths,
   });
 
   const failedPaths: string[] = [];
   let storageDeleted = 0;
 
-  for (const storagePath of storagePaths) {
-    const { error } = await admin.storage.from("workspace-files").remove([storagePath]);
+  for (const candidate of storagePaths) {
+    const { error } = await admin.storage.from(candidate.bucket).remove([candidate.objectName]);
     if (error) {
-      failedPaths.push(storagePath);
+      failedPaths.push(candidate.objectName);
       continue;
     }
     storageDeleted += 1;
