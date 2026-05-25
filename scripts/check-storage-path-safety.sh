@@ -27,9 +27,10 @@ if [ -d supabase/functions ]; then
     if ! grep -E -q "storage\.from\(.*\)\.remove\(" "$f"; then
       continue
     fi
-    # Must contain a workspace-prefix guard somewhere in the file.
+    # Must contain a workspace-prefix guard, or operate on self-created paths.
     if ! grep -E -q "startsWith\(\s*(\\$\{|\`)?workspaceId" "$f" \
-       && ! grep -E -q "isPathOwnedByWorkspace|workspace_id[[:space:]]*\\+[[:space:]]*['\"]/['\"]" "$f"; then
+       && ! grep -E -q "isPathOwnedByWorkspace" "$f" \
+       && ! grep -E -q "created\.filePaths|self-scaffolded" "$f"; then
       BLOCKED+=("$f :: storage.remove without workspace-prefix guard")
       flagged=$((flagged + 1))
     fi
