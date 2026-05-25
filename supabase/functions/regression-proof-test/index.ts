@@ -34,6 +34,18 @@ Deno.serve(async (req) => {
     });
   }
 
+  if (!INVOICE_ID || !WORKSPACE_ID || !ADMIN_USER_ID) {
+    return new Response(JSON.stringify({
+      error: "regression target not configured",
+      missing: {
+        REGRESSION_INVOICE_ID: !INVOICE_ID,
+        REGRESSION_WORKSPACE_ID: !WORKSPACE_ID,
+        REGRESSION_ADMIN_USER_ID: !ADMIN_USER_ID,
+      },
+    }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
+
   const sb = createClient(url, svc);
   const anon = createClient(url, anonKey);
 
