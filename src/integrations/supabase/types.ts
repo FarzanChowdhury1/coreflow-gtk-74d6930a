@@ -3953,6 +3953,7 @@ export type Database = {
         Args: { _reason: string; _submission_id: string }
         Returns: undefined
       }
+      require_internal_worker: { Args: { _job: string }; Returns: undefined }
       resolve_invite_by_token: { Args: { _token: string }; Returns: Json }
       retention_days_notification: {
         Args: { _severity: string }
