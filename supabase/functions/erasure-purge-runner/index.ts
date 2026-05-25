@@ -21,30 +21,48 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   });
 }
 
-type NormalizedPath = { bucket: "workspace-files"; objectName: string };
+type StorageBucket = "workspace-files" | "payment-proofs";
+type NormalizedPath = { bucket: StorageBucket; objectName: string };
 
-function normalizeStoragePath(value: string | null | undefined): NormalizedPath | null {
+const KNOWN_BUCKETS: readonly StorageBucket[] = ["workspace-files", "payment-proofs"];
+
+function normalizeStoragePath(
+  value: string | null | undefined,
+  defaultBucket: StorageBucket,
+): NormalizedPath | null {
   if (!value) return null;
 
   const trimmed = value.trim();
   if (!trimmed) return null;
 
+  let bucket: StorageBucket = defaultBucket;
   let objectName: string | null = null;
 
   if (/^https?:\/\//i.test(trimmed)) {
     try {
       const url = new URL(trimmed);
-      const match = url.pathname.match(/\/storage\/v1\/object\/(?:sign\/)?(?:public\/)?workspace-files\/(.+)$/);
-      if (match?.[1]) {
-        objectName = decodeURIComponent(match[1]);
+      // Match either bucket explicitly; the bucket comes from the URL, not a default.
+      const match = url.pathname.match(
+        /\/storage\/v1\/object\/(?:sign\/)?(?:public\/)?(workspace-files|payment-proofs)\/(.+)$/,
+      );
+      if (match?.[1] && match?.[2]) {
+        bucket = match[1] as StorageBucket;
+        objectName = decodeURIComponent(match[2]);
       }
     } catch {
       return null;
     }
-  } else if (trimmed.startsWith("workspace-files/")) {
-    objectName = trimmed.slice("workspace-files/".length);
   } else {
-    objectName = trimmed;
+    // Bare path. Accept either "<bucket>/<obj>" prefix or fall back to defaultBucket.
+    let stripped = trimmed;
+    for (const b of KNOWN_BUCKETS) {
+      if (stripped.startsWith(`${b}/`)) {
+        bucket = b;
+        stripped = stripped.slice(b.length + 1);
+        break;
+      }
+    }
+    objectName = stripped;
   }
 
   if (!objectName) return null;
@@ -60,8 +78,9 @@ function normalizeStoragePath(value: string | null | undefined): NormalizedPath 
     return null;
   }
 
-  return { bucket: "workspace-files", objectName };
+  return { bucket, objectName };
 }
+
 
 // SECURITY: only allow deletion of objects whose path begins with the
 // workspace UUID prefix. Service-role bypasses RLS, so callers MUST gate here.
