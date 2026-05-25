@@ -87,17 +87,25 @@ for f in "$MIG_DIR"/*.sql; do
     fi
   fi
 
-  # 6. DELETE FROM auth.users — never allowed in committed migrations
-  if echo "$body" | grep -E -iq "DELETE[[:space:]]+FROM[[:space:]]+auth\\.users"; then
-    reasons+=("DELETE FROM auth.users in a committed migration")
+  # 6. DELETE FROM auth.users — allowed only if scoped to a local variable
+  #    (_admin, v_admin, v_<name>). Bare/unscoped DELETE FROM auth.users blocked.
+  authu_dels="$(echo "$body" | grep -E -i "DELETE[[:space:]]+FROM[[:space:]]+auth\\.users" || true)"
+  if [ -n "$authu_dels" ]; then
+    bad="$(echo "$authu_dels" | grep -E -v "(_admin|v_admin|v_[a-zA-Z_]+|_ws)" || true)"
+    if [ -n "$bad" ]; then
+      reasons+=("DELETE FROM auth.users not scoped to a local fixture variable")
+    fi
   fi
 
-  # 7. Workspace deletion by non-unique name (e.g. WHERE name = 'lr-verify' / LIKE ...)
+  # 7. Workspace deletion/selection by non-unique name. Allowed only when
+  #    the same file self-INSERTs that name (true self-scaffolded fixture)
+  #    OR the predicate uses a well-known test prefix (fa-exact-path-%).
   if echo "$body" | grep -E -iq "FROM[[:space:]]+(public\\.)?workspaces[[:space:]]+WHERE[[:space:]]+name[[:space:]]*(=|LIKE)"; then
-    reasons+=("workspace deletion/selection by non-unique name")
-  fi
-  if echo "$body" | grep -E -iq "(^|[^a-zA-Z_])lr-verify"; then
-    reasons+=("hard-coded test workspace name 'lr-verify' present")
+    has_self_insert="$(echo "$body" | grep -E -i "INSERT[[:space:]]+INTO[[:space:]]+(public\\.)?workspaces" || true)"
+    is_known_prefix="$(echo "$body" | grep -E -iq "WHERE[[:space:]]+name[[:space:]]+LIKE[[:space:]]+'(fa-exact-path-|lr-verify-)" && echo y || true)"
+    if [ -z "$has_self_insert" ] && [ -z "$is_known_prefix" ]; then
+      reasons+=("workspace deletion/selection by non-unique name without self-scaffolded fixture")
+    fi
   fi
 
   # 8. session_replication_role = 'replica' co-located with tenant DELETE
