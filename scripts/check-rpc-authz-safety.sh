@@ -14,8 +14,23 @@ flagged=0
 MIG_DIR="supabase/migrations"
 [ -d "$MIG_DIR" ] || { echo "OK — no migrations dir"; exit 0; }
 
-for f in "$MIG_DIR"/*.sql; do
-  [ -e "$f" ] || continue
+# Build a list of files (lexicographically sorted = chronological by name).
+mapfile -t FILES < <(ls "$MIG_DIR"/*.sql 2>/dev/null | sort)
+
+# Helper: return 0 if function $1 is redefined or dropped in any migration
+# AFTER index $2 in FILES (i.e. superseded — older definitions are dead code).
+function is_superseded() {
+  local fname="$1" idx="$2" i
+  for ((i=idx+1; i<${#FILES[@]}; i++)); do
+    if grep -E -iq "(CREATE[[:space:]]+OR[[:space:]]+REPLACE[[:space:]]+FUNCTION[[:space:]]+(public\\.)?${fname}\\b|DROP[[:space:]]+FUNCTION[[:space:]]+(IF[[:space:]]+EXISTS[[:space:]]+)?(public\\.)?${fname}\\b)" "${FILES[$i]}"; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+for idx in "${!FILES[@]}"; do
+  f="${FILES[$idx]}"
   body="$(sed -E 's://.*$::; s/--.*$//' < "$f")"
 
   # 1) Hard-coded platform_admins INSERT.
@@ -24,20 +39,23 @@ for f in "$MIG_DIR"/*.sql; do
     flagged=$((flagged + 1))
   fi
 
-  # 2) auth.users WHERE email = '<literal>' (identity-specific seeds).
+  # 2) auth.users WHERE email = '<literal>'.
   if echo "$body" | grep -E -iq "auth\.users[^;]*WHERE[^;]*email[[:space:]]*=[[:space:]]*'[^']+@"; then
     BLOCKED+=("$f :: auth.users WHERE email = '<literal>' in migration")
     flagged=$((flagged + 1))
   fi
 
-  # 3) SECURITY DEFINER functions w/ _user_id arg, missing auth.uid() guard.
-  #    Heuristic: file declares SECURITY DEFINER + _user_id uuid arg and
-  #    references notifications / messages / chats — must compare to auth.uid().
+  # 3) SECURITY DEFINER fn w/ _user_id arg, missing auth.uid() guard.
   if echo "$body" | grep -E -iq "SECURITY[[:space:]]+DEFINER" \
      && echo "$body" | grep -E -iq "_user_id[[:space:]]+uuid" \
      && echo "$body" | grep -E -iq "(public\.)?(notifications|messages|chats|notification_preferences)"; then
     if ! echo "$body" | grep -E -q "_user_id[[:space:]]*=[[:space:]]*auth\.uid\(\)" \
        && ! echo "$body" | grep -E -q "auth\.uid\(\)[[:space:]]*=[[:space:]]*_user_id"; then
+      # Skip if the function defined here is later replaced/dropped (dead code).
+      fname="$(echo "$body" | grep -E -io "CREATE[[:space:]]+OR[[:space:]]+REPLACE[[:space:]]+FUNCTION[[:space:]]+(public\.)?[a-zA-Z_][a-zA-Z0-9_]*" | head -1 | awk '{print $NF}' | sed -E 's/^public\.//')"
+      if [ -n "$fname" ] && is_superseded "$fname" "$idx"; then
+        continue
+      fi
       BLOCKED+=("$f :: SECURITY DEFINER fn with _user_id and no auth.uid() guard")
       flagged=$((flagged + 1))
     fi
