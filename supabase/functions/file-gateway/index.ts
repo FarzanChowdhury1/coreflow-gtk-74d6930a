@@ -129,11 +129,14 @@ async function checkWorkspaceAccess(
   userId: string,
   workspaceId: string
 ): Promise<boolean> {
+  // SECURITY: also verify the workspace is not soft-deleted, mirroring the
+  // has_workspace_access() SQL helper used by RLS policies.
   const { data } = await supabase
     .from("workspace_memberships")
-    .select("id")
+    .select("id, workspaces!inner(deleted_at)")
     .eq("user_id", userId)
     .eq("workspace_id", workspaceId)
+    .is("workspaces.deleted_at", null)
     .limit(1)
     .maybeSingle();
   return !!data;
@@ -147,10 +150,11 @@ async function checkWorkspaceRole(
 ): Promise<boolean> {
   const { data } = await supabase
     .from("workspace_memberships")
-    .select("id")
+    .select("id, workspaces!inner(deleted_at)")
     .eq("user_id", userId)
     .eq("workspace_id", workspaceId)
     .eq("role", role)
+    .is("workspaces.deleted_at", null)
     .limit(1)
     .maybeSingle();
   return !!data;
