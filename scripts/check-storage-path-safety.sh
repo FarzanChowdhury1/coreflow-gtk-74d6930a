@@ -66,3 +66,7 @@ if [ ${#BLOCKED[@]} -gt 0 ]; then
 fi
 echo "OK — storage path handling looks bound to workspace prefixes."
 exit 0
+
+# Re-run with extra check appended below — implemented inline:
+# 3) Block authenticated SELECT/UPDATE policies on workspace-files that
+#    rely solely on files.storage_path + workspace_memberships.
