@@ -217,10 +217,11 @@ Deno.serve(async (req) => {
   }
 
   const rawCandidates: NormalizedPath[] = [
-    ...(fileRows ?? []).map((row) => normalizeStoragePath(row.storage_path)),
-    normalizeStoragePath(workspace.portal_logo_storage_path),
-    ...((paymentRows ?? []).map((row) => normalizeStoragePath(row.proof_url))),
+    ...(fileRows ?? []).map((row) => normalizeStoragePath(row.storage_path, "workspace-files")),
+    normalizeStoragePath(workspace.portal_logo_storage_path, "workspace-files"),
+    ...((paymentRows ?? []).map((row) => normalizeStoragePath(row.proof_url, "payment-proofs"))),
   ].filter((value): value is NormalizedPath => value !== null);
+
 
   // SECURITY: dedupe AND enforce that every object lives under this workspace's
   // UUID prefix. Service role bypasses RLS, so this is the only safety net.
