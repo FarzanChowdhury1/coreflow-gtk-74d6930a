@@ -116,7 +116,7 @@ for f in "$MIG_DIR"/*.sql; do
   fi
 
   # 9. Mass UPDATE workspaces SET deleted_at with hard-coded UUID literal(s)
-  if echo "$body" | grep -E -iz "UPDATE[[:space:]]+(public\\.)?workspaces[[:space:]]+SET[[:space:]]+deleted_at" >/dev/null 2>&1; then
+  if echo "$body" | grep -E -iq "UPDATE[[:space:]]+(public\\.)?workspaces[[:space:]]+SET[[:space:]]+deleted_at"; then
     if echo "$body" | grep -E -q "'$UUID_RE'"; then
       reasons+=("UPDATE workspaces SET deleted_at with hard-coded workspace UUID(s)")
     fi
