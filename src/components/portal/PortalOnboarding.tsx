@@ -348,11 +348,14 @@ function TaskCard({
               <ExternalLink className="h-3.5 w-3.5" /> Link (optional)
             </label>
             <Input
+              type="url"
+              inputMode="url"
               value={formLink}
               onChange={(e) => onFormLinkChange(e.target.value)}
-              placeholder="Google Drive, Dropbox, or any URL…"
+              placeholder="https://drive.google.com/…"
               className="mt-1"
             />
+            <p className="text-xs text-muted-foreground mt-1">Use a full link starting with https://</p>
           </div>
 
           <div>
