@@ -3,8 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
 
-type Workspace = Tables<"workspaces">;
+// Workspace as exposed to non-admin members. The sensitive doc_* / banking
+// columns are admin-only (read via the get_workspace_doc_identity RPC) and
+// are intentionally optional/absent on this client-side type.
+type Workspace = Partial<Tables<"workspaces">> & Pick<Tables<"workspaces">, "id" | "name">;
 type Membership = Tables<"workspace_memberships">;
+
 
 interface WorkspaceContextType {
   workspaces: Workspace[];
