@@ -1,10 +1,1 @@
-project_id = "pizujmmyhhebizxexwvi"
-
-[functions.process-email-queue]
-verify_jwt = true
-
-[functions.auth-email-hook]
-verify_jwt = false
-
-[functions.regression-proof-test]
-verify_jwt = false
+project_id = "efhsckzltglpygmwezhj"
